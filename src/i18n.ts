@@ -284,6 +284,14 @@ const resources = {
         export_button: 'Exportar para CSV',
         start_date: 'Data de Início',
         end_date: 'Data de Fim'
+      },
+      terms_page: {
+        title: 'Termos de Serviço e Política de Privacidade',
+        back: 'Voltar',
+        content_1: 'Bem-vindo ao PsychePortal.',
+        content_2: 'Aviso Importante: Esta plataforma é um projeto ainda em desenvolvimento contínuo (fase de testes) e não deve ser utilizada como ferramenta principal para fins profissionais, clínicos ou comerciais.',
+        content_3: 'O armazenamento, o gerenciamento e o cuidado com os dados sensíveis registrados através do portal são de total e exclusiva responsabilidade do usuário e, posteriormente, do Google Drive e da infraestrutura de nuvem do Google utilizada.',
+        content_4: 'Ao utilizar o sistema, o usuário reconhece e concorda que a equipe de desenvolvimento do PsychePortal não se responsabiliza por eventuais perdas de dados, vazamentos de informações, interrupções ou indisponibilidade do serviço.'
       }
     }
   },
@@ -568,6 +576,14 @@ const resources = {
         export_button: 'Export to CSV',
         start_date: 'Start Date',
         end_date: 'End Date'
+      },
+      terms_page: {
+        title: 'Terms of Service & Privacy Policy',
+        back: 'Back',
+        content_1: 'Welcome to PsychePortal.',
+        content_2: 'Important Notice: This platform is a project still in continuous development (testing phase) and should not be used as the primary tool for professional, clinical, or commercial purposes.',
+        content_3: 'The storage, management, and care of the sensitive data registered through the portal is the sole and exclusive responsibility of the user and, subsequently, of Google Drive and the Google cloud infrastructure used.',
+        content_4: 'By using the system, the user acknowledges and agrees that the PsychePortal development team is not responsible for any data loss, information leaks, interruptions, or service unavailability.'
       }
     }
   }
