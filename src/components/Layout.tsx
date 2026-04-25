@@ -76,7 +76,7 @@ export default function Layout() {
             </div>
             <div className="flex items-center gap-2">
               <Link 
-                to="/settings" 
+                to="/app/settings" 
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-lg text-[12px] font-bold transition-colors"
                 onClick={() => setAuthError(null)}
               >

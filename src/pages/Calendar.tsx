@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db, auth } from '../firebase';
-import { useAuthState } from 'react-firebase-hooks/auth';
+import React, { useState } from 'react';
 import { Calendar as BigCalendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { ptBR, enUS } from 'date-fns/locale';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useTranslation } from 'react-i18next';
-import { handleFirestoreError, OperationType } from '../lib/error-handler';
 import { useNavigate } from 'react-router-dom';
 import { NewSessionModal } from '../components/NewSessionModal';
+import { usePatients } from '../hooks/usePatients';
+import { useAllSessions } from '../hooks/useAllSessions';
+import { auth } from '../firebase';
+import { useAuthState } from 'react-firebase-hooks/auth';
 
 const locales = {
   'en': enUS,
@@ -28,49 +28,36 @@ export default function Calendar() {
   const [user] = useAuthState(auth);
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const [sessions, setSessions] = useState<any[]>([]);
-  const [patients, setPatients] = useState<Record<string, any>>({});
+  
+  const { patients, loading: patientsLoading } = usePatients();
+  const { sessions, loading: sessionsLoading } = useAllSessions();
+
   const [view, setView] = useState<any>(Views.MONTH);
   const [date, setDate] = useState(new Date());
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [modalInitialDate, setModalInitialDate] = useState<Date | undefined>(undefined);
 
-  useEffect(() => {
-    if (!user) return;
+  const patientMap = Object.fromEntries(patients.map(p => [p.id, p]));
 
-    const fetchPatients = async () => {
-      const q = query(collection(db, 'patients'), where('psychologistId', '==', user.uid));
-      const unsubscribe = onSnapshot(q, (snap) => {
-        const patientMap: Record<string, any> = {};
-        snap.docs.forEach(doc => {
-          patientMap[doc.id] = doc.data();
-        });
-        setPatients(patientMap);
-      });
-      return unsubscribe;
-    };
-    
-    fetchPatients();
-
-    const q = query(collection(db, 'sessions'), where('psychologistId', '==', user.uid));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setSessions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'sessions'));
-
-    return () => unsubscribe();
-  }, [user]);
+  if (patientsLoading || sessionsLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="w-8 h-8 border-2 border-primary-custom/30 border-t-primary-custom rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   const events = sessions
     .filter(session => session.status !== 'cancelled')
     .map(session => {
-    const date = session.date?.toDate ? session.date.toDate() : new Date(session.date);
-    const endDate = new Date(date.getTime() + 60 * 60 * 1000); // 1 hour duration
-    const patientName = patients[session.patientId]?.name || 'Unknown Patient';
+    const sessionDate = (session.date as any)?.toDate ? (session.date as any).toDate() : new Date(session.date as any);
+    const endDate = new Date(sessionDate.getTime() + 60 * 60 * 1000); // 1 hour duration
+    const patientName = patientMap[session.patientId]?.name || 'Unknown Patient';
     
     return {
       id: session.id,
       title: `${patientName} - ${t(`session_status.${session.status}`)}`,
-      start: date,
+      start: sessionDate,
       end: endDate,
       resource: session,
     };
@@ -101,7 +88,7 @@ export default function Calendar() {
   };
 
   const handleSelectEvent = (event: any) => {
-    navigate(`/patients/${event.resource.patientId}`);
+    navigate(`/app/patients/${event.resource.patientId}`);
   };
 
   const handleSelectSlot = (slotInfo: { start: Date; end: Date; action: string }) => {
@@ -160,7 +147,7 @@ export default function Calendar() {
           setModalInitialDate(undefined);
         }}
         userId={user?.uid}
-        patients={Object.values(patients)}
+        patients={patients}
         preselectedDate={modalInitialDate}
       />
     </div>

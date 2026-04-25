@@ -19,28 +19,28 @@ export default function Sidebar() {
   const { t, i18n } = useTranslation();
 
   const navItems = [
-    { icon: LayoutDashboard, label: t('sidebar.dashboard'), path: '/' },
+    { icon: LayoutDashboard, label: t('sidebar.dashboard'), path: '/app' },
     { 
       icon: Users, 
       label: t('sidebar.patients'), 
-      path: '/patients',
+      path: '/app/patients',
       subItems: [
-        { label: t('sidebar.add_patients'), path: '/patients?action=add' },
-        { label: t('sidebar.show_patients'), path: '/patients' }
+        { label: t('sidebar.add_patients'), path: '/app/patients?action=add' },
+        { label: t('sidebar.show_patients'), path: '/app/patients' }
       ]
     },
     { 
       icon: Calendar, 
       label: t('sidebar.calendar'), 
-      path: '/calendar',
+      path: '/app/calendar',
       subItems: [
-        { label: t('sidebar.entire_calendar'), path: '/calendar' },
-        { label: t('sidebar.sessions_by_day'), path: '/calendar/daily' }
+        { label: t('sidebar.entire_calendar'), path: '/app/calendar' },
+        { label: t('sidebar.sessions_by_day'), path: '/app/calendar/daily' }
       ]
     },
-    { icon: History, label: t('sidebar.sessions'), path: '/sessions' },
-    { icon: DollarSign, label: t('sidebar.finance'), path: '/finance' },
-    { icon: Settings, label: t('sidebar.settings'), path: '/settings' },
+    { icon: History, label: t('sidebar.sessions'), path: '/app/sessions' },
+    { icon: DollarSign, label: t('sidebar.finance'), path: '/app/finance' },
+    { icon: Settings, label: t('sidebar.settings'), path: '/app/settings' },
   ];
 
   const handleLogout = async () => {
@@ -72,7 +72,7 @@ export default function Sidebar() {
             <div key={item.path} className="relative group">
               <NavLink
                 to={item.path}
-                end={item.path === '/'}
+                end={item.path === '/app'}
                 className={({ isActive }) => cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-md text-[14px] transition-all duration-200",
                   isActive 

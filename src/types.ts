@@ -10,9 +10,29 @@ export interface Patient {
   phone: string;
   dateOfBirth: string;
   gender: string;
-  address: string;
-  emergencyContact: string;
-  notes: string;
+  address?: {
+    country: string;
+    zipCode: string;
+    city: string;
+    state: string;
+    street: string;
+    number: string;
+    complement?: string;
+    neighborhood: string;
+  };
+  education?: string;
+  ethnicity?: string;
+  financialPlan?: string;
+  financialValue?: string;
+  anamnesis?: {
+    chiefComplaint: string;
+    medicalHistory: string;
+    psychiatricHistory: string;
+    familyHistory: string;
+    medications: string;
+    substanceUse: string;
+  };
+  notes?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -25,10 +45,11 @@ export interface Session {
   duration: number; // in minutes
   type: 'individual' | 'group' | 'family' | 'couple';
   status: 'scheduled' | 'completed' | 'cancelled' | 'no-show';
-  notes: string;
-  summary?: string;
-  plan?: string;
-  createdAt: string;
+  notes?: string;
+  attachments?: { name: string; url: string; size: number }[];
+  googleEventId?: string;
+  paymentStatus?: string;
+  createdAt?: any;
 }
 
 export interface Appointment {
