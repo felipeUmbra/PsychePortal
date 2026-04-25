@@ -36,7 +36,7 @@ const resources = {
         error_fallback: 'Falha no login. Tente novamente.',
         sign_in: 'Entrar com o Google',
         secure_text_1: 'Espaço de trabalho seguro e de nível clínico para profissionais de saúde mental. Ao fazer login, você concorda com nossos ',
-        terms: 'Termos',
+        terms: 'Termos e Política de Privacidade',
         secure_text_2: '.',
         system_status: 'Sistema Operacional'
       },
@@ -328,7 +328,7 @@ const resources = {
         error_fallback: 'Login failed. Please try again.',
         sign_in: 'Sign in with Google',
         secure_text_1: 'Secure, clinical-grade workspace for mental health professionals. By signing in, you agree to our ',
-        terms: 'Terms',
+        terms: 'Terms and Privacy Policy',
         secure_text_2: '.',
         system_status: 'System Operational'
       },

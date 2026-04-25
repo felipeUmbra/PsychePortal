@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -58,7 +58,7 @@ export default function Login() {
         });
       }
 
-      navigate('/');
+      navigate('/app');
     } catch (err: any) {
       console.error('Login failed:', err);
       // Don't show error if user just closed the popup
@@ -112,7 +112,7 @@ export default function Login() {
         <div className="mt-10 pt-8 border-t border-border-custom">
           <p className="text-[12px] text-text-muted font-medium leading-relaxed">
             {t('login.secure_text_1')}
-            <span onClick={() => navigate('/terms')} className="text-primary-custom cursor-pointer hover:underline">{t('login.terms')}</span>
+            <Link to="/terms" className="text-primary-custom hover:underline">{t('login.terms')}</Link>
             {t('login.secure_text_2')}
           </p>
         </div>
