@@ -1,0 +1,91 @@
+{
+  "entities": {
+    "Patient": {
+      "title": "Patient",
+      "description": "A patient registered in the psychologist's portal.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "dateOfBirth": { "type": "string", "format": "date" },
+        "gender": { "type": "string" },
+        "address": { "type": "string" },
+        "emergencyContact": { "type": "string" },
+        "notes": { "type": "string" },
+        "psychologistId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "email", "psychologistId"]
+    },
+    "Session": {
+      "title": "Session",
+      "description": "A therapy session with a patient.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "patientId": { "type": "string" },
+        "psychologistId": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "duration": { "type": "number" },
+        "type": { "type": "string", "enum": ["individual", "group", "family", "couple"] },
+        "status": { "type": "string", "enum": ["scheduled", "completed", "cancelled", "no_show"] },
+        "paymentStatus": { "type": "string", "enum": ["pending", "paid"] },
+        "notes": { "type": "string" },
+        "summary": { "type": "string" },
+        "plan": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["patientId", "psychologistId", "date", "status"]
+    },
+    "Appointment": {
+      "title": "Appointment",
+      "description": "A calendar appointment.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "patientId": { "type": "string" },
+        "psychologistId": { "type": "string" },
+        "start": { "type": "string", "format": "date-time" },
+        "end": { "type": "string", "format": "date-time" },
+        "title": { "type": "string" },
+        "status": { "type": "string", "enum": ["confirmed", "pending", "cancelled"] }
+      },
+      "required": ["patientId", "psychologistId", "start", "end", "title"]
+    },
+    "Psychologist": {
+      "title": "Psychologist",
+      "description": "A psychologist user of the portal.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "specialization": { "type": "array", "items": { "type": "string" } },
+        "bio": { "type": "string" },
+        "avatarUrl": { "type": "string", "format": "uri" }
+      },
+      "required": ["name", "email"]
+    }
+  },
+  "firestore": {
+    "/patients/{patientId}": {
+      "schema": "Patient",
+      "description": "Collection of patients."
+    },
+    "/sessions/{sessionId}": {
+      "schema": "Session",
+      "description": "Collection of therapy sessions."
+    },
+    "/appointments/{appointmentId}": {
+      "schema": "Appointment",
+      "description": "Collection of calendar appointments."
+    },
+    "/psychologists/{psychologistId}": {
+      "schema": "Psychologist",
+      "description": "Psychologist profiles."
+    }
+  }
+}

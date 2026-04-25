@@ -1,0 +1,140 @@
+import React from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { 
+  LayoutDashboard, 
+  Users, 
+  Calendar, 
+  History, 
+  Settings, 
+  LogOut,
+  Languages,
+  DollarSign
+} from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { auth } from '../firebase';
+import { cn } from '../lib/utils';
+
+export default function Sidebar() {
+  const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+
+  const navItems = [
+    { icon: LayoutDashboard, label: t('sidebar.dashboard'), path: '/' },
+    { 
+      icon: Users, 
+      label: t('sidebar.patients'), 
+      path: '/patients',
+      subItems: [
+        { label: t('sidebar.add_patients'), path: '/patients?action=add' },
+        { label: t('sidebar.show_patients'), path: '/patients' }
+      ]
+    },
+    { 
+      icon: Calendar, 
+      label: t('sidebar.calendar'), 
+      path: '/calendar',
+      subItems: [
+        { label: t('sidebar.entire_calendar'), path: '/calendar' },
+        { label: t('sidebar.sessions_by_day'), path: '/calendar/daily' }
+      ]
+    },
+    { icon: History, label: t('sidebar.sessions'), path: '/sessions' },
+    { icon: DollarSign, label: t('sidebar.finance'), path: '/finance' },
+    { icon: Settings, label: t('sidebar.settings'), path: '/settings' },
+  ];
+
+  const handleLogout = async () => {
+    await auth.signOut();
+    navigate('/login');
+  };
+
+  const toggleLanguage = () => {
+    const newLang = i18n.language.startsWith('pt') ? 'en' : 'pt';
+    i18n.changeLanguage(newLang);
+  };
+
+  return (
+    <aside className="w-60 bg-[#fcfdfe] border-r border-border-custom flex flex-col h-screen sticky top-0 z-50">
+      <div className="h-16 flex items-center gap-3 px-6 border-b border-border-custom shrink-0">
+        <div className="w-8 h-8 bg-primary-custom rounded-sm flex items-center justify-center shadow-sm">
+          <Users className="text-white w-5 h-5" />
+        </div>
+        <div className="flex flex-col">
+          <span className="text-sm font-bold text-text-main leading-tight">PsychePortal</span>
+          <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider w-fit">{t('sidebar.active')}</span>
+        </div>
+      </div>
+
+      <div className="flex-1 px-3 py-6 overflow-visible">
+        <div className="text-[11px] uppercase text-text-muted font-bold tracking-wider mb-3 px-3">{t('sidebar.practice_management')}</div>
+        <nav className="space-y-1">
+          {navItems.map((item) => (
+            <div key={item.path} className="relative group">
+              <NavLink
+                to={item.path}
+                end={item.path === '/'}
+                className={({ isActive }) => cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-md text-[14px] transition-all duration-200",
+                  isActive 
+                    ? "bg-accent-custom text-primary-custom font-semibold" 
+                    : "text-text-main hover:bg-bg"
+                )}
+              >
+                <item.icon className={cn(
+                  "w-4 h-4 transition-colors",
+                  "group-hover:text-primary-custom"
+                )} />
+                {item.label}
+              </NavLink>
+              
+              {item.subItems && (
+                <div className="absolute left-full top-0 pl-2 hidden group-hover:block z-50">
+                  <div className="bg-white border border-border-custom shadow-lg rounded-lg py-2 w-48">
+                    {item.subItems.map((subItem) => {
+                      // More precise matching for search params
+                      const isActuallyActive = window.location.pathname === subItem.path.split('?')[0] && 
+                                             (subItem.path.includes('?') 
+                                               ? window.location.search === '?' + subItem.path.split('?')[1] 
+                                               : window.location.search === '');
+
+                      return (
+                        <NavLink
+                          key={subItem.path}
+                          to={subItem.path}
+                          className={cn(
+                            "block px-4 py-2 text-[13px] text-text-main transition-all",
+                            "hover:bg-bg hover:text-primary-custom",
+                            isActuallyActive ? "text-primary-custom font-semibold bg-accent-custom/50" : ""
+                          )}
+                        >
+                          {subItem.label}
+                        </NavLink>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </nav>
+      </div>
+
+      <div className="p-3 border-t border-border-custom space-y-1">
+        <button
+          onClick={toggleLanguage}
+          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-md text-text-muted hover:bg-bg text-[14px] transition-all duration-200 group"
+        >
+          <Languages className="w-4 h-4 group-hover:text-primary-custom" />
+          {i18n.language.startsWith('pt') ? 'English' : 'Português'}
+        </button>
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-md text-text-muted hover:bg-red-50 hover:text-red-600 text-[14px] transition-all duration-200 group"
+        >
+          <LogOut className="w-4 h-4 group-hover:text-red-600" />
+          {t('sidebar.logout')}
+        </button>
+      </div>
+    </aside>
+  );
+}

@@ -1,0 +1,106 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  
+  --color-bg: #F4F6F9;
+  --color-surface: #ffffff;
+  --color-primary-custom: #4338CA;
+  --color-text-main: #0F172A;
+  --color-text-muted: #475569;
+  --color-border-custom: #CBD5E1;
+  --color-accent-custom: #EEF2FF;
+  --color-success-custom: #0891B2;
+}
+
+@layer base {
+  body {
+    @apply bg-bg text-text-main font-sans antialiased;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-surface rounded border border-border-custom p-6 shadow-sm;
+  }
+  
+  .btn-primary {
+    @apply bg-primary-custom text-white px-4 py-2 rounded-sm font-semibold hover:opacity-90 transition-all active:scale-[0.98] disabled:opacity-50;
+  }
+  
+  .btn-secondary {
+    @apply bg-surface text-text-main border border-border-custom px-4 py-2 rounded-sm font-semibold hover:bg-bg transition-all active:scale-[0.98];
+  }
+
+  .input-field {
+    @apply w-full px-4 py-2 rounded-sm border border-border-custom bg-surface text-text-main focus:outline-none focus:ring-2 focus:ring-primary-custom/20 focus:border-primary-custom transition-all;
+  }
+
+  .status-badge {
+    @apply text-[11px] px-2 py-0.5 rounded-sm font-bold uppercase tracking-wider;
+  }
+
+  /* react-big-calendar overrides */
+  .rbc-calendar {
+    @apply font-sans text-text-main;
+  }
+  .rbc-toolbar button {
+    @apply text-text-main border-border-custom hover:bg-bg transition-colors rounded-sm;
+  }
+  .rbc-toolbar button.rbc-active {
+    @apply bg-primary-custom text-white border-primary-custom shadow-sm;
+  }
+  .rbc-toolbar button:active, .rbc-toolbar button.rbc-active:hover, .rbc-toolbar button.rbc-active:focus {
+    @apply bg-blue-700 text-white border-blue-700;
+  }
+  .rbc-month-view, .rbc-time-view, .rbc-agenda-view {
+    @apply border-border-custom rounded-sm bg-surface;
+  }
+  .rbc-header {
+    @apply py-2 font-bold text-text-muted uppercase tracking-wider text-[11px] border-border-custom bg-bg;
+  }
+  .rbc-day-bg {
+    @apply border-border-custom;
+  }
+  .rbc-today {
+    @apply bg-accent-custom/30;
+  }
+  .rbc-event {
+    @apply rounded-md shadow-sm;
+  }
+  .rbc-off-range-bg {
+    @apply bg-bg/50;
+  }
+  .rbc-time-header-content {
+    @apply border-border-custom;
+  }
+  .rbc-time-content {
+    @apply border-border-custom;
+  }
+  .rbc-timeslot-group {
+    @apply border-border-custom;
+  }
+  .rbc-day-slot .rbc-time-slot {
+    @apply border-border-custom;
+  }
+
+  .prose {
+    @apply text-text-main;
+  }
+  .prose p {
+    @apply mb-4 last:mb-0;
+  }
+  .prose h1, .prose h2, .prose h3 {
+    @apply font-bold mt-6 mb-3;
+  }
+  .prose h1 { @apply text-xl; }
+  .prose h2 { @apply text-lg; }
+  .prose h3 { @apply text-base; }
+  .prose ul { @apply list-disc pl-5 mb-4; }
+  .prose ol { @apply list-decimal pl-5 mb-4; }
+  .prose li { @apply mb-1; }
+  .prose strong { @apply font-bold; }
+  .prose em { @apply italic; }
+}
+
