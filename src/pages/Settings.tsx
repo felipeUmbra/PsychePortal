@@ -55,7 +55,7 @@ export default function Settings() {
     } catch (err: any) {
       console.error('Calendar connect failed', err);
       if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
-        alert(t('settings.calendar_error', 'Failed to connect to Google Calendar.'));
+        alert(t('settings.calendar_error'));
       }
     } finally {
       setIsConnectingCalendar(false);
@@ -84,12 +84,12 @@ export default function Settings() {
         } else {
           window.location.reload();
         }
-        alert(t('settings.reauth_success', 'Drive re-authorization complete!'));
+        alert(t('settings.reauth_success'));
       }
     } catch (err: any) {
       console.error('Re-auth failed', err);
       if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
-        alert(t('settings.reauth_error', 'Drive re-authorization failed.'));
+        alert(t('settings.reauth_error'));
       }
     } finally {
       setIsReauthorizingDrive(false);
@@ -345,21 +345,21 @@ export default function Settings() {
         <section className="card">
           <h2 className="text-[16px] font-bold text-text-main mb-8 flex items-center gap-2 border-b border-border-custom pb-4">
             <CalendarDays className="w-5 h-5 text-primary-custom" />
-            {t('settings.integrations', 'Integrações')}
+            {t('settings.integrations')}
           </h2>
           
           <div className="flex items-center justify-between p-4 bg-surface border border-border-custom rounded-xl">
             <div>
               <h3 className="font-bold text-text-main text-[14px]">Google Calendar</h3>
               <p className="text-text-muted text-[13px] mt-1">
-                {t('settings.calendar_sync_desc', 'Sync your clinical sessions with Google Calendar.')}
+                {t('settings.calendar_sync_desc')}
               </p>
             </div>
             <div>
               {googleCalendarToken ? (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-success-custom/10 text-success-custom rounded-lg text-[13px] font-bold">
                   <CheckCircle2 className="w-4 h-4" />
-                  {t('settings.connected', 'Connected')}
+                  {t('settings.connected')}
                 </span>
               ) : (
                 <button 
@@ -368,7 +368,7 @@ export default function Settings() {
                   disabled={isConnectingCalendar}
                   className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary-custom text-white hover:bg-primary-custom/90 transition-colors rounded-lg text-[13px] font-bold disabled:opacity-50"
                 >
-                  {isConnectingCalendar ? <Loader2 className="w-4 h-4 animate-spin" /> : t('settings.connect', 'Connect')}
+                  {isConnectingCalendar ? <Loader2 className="w-4 h-4 animate-spin" /> : t('settings.connect')}
                 </button>
               )}
             </div>
@@ -378,7 +378,7 @@ export default function Settings() {
             <div>
               <h3 className="font-bold text-text-main text-[14px]">Google Drive (Persistência)</h3>
               <p className="text-text-muted text-[13px] mt-1">
-                {t('settings.drive_sync_desc', 'Sincroniza seus dados com uma pasta oculta no seu Google Drive.')}
+                {t('settings.drive_sync_desc')}
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -396,7 +396,7 @@ export default function Settings() {
                   }}
                   className="btn-secondary text-[12px] h-9"
                >
-                 {t('settings.force_reload', 'Forçar Recarregamento')}
+                 {t('settings.force_reload')}
                </button>
                 <button 
                   type="button"
@@ -404,7 +404,7 @@ export default function Settings() {
                   disabled={isReauthorizingDrive}
                   className="btn-primary text-[12px] h-9 min-w-[120px] flex items-center justify-center"
                 >
-                  {isReauthorizingDrive ? <Loader2 className="w-4 h-4 animate-spin" /> : t('settings.reauthorize_drive', 'Re-autorizar Drive')}
+                  {isReauthorizingDrive ? <Loader2 className="w-4 h-4 animate-spin" /> : t('settings.reauthorize_drive')}
                 </button>
             </div>
 

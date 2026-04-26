@@ -286,7 +286,17 @@ const resources = {
         export_patient_info_session: 'Informações dos pacientes com sessões pelo período',
         export_button: 'Exportar para CSV',
         start_date: 'Data de Início',
-        end_date: 'Data de Fim'
+        end_date: 'Data de Fim',
+        integrations: 'Integrações',
+        calendar_sync_desc: 'Sincronize suas sessões clínicas com o Google Calendar.',
+        connected: 'Conectado',
+        connect: 'Conectar',
+        drive_sync_desc: 'Sincroniza seus dados com uma pasta oculta no seu Google Drive.',
+        force_reload: 'Forçar Recarregamento',
+        reauthorize_drive: 'Re-autorizar Drive',
+        reauth_success: 'Re-autorização do Drive concluída!',
+        reauth_error: 'Falha na re-autorização do Drive.',
+        calendar_error: 'Falha ao conectar ao Google Calendar.'
       },
       terms_page: {
         title: 'Termos de Serviço e Política de Privacidade',
@@ -581,7 +591,17 @@ const resources = {
         export_patient_info_session: 'Patient information with sessions by period',
         export_button: 'Export to CSV',
         start_date: 'Start Date',
-        end_date: 'End Date'
+        end_date: 'End Date',
+        integrations: 'Integrations',
+        calendar_sync_desc: 'Sync your clinical sessions with Google Calendar.',
+        connected: 'Connected',
+        connect: 'Connect',
+        drive_sync_desc: 'Syncs your data with a hidden folder on your Google Drive.',
+        force_reload: 'Force Reload',
+        reauthorize_drive: 'Re-authorize Drive',
+        reauth_success: 'Drive re-authorization complete!',
+        reauth_error: 'Drive re-authorization failed.',
+        calendar_error: 'Failed to connect to Google Calendar.'
       },
       terms_page: {
         title: 'Terms of Service & Privacy Policy',
