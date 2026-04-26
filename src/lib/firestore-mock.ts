@@ -1,6 +1,15 @@
 // Mock Firestore implementation using localStorage and generic events to simulate Firebase syncing locally
 import { v4 as uuidv4 } from 'uuid';
 
+let driveToken: string | null = null;
+
+export const setDriveToken = (token: string | null) => {
+  driveToken = token;
+  if (token && !isLoaded) {
+    forceSync();
+  }
+};
+
 export const getFirestore = () => ({});
 
 // Setup mock state
@@ -98,7 +107,7 @@ const applyConditions = (items: any[], conditions: any[]) => {
 let isLoaded = false;
 let loadPromise: Promise<void> | null = null;
 export const loadFromDrive = async () => {
-    const token = localStorage.getItem('google_oauth_token');
+    const token = driveToken;
     if (!token) {
         // Fallback to local cache if no drive token yet
         const localCache = localStorage.getItem('mock_db_cache');
@@ -190,7 +199,7 @@ export const loadFromDrive = async () => {
 export const ensureLoaded = () => {
     // If we haven't successfully loaded from Drive (isLoaded is false)
     // and we now have a token, we should probably try again.
-    const token = localStorage.getItem('google_oauth_token');
+    const token = driveToken;
     if (!isLoaded && token && loadPromise) {
         // Reset promise so we can try again with the new token
         loadPromise = null;
@@ -215,7 +224,7 @@ let isSyncing = false;
 const saveToDrive = () => {
     clearTimeout(syncTimer);
     syncTimer = setTimeout(async () => {
-        const token = localStorage.getItem('google_oauth_token');
+        const token = driveToken;
         
         // Always backup to localStorage as a safety net
         if (isLoaded) {

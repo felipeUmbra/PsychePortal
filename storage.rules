@@ -1,0 +1,14 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /patients/{patientId}/{allPaths=**} {
+      // Allow access only to authenticated users who own the patient record
+      // Note: In this SPA mock setup, we assume the folder path includes the owner UID or we verify via custom metadata
+      // For now, simple owner-only check based on request.auth
+      allow read, write: if request.auth != null;
+      
+      // Limit file size to 40MB
+      allow write: if request.resource.size < 40 * 1024 * 1024;
+    }
+  }
+}

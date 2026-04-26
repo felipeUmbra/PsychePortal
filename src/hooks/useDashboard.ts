@@ -24,9 +24,20 @@ export function useDashboard() {
       try {
         const patientsSnap = await getDocs(query(collection(db, 'patients'), where('psychologistId', '==', user.uid)));
         const sessionsSnap = await getDocs(query(collection(db, 'sessions'), where('psychologistId', '==', user.uid), where('status', 'in', ['completed', 'no_show'])));
-        const scheduledSnap = await getDocs(query(collection(db, 'sessions'), where('psychologistId', '==', user.uid), where('status', '==', 'scheduled')));
-        
         const now = new Date();
+        const today = new Date(now);
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const scheduledSnap = await getDocs(query(
+          collection(db, 'sessions'), 
+          where('psychologistId', '==', user.uid), 
+          where('status', '==', 'scheduled'),
+          where('date', '>=', now),
+          where('date', '<', tomorrow)
+        ));
+        
         const currentMonth = now.getMonth();
         const currentYear = now.getFullYear();
         const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1;
@@ -81,7 +92,20 @@ export function useDashboard() {
     );
 
     const unsubscribeToday = onSnapshot(qToday, (snapshot) => {
-      if (isMounted) setTodaySessions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Session)));
+      if (isMounted) {
+        const sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Session));
+        setTodaySessions(sessions);
+        
+        // Update upcoming count for today dynamically
+        const now = new Date();
+        const upcomingCount = sessions.filter(s => {
+          if (s.status !== 'scheduled') return false;
+          const d = (s.date as any)?.toDate ? (s.date as any).toDate() : new Date(s.date);
+          return d > now;
+        }).length;
+        
+        setStats(prev => ({ ...prev, scheduled: upcomingCount }));
+      }
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'sessions'));
 
     // Listen for recent sessions

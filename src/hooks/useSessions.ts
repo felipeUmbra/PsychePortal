@@ -5,12 +5,14 @@ import { db, auth, storage } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { handleFirestoreError, OperationType } from '../lib/error-handler';
 import { Session } from '../types';
+import { useGoogleAuth } from '../context/GoogleAuthContext';
 
 export function useSessions(patientId?: string) {
   const [user] = useAuthState(auth);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
+  const { driveToken } = useGoogleAuth();
 
   useEffect(() => {
     if (!patientId || !user) {
@@ -67,7 +69,7 @@ export function useSessions(patientId?: string) {
       await updateSession(session.id, { status: 'cancelled' });
 
       if (session.googleEventId) {
-        const token = localStorage.getItem('google_oauth_token');
+        const token = driveToken;
         if (token) {
           const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${session.googleEventId}`, {
             method: 'DELETE',

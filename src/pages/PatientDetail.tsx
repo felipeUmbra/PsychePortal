@@ -14,6 +14,7 @@ import { useSessions } from '../hooks/useSessions';
 import { auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { Session } from '../types';
+import rehypeSanitize from 'rehype-sanitize';
 
 export default function PatientDetail() {
   const { id } = useParams();
@@ -244,7 +245,12 @@ export default function PatientDetail() {
                             <div className="mt-3">
                               {session.notes && (
                                 <div data-color-mode="light" className="text-text-main text-[14px]">
-                                  <MDEditor.Markdown source={session.notes} className="!bg-[#fafbfc]" style={{ fontSize: '14px' }} />
+                                  <MDEditor.Markdown 
+                                    source={session.notes} 
+                                    className="!bg-[#fafbfc]" 
+                                    style={{ fontSize: '14px' }} 
+                                    rehypePlugins={[rehypeSanitize]}
+                                  />
                                 </div>
                               )}
                               {session.attachments && session.attachments.length > 0 && (

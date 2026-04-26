@@ -4,13 +4,14 @@ import Sidebar from './Sidebar';
 import { auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { useTranslation } from 'react-i18next';
-import { LogOut, AlertTriangle, ExternalLink, X } from 'lucide-react';
+import { LogOut, AlertTriangle, ExternalLink, X, Menu } from 'lucide-react';
 
 export default function Layout() {
   const [user, loading] = useAuthState(auth);
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [authError, setAuthError] = useState<{ status: number; message?: string; service: string } | null>(null);
 
   useEffect(() => {
@@ -52,8 +53,16 @@ export default function Layout() {
   }
 
   return (
-    <div className="flex min-h-screen bg-bg">
-      <Sidebar />
+    <div className="flex min-h-screen bg-bg relative">
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      
+      {/* Mobile Backdrop */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         {authError && (
           <div className="bg-amber-50 border-b border-amber-200 px-8 py-2.5 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
@@ -92,46 +101,57 @@ export default function Layout() {
             </div>
           </div>
         )}
-        <header className="h-16 bg-surface border-b border-border-custom flex items-center justify-between px-8 shrink-0">
+        <header className="h-16 bg-surface border-b border-border-custom flex items-center justify-between px-4 sm:px-8 shrink-0">
           <div className="flex flex-col">
             <span className="text-[14px] font-semibold text-text-main">{t('layout.workspace', 'Workspace')}</span>
             <span className="text-[11px] text-text-muted uppercase tracking-wider font-bold">Workspace v1.0.4</span>
           </div>
           
-          <div className="relative">
-            <button 
-              onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              className="flex items-center gap-4 hover:opacity-80 transition-opacity"
-            >
-              <div className="flex flex-col items-end">
-                <span className="text-[13px] font-semibold text-text-main">{user.displayName}</span>
-              </div>
-              <div className="w-8 h-8 rounded-full bg-accent-custom border border-border-custom flex items-center justify-center text-[12px] font-bold text-primary-custom overflow-hidden">
-                {user.photoURL ? (
-                  <img src={user.photoURL} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                ) : (
-                  user.displayName?.charAt(0) || 'P'
-                )}
-              </div>
-            </button>
-            
-            {isUserMenuOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setIsUserMenuOpen(false)} />
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-border-custom rounded-xl shadow-lg z-50 p-2">
-                  <button 
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-red-600 hover:bg-red-50 rounded-lg transition-colors font-bold"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    {t('sidebar.logout', 'Logout')}
-                  </button>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <button 
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                className="flex items-center gap-4 hover:opacity-80 transition-opacity"
+              >
+                <div className="flex flex-col items-end hidden sm:flex">
+                  <span className="text-[13px] font-semibold text-text-main">{user.displayName}</span>
                 </div>
-              </>
-            )}
+                <div className="w-8 h-8 rounded-full bg-accent-custom border border-border-custom flex items-center justify-center text-[12px] font-bold text-primary-custom overflow-hidden">
+                  {user.photoURL ? (
+                    <img src={user.photoURL} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  ) : (
+                    user.displayName?.charAt(0) || 'P'
+                  )}
+                </div>
+              </button>
+              
+              {isUserMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsUserMenuOpen(false)} />
+                  <div className="absolute right-0 mt-2 w-48 bg-white border border-border-custom rounded-xl shadow-lg z-50 p-2">
+                    <button 
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-red-600 hover:bg-red-50 rounded-lg transition-colors font-bold"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      {t('sidebar.logout', 'Logout')}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Mobile Menu Toggle */}
+            <button 
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="lg:hidden p-2 hover:bg-bg rounded-lg text-text-muted transition-colors"
+              aria-label="Toggle Menu"
+            >
+              {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
           </div>
         </header>
-        <main className="flex-1 p-8 overflow-y-auto">
+        <main className="flex-1 p-4 sm:p-8 overflow-y-auto">
           <div className="max-w-7xl mx-auto">
             <Outlet />
           </div>

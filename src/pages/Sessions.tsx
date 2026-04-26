@@ -25,10 +25,13 @@ import ReactMarkdown from 'react-markdown';
 import MDEditor from '@uiw/react-md-editor';
 import { handleFirestoreError, OperationType } from '../lib/error-handler';
 import { cn } from '../lib/utils';
+import { useGoogleAuth } from '../context/GoogleAuthContext';
+import rehypeSanitize from 'rehype-sanitize';
 
 export default function Sessions() {
   const [user] = useAuthState(auth);
   const { t } = useTranslation();
+  const { driveToken } = useGoogleAuth();
   const [sessions, setSessions] = useState<any[]>([]);
   const [patients, setPatients] = useState<Record<string, any>>({});
   const [searchTerm, setSearchTerm] = useState('');
@@ -136,7 +139,7 @@ export default function Sessions() {
 
       // Handle cancel event in google calendar if status changed to cancelled explicitly here
       if (session && session.status !== 'cancelled' && sessionForm.status === 'cancelled' && session.googleEventId) {
-        const token = localStorage.getItem('google_oauth_token');
+        const token = driveToken;
         if (token) {
           const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${session.googleEventId}`, {
             method: 'DELETE',
@@ -287,7 +290,12 @@ export default function Sessions() {
                   <div className="mt-3">
                     {session.notes && (
                       <div data-color-mode="light" className="text-text-main text-[14px]">
-                        <MDEditor.Markdown source={session.notes} className="!bg-[#fafbfc]" style={{ fontSize: '14px' }} />
+                        <MDEditor.Markdown 
+                          source={session.notes} 
+                          className="!bg-[#fafbfc]" 
+                          style={{ fontSize: '14px' }} 
+                          rehypePlugins={[rehypeSanitize]}
+                        />
                       </div>
                     )}
                     {session.attachments && session.attachments.length > 0 && (

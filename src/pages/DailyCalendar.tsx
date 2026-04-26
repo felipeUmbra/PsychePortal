@@ -19,10 +19,12 @@ import { useNavigate } from 'react-router-dom';
 import { handleFirestoreError, OperationType } from '../lib/error-handler';
 import { cn } from '../lib/utils';
 import { NewSessionModal } from '../components/NewSessionModal';
+import { useGoogleAuth } from '../context/GoogleAuthContext';
 
 export default function Calendar() {
   const [user] = useAuthState(auth);
   const { t, i18n } = useTranslation();
+  const { driveToken } = useGoogleAuth();
   const navigate = useNavigate();
   const dateLocale = i18n.language.startsWith('pt') ? ptBR : enUS;
   
@@ -57,7 +59,7 @@ export default function Calendar() {
       await updateDoc(doc(db, 'sessions', session.id), { status: 'cancelled' });
       
       if (session.googleEventId) {
-        const token = localStorage.getItem('google_oauth_token');
+        const token = driveToken;
         if (token) {
           const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${session.googleEventId}`, {
             method: 'DELETE',

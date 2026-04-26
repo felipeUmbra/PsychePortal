@@ -11,10 +11,12 @@ import DailyCalendar from './pages/DailyCalendar';
 import Sessions from './pages/Sessions';
 import Finance from './pages/Finance';
 import Settings from './pages/Settings';
+import { GoogleAuthProvider } from './context/GoogleAuthContext';
 
 export default function App() {
   return (
-    <Router>
+    <GoogleAuthProvider>
+      <Router>
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/terms" element={<Terms />} />
@@ -31,5 +33,6 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
+    </GoogleAuthProvider>
   );
 }

@@ -13,8 +13,14 @@ import {
 import { useTranslation } from 'react-i18next';
 import { auth } from '../firebase';
 import { cn } from '../lib/utils';
+import { X } from 'lucide-react';
 
-export default function Sidebar() {
+interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
 
@@ -54,15 +60,28 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="w-60 bg-[#fcfdfe] border-r border-border-custom flex flex-col h-screen sticky top-0 z-50">
-      <div className="h-16 flex items-center gap-3 px-6 border-b border-border-custom shrink-0">
-        <div className="w-8 h-8 bg-primary-custom rounded-sm flex items-center justify-center shadow-sm">
-          <Users className="text-white w-5 h-5" />
+    <aside className={cn(
+      "w-60 bg-[#fcfdfe] border-r border-border-custom flex flex-col h-screen fixed lg:relative lg:translate-x-0 top-0 z-50 transition-transform duration-300 ease-in-out",
+      isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"
+    )}>
+      <div className="h-16 flex items-center justify-between gap-3 px-6 border-b border-border-custom shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-primary-custom rounded-sm flex items-center justify-center shadow-sm">
+            <Users className="text-white w-5 h-5" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-sm font-bold text-text-main leading-tight">PsychePortal</span>
+            <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider w-fit">{t('sidebar.active')}</span>
+          </div>
         </div>
-        <div className="flex flex-col">
-          <span className="text-sm font-bold text-text-main leading-tight">PsychePortal</span>
-          <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider w-fit">{t('sidebar.active')}</span>
-        </div>
+        
+        {/* Mobile Close Button */}
+        <button 
+          onClick={onClose}
+          className="lg:hidden p-1.5 hover:bg-bg rounded-lg text-text-muted"
+        >
+          <X className="w-5 h-5" />
+        </button>
       </div>
 
       <div className="flex-1 px-3 py-6 overflow-visible">
@@ -70,16 +89,19 @@ export default function Sidebar() {
         <nav className="space-y-1">
           {navItems.map((item) => (
             <div key={item.path} className="relative group">
-              <NavLink
-                to={item.path}
-                end={item.path === '/app'}
-                className={({ isActive }) => cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-md text-[14px] transition-all duration-200",
-                  isActive 
-                    ? "bg-accent-custom text-primary-custom font-semibold" 
-                    : "text-text-main hover:bg-bg"
-                )}
-              >
+                <NavLink
+                  to={item.path}
+                  end={item.path === '/app'}
+                  onClick={() => {
+                    if (window.innerWidth < 1024) onClose();
+                  }}
+                  className={({ isActive }) => cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-md text-[14px] transition-all duration-200",
+                    isActive 
+                      ? "bg-accent-custom text-primary-custom font-semibold" 
+                      : "text-text-main hover:bg-bg"
+                  )}
+                >
                 <item.icon className={cn(
                   "w-4 h-4 transition-colors",
                   "group-hover:text-primary-custom"

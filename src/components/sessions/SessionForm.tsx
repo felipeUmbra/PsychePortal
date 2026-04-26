@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
 import MDEditor from '@uiw/react-md-editor';
 import { Paperclip, X, Loader2 } from 'lucide-react';
+import rehypeSanitize from 'rehype-sanitize';
 
 interface SessionFormProps {
   initialData?: any;
@@ -121,6 +122,9 @@ export function SessionForm({
             preview="edit"
             height={300}
             className="border border-border-custom rounded-xl overflow-hidden"
+            previewOptions={{
+              rehypePlugins: [[rehypeSanitize]],
+            }}
           />
         </div>
 

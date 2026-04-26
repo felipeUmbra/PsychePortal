@@ -6,6 +6,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { Users, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
+import { useGoogleAuth } from '../context/GoogleAuthContext';
 
 export const googleScopes = [
   'openid',
@@ -19,6 +20,7 @@ export const googleScopes = [
 export default function Login() {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { setDriveToken, setCalendarToken } = useGoogleAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,7 +30,8 @@ export default function Login() {
     setIsLoading(true);
     setError(null);
     try {
-      localStorage.removeItem('google_oauth_token');
+      setDriveToken(null);
+      setCalendarToken(null);
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'consent' });
       googleScopes.forEach(scope => provider.addScope(scope));
@@ -39,7 +42,8 @@ export default function Login() {
       // Save the OAuth token for Google APIs
       const credential = GoogleAuthProvider.credentialFromResult(result);
       if (credential?.accessToken) {
-        localStorage.setItem('google_oauth_token', credential.accessToken);
+        setDriveToken(credential.accessToken);
+        setCalendarToken(credential.accessToken);
       }
 
       // Check if psychologist profile exists, if not create it

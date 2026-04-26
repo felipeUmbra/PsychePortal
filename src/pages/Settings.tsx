@@ -19,10 +19,12 @@ import { handleFirestoreError, OperationType } from '../lib/error-handler';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import Papa from 'papaparse';
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { useGoogleAuth } from '../context/GoogleAuthContext';
 
 export default function Settings() {
   const [user] = useAuthState(auth);
   const { t } = useTranslation();
+  const { driveToken, calendarToken, setDriveToken, setCalendarToken } = useGoogleAuth();
   const [profile, setProfile] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -35,7 +37,7 @@ export default function Settings() {
   const [isConnectingCalendar, setIsConnectingCalendar] = useState(false);
   const [isReauthorizingDrive, setIsReauthorizingDrive] = useState(false);
   
-  const googleCalendarToken = localStorage.getItem('google_calendar_token');
+  const googleCalendarToken = calendarToken;
 
   const handleConnectCalendar = async () => {
     if (isConnectingCalendar) return;
@@ -46,10 +48,9 @@ export default function Settings() {
       const result = await signInWithPopup(auth, provider);
       const credential = GoogleAuthProvider.credentialFromResult(result);
       if (credential?.accessToken) {
-        localStorage.setItem('google_calendar_token', credential.accessToken);
-        // Also update health check for drive
-        localStorage.setItem('google_oauth_token', credential.accessToken);
-        window.location.reload();
+        setCalendarToken(credential.accessToken);
+        // Also update health check for drive if scopes match
+        setDriveToken(credential.accessToken);
       }
     } catch (err: any) {
       console.error('Calendar connect failed', err);
@@ -65,7 +66,7 @@ export default function Settings() {
     if (isReauthorizingDrive) return;
     setIsReauthorizingDrive(true);
     try {
-      localStorage.removeItem('google_oauth_token');
+      setDriveToken(null);
       const { googleScopes } = await import('./Login');
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'consent' });
@@ -74,7 +75,7 @@ export default function Settings() {
       const result = await signInWithPopup(auth, provider);
       const credential = GoogleAuthProvider.credentialFromResult(result);
       if (credential?.accessToken) {
-        localStorage.setItem('google_oauth_token', credential.accessToken);
+        setDriveToken(credential.accessToken);
         setProfile(null);
         const mock = await import('firebase/firestore') as any;
         if (mock.forceSync) {
