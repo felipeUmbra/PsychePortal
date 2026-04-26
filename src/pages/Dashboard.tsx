@@ -109,7 +109,7 @@ export default function Dashboard() {
                         <h3 className="text-[15px] font-semibold text-text-main">{patientMap[session.patientId]?.name || 'Unknown Patient'}</h3>
                         <p className="text-[13px] text-text-muted flex items-center gap-1">
                           <Clock className="w-3.5 h-3.5" />
-                          1 hour session • {t(`session_status.${session.status}`)}
+                          {t('dashboard.one_hour_session')} • {t(`session_status.${session.status}`)}
                         </p>
                       </div>
                       <Link to={`/app/patients/${session.patientId}`} className="p-2 rounded-sm hover:bg-surface text-text-muted hover:text-primary-custom transition-all">

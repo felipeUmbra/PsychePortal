@@ -29,7 +29,9 @@ const resources = {
         no_events: 'Nenhum evento neste período.',
         show_notes: 'Mostrar Notas',
         hide_notes: 'Ocultar Notas',
-        date_time: 'Data e Hora'
+        date_time: 'Data e Hora',
+        hour: 'hora',
+        hours: 'horas'
       },
       login: {
         title: 'Seu espaço profissional para gestão em psicologia clínica.',
@@ -112,6 +114,7 @@ const resources = {
         add_patient: 'Add Paciente',
         schedule: 'Agendar',
         no_appts_today: 'Nenhuma consulta agendada para hoje.',
+        one_hour_session: 'Sessão de 1 hora',
       },
       patients: {
         title: 'Diretório de Pacientes',
@@ -352,6 +355,8 @@ const resources = {
         psychologist: 'Psychologist',
         auth_missing_scopes: 'Access Denied: Please make sure to CHECK ALL BOXES on the Google screen during authorization.',
         auth_expired: 'Your Google session has expired or permissions were revoked.',
+        hour: 'hour',
+        hours: 'hours'
       },
       finance: {
         title: 'Financial',
@@ -404,6 +409,7 @@ const resources = {
         add_patient: 'Add Patient',
         schedule: 'Schedule',
         no_appts_today: 'No appointments scheduled for today.',
+        one_hour_session: '1 hour session',
       },
       patients: {
         title: 'Patient Directory',
