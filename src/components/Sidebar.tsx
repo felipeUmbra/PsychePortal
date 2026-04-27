@@ -1,10 +1,10 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Calendar, 
-  History, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Users,
+  Calendar,
+  History,
+  Settings,
   LogOut,
   Languages,
   DollarSign
@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { auth } from '../firebase';
 import { cn } from '../lib/utils';
 import { X } from 'lucide-react';
+import { changeLanguage } from '../i18n';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -25,18 +26,18 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const navItems = [
     { icon: LayoutDashboard, label: t('sidebar.dashboard'), path: '/app' },
-    { 
-      icon: Users, 
-      label: t('sidebar.patients'), 
+    {
+      icon: Users,
+      label: t('sidebar.patients'),
       path: '/app/patients',
       subItems: [
         { label: t('sidebar.add_patients'), path: '/app/patients?action=add' },
         { label: t('sidebar.show_patients'), path: '/app/patients' }
       ]
     },
-    { 
-      icon: Calendar, 
-      label: t('sidebar.calendar'), 
+    {
+      icon: Calendar,
+      label: t('sidebar.calendar'),
       path: '/app/calendar',
       subItems: [
         { label: t('sidebar.entire_calendar'), path: '/app/calendar' },
@@ -53,9 +54,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     navigate('/login');
   };
 
-  const toggleLanguage = () => {
+  const toggleLanguage = async () => {
     const newLang = i18n.language.startsWith('pt') ? 'en' : 'pt';
-    i18n.changeLanguage(newLang);
+    await changeLanguage(newLang);
   };
 
   return (
@@ -73,9 +74,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider w-fit">{t('sidebar.active')}</span>
           </div>
         </div>
-        
+
         {/* Mobile Close Button */}
-        <button 
+        <button
           onClick={onClose}
           className="lg:hidden p-1.5 hover:bg-bg rounded-lg text-text-muted"
           aria-label={t('common.close', 'Close')}
@@ -89,35 +90,35 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         <nav className="space-y-1">
           {navItems.map((item) => (
             <div key={item.path} className="relative group">
-                <NavLink
-                  to={item.path}
-                  end={item.path === '/app'}
-                  onClick={() => {
-                    if (window.innerWidth < 1024) onClose();
-                  }}
-                  className={({ isActive }) => cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-md text-[14px] transition-all duration-200",
-                    isActive 
-                      ? "bg-accent-custom text-primary-custom font-semibold" 
-                      : "text-text-main hover:bg-bg"
-                  )}
-                >
+              <NavLink
+                to={item.path}
+                end={item.path === '/app'}
+                onClick={() => {
+                  if (window.innerWidth < 1024) onClose();
+                }}
+                className={({ isActive }) => cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-md text-[14px] transition-all duration-200",
+                  isActive
+                    ? "bg-accent-custom text-primary-custom font-semibold"
+                    : "text-text-main hover:bg-bg"
+                )}
+              >
                 <item.icon className={cn(
                   "w-4 h-4 transition-colors",
                   "group-hover:text-primary-custom"
                 )} />
                 {item.label}
               </NavLink>
-              
+
               {item.subItems && (
                 <div className="absolute left-full top-0 pl-2 hidden lg:group-hover:block z-50">
                   <div className="bg-white border border-border-custom shadow-lg rounded-lg py-2 w-48">
                     {item.subItems.map((subItem) => {
                       // More precise matching for search params
-                      const isActuallyActive = window.location.pathname === subItem.path.split('?')[0] && 
-                                             (subItem.path.includes('?') 
-                                               ? window.location.search === '?' + subItem.path.split('?')[1] 
-                                               : window.location.search === '');
+                      const isActuallyActive = window.location.pathname === subItem.path.split('?')[0] &&
+                        (subItem.path.includes('?')
+                          ? window.location.search === '?' + subItem.path.split('?')[1]
+                          : window.location.search === '');
 
                       return (
                         <NavLink
