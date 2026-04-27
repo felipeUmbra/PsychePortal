@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { format } from 'date-fns';
-import { Users, Search, Plus, Filter, MoreVertical, Mail, Phone, Calendar, ChevronRight } from 'lucide-react';
+import { Search, Plus, Filter, MoreVertical, Mail, Phone, Calendar, ChevronRight } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { usePatients } from '../hooks/usePatients';
 import { PatientForm } from '../components/patients/PatientForm';

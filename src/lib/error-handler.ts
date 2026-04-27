@@ -6,7 +6,6 @@ export enum OperationType {
   DELETE = 'delete',
   LIST = 'list',
   GET = 'get',
-  WRITE = 'write',
 }
 
 export interface FirestoreErrorInfo {

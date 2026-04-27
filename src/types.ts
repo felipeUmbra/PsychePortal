@@ -52,16 +52,6 @@ export interface Session {
   createdAt?: any;
 }
 
-export interface Appointment {
-  id: string;
-  patientId: string;
-  psychologistId: string;
-  start: string;
-  end: string;
-  title: string;
-  status: 'confirmed' | 'pending' | 'cancelled';
-}
-
 export interface Psychologist {
   id: string;
   name: string;

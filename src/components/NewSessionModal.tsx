@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { addDoc, collection } from 'firebase/firestore';
-import { Repeat, Calendar as CalendarIcon, Clock, Plus, Trash2 } from 'lucide-react';
+import { Repeat, Plus, Trash2 } from 'lucide-react';
 import { auth, db } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/error-handler';
 import { cn } from '../lib/utils';

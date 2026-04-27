@@ -1,19 +1,17 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, orderBy, updateDoc, doc, getDocs } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { 
   DollarSign, 
   Search, 
-  Filter,
   CheckCircle2,
   Clock,
   TrendingUp,
-  Calendar,
   Users
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { format, isSameDay, isSameWeek, isSameMonth, isSameYear, parseISO } from 'date-fns';
+import { format, isSameDay, isSameWeek, isSameMonth, isSameYear } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { handleFirestoreError, OperationType } from '../lib/error-handler';
 import { cn } from '../lib/utils';

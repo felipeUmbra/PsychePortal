@@ -117,6 +117,7 @@ export default function Calendar() {
             eventPropGetter={eventStyleGetter}
             onSelectEvent={handleSelectEvent}
             selectable
+            longPressThreshold={10}
             onSelectSlot={handleSelectSlot}
             view={view}
             onView={setView}

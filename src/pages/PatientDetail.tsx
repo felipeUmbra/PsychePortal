@@ -13,7 +13,6 @@ import { usePatient } from '../hooks/usePatients';
 import { useSessions } from '../hooks/useSessions';
 import { auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { Session } from '../types';
 import rehypeSanitize from 'rehype-sanitize';
 
 export default function PatientDetail() {

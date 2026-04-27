@@ -7,10 +7,8 @@ import {
   History, 
   Search, 
   Filter,
-  FileText,
   Calendar,
   Clock,
-  User,
   ChevronRight,
   Edit3,
   X,
@@ -21,7 +19,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import ReactMarkdown from 'react-markdown';
 import MDEditor from '@uiw/react-md-editor';
 import { handleFirestoreError, OperationType } from '../lib/error-handler';
 import { cn } from '../lib/utils';

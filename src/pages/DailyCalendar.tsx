@@ -8,10 +8,9 @@ import {
   Plus, 
   ChevronLeft, 
   ChevronRight,
-  User,
   X
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addHours, setHours, setMinutes, setSeconds, setMilliseconds } from 'date-fns';
 import { ptBR, enUS } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
@@ -229,9 +228,12 @@ export default function Calendar() {
                           );
                         })
                       ) : (
-                        <button onClick={() => handleSlotClick(hour)} className="absolute inset-0 w-full h-full flex items-center justify-center opacity-0 hover:opacity-100 hover:bg-primary-custom/5 transition-all text-primary-custom gap-2 font-bold text-[13px] z-10 cursor-pointer">
+                        <button 
+                          onClick={() => handleSlotClick(hour)} 
+                          className="absolute inset-0 w-full h-full flex items-center justify-center lg:opacity-0 lg:hover:opacity-100 bg-primary-custom/5 lg:bg-transparent lg:hover:bg-primary-custom/5 transition-all text-primary-custom gap-2 font-bold text-[13px] z-10 cursor-pointer"
+                        >
                           <Plus className="w-4 h-4" />
-                          {t('calendar.schedule_session', 'Schedule Session')}
+                          <span className="lg:inline">{t('calendar.schedule_session', 'Schedule Session')}</span>
                         </button>
                       )}
                     </div>
