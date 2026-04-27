@@ -31,10 +31,10 @@ export default function Dashboard() {
   const patientMap = Object.fromEntries(patients.map(p => [p.id, p]));
 
   const statCards = [
-    { label: t('dashboard.total_patients'), value: stats.patients, icon: Users, color: 'bg-primary-custom' },
-    { label: t('dashboard.total_sessions'), value: stats.sessions, icon: History, color: 'bg-primary-custom' },
-    { label: t('dashboard.upcoming_appts'), value: stats.scheduled, icon: CalendarIcon, color: 'bg-success-custom' },
-    { label: t('dashboard.growth'), value: stats.growth, icon: TrendingUp, color: 'bg-amber-500' },
+    { label: t('dashboard.total_patients'), value: stats.patients, icon: Users, color: 'bg-primary-custom', link: '/app/patients' },
+    { label: t('dashboard.total_sessions'), value: stats.sessions, icon: History, color: 'bg-primary-custom', link: '/app/sessions' },
+    { label: t('dashboard.upcoming_appts'), value: stats.scheduled, icon: CalendarIcon, color: 'bg-success-custom', link: '/app/calendar/daily' },
+    { label: t('dashboard.growth'), value: stats.growth, icon: TrendingUp, color: 'bg-amber-500', link: '/app/finance' },
   ];
 
   const dateLocale = i18n.language.startsWith('pt') ? ptBR : enUS;
@@ -68,21 +68,22 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((stat, i) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
-            className="card flex items-center gap-4 bg-[#fafbfc]"
-          >
-            <div className={cn("p-2.5 rounded-lg text-white shadow-sm", stat.color)}>
-              <stat.icon className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{stat.label}</p>
-              <p className="text-2xl font-bold text-text-main">{stat.value}</p>
-            </div>
-          </motion.div>
+          <Link key={stat.label} to={stat.link} className="block h-full">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.1 }}
+              className="card flex items-center gap-4 bg-[#fafbfc] hover:bg-bg transition-colors cursor-pointer h-full"
+            >
+              <div className={cn("p-2.5 rounded-lg text-white shadow-sm", stat.color)}>
+                <stat.icon className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{stat.label}</p>
+                <p className="text-2xl font-bold text-text-main">{stat.value}</p>
+              </div>
+            </motion.div>
+          </Link>
         ))}
       </div>
 
