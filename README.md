@@ -11,23 +11,25 @@ PsychePortal is a modern, secure, and clinical-grade web application designed sp
 
 ## ✨ Key Features
 
+- **📱 PWA Support:** Fully installable as a Progressive Web App on Android and iOS devices for a native-like experience.
 - **🔐 Secure Authentication:** Google OAuth integration via Firebase Authentication.
 - **🌍 Internationalization (i18n):** Full support for Portuguese (PT-BR) and English (EN).
-- **👥 Patient Directory:** Manage patient profiles, anamnesis, financial plans, and basic demographic data.
-- **📅 Interactive Calendar:** Schedule, view, and manage daily and weekly therapy sessions with recurrence support.
-- **📝 Clinical Notes:** Markdown-supported session logging with history tracking for each patient.
-- **💰 Financial Management:** Track expected revenues, pending payments, and paid sessions natively.
-- **📊 Dashboard:** Quick overview of daily schedules, total patients, and financial growth.
-- **📤 Data Export:** Export patient and session data to CSV for external backups or reporting.
+- **👥 Patient Directory:** Manage patient profiles, anamnesis, financial plans, and demographics with quick-navigation links.
+- **📅 Interactive Calendar:** Schedule and manage sessions with Month, Week, and Daily Hourly views, plus recurrence support.
+- **📝 Clinical Notes:** Markdown-supported session logging with organized clinical history tracking.
+- **💰 Financial Management:** Real-time revenue tracking, pending payments, and revenue summaries.
+- **📊 Dashboard:** Quick overview of daily schedules, patient metrics, and clinical growth.
+- **📤 Data Export:** Export patient and session records to CSV for external reporting.
 
 ## 🛠️ Technology Stack
 
-- **Frontend Framework:** React 19 + Vite
-- **Language:** TypeScript
-- **Styling:** Tailwind CSS v4, Framer Motion (Animations), Lucide React (Icons)
-- **Routing:** React Router v7 (HashRouter for GitHub Pages compatibility)
-- **Backend & Database:** Firebase (Authentication, Firestore Database)
-- **Internationalization:** i18next & react-i18next
+- **Frontend:** React 19, Vite 6, TypeScript
+- **PWA:** `vite-plugin-pwa` (Service Workers, Manifest, Offline support)
+- **Styling:** Tailwind CSS v4, Motion (Animations), Lucide React (Icons)
+- **Routing:** React Router v7 (HashRouter for GitHub Pages)
+- **Backend:** Firebase (Authentication, Firestore Database)
+- **i18n:** i18next & react-i18next
+- **Charts:** Recharts
 - **Deployment:** GitHub Pages (`gh-pages`)
 
 ## 🚀 Getting Started Locally
