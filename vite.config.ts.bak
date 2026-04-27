@@ -7,7 +7,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   return {
-    base: '/PsychePortal/',
+    base: '/PsychePortal/', // Adicione esta linha (O nome exato do seu repositório no GitHub)
     plugins: [
       VitePWA({
         registerType: 'autoUpdate',
@@ -25,17 +25,17 @@ export default defineConfig(({ mode }) => {
           orientation: 'portrait',
           icons: [
             {
-              src: '/PsychePortal/logo.png',
+              src: 'logo.png',
               sizes: '192x192',
               type: 'image/png'
             },
             {
-              src: '/PsychePortal/logo.png',
+              src: 'logo.png',
               sizes: '512x512',
               type: 'image/png'
             },
             {
-              src: '/PsychePortal/logo.png',
+              src: 'logo.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'maskable'
@@ -43,7 +43,7 @@ export default defineConfig(({ mode }) => {
           ]
         }
       }),
-      react(),
+      react(), 
       tailwindcss(),
     ],
     define: {},
@@ -57,6 +57,8 @@ export default defineConfig(({ mode }) => {
       headers: {
         'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
       },
+      // HMR is disabled in AI Studio via DISABLE_HMR env var.
+      // Do not modify—file watching is disabled to prevent flickering during agent edits.
       hmr: false,
     },
     build: {
@@ -70,29 +72,13 @@ export default defineConfig(({ mode }) => {
       sourcemap: false,
       rollupOptions: {
         output: {
-          // Improved chunking strategy for better caching
           manualChunks: {
-            // React core
             'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-            // Firebase (loaded early for auth)
             'vendor-firebase': ['firebase/app', 'firebase/auth'],
-            // UI libraries (loaded as needed)
-            'vendor-ui-react': ['lucide-react'],
-            'vendor-motion': ['motion'],
-            'vendor-recharts': ['recharts'],
-            // Date libraries
-            'vendor-date': ['date-fns'],
-            // Editor libraries (lazy loaded)
-            'vendor-editor': ['@uiw/react-md-editor', 'react-markdown', 'rehype-sanitize'],
+            'vendor-ui': ['lucide-react', 'motion', 'recharts'],
           },
-          // Add chunk file naming for better caching
-          chunkFileNames: 'assets/js/[name]-[hash].js',
-          entryFileNames: 'assets/js/[name]-[hash].js',
-          assetFileNames: 'assets/[ext]/[name]-[hash].[ext]'
         },
       },
-      // Enable gzip compression in build
-      reportCompressedSize: true,
     },
   };
 });
