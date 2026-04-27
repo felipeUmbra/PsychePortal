@@ -110,7 +110,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               </NavLink>
               
               {item.subItems && (
-                <div className="absolute left-full top-0 pl-2 hidden group-hover:block z-50">
+                <div className="absolute left-full top-0 pl-2 hidden lg:group-hover:block z-50">
                   <div className="bg-white border border-border-custom shadow-lg rounded-lg py-2 w-48">
                     {item.subItems.map((subItem) => {
                       // More precise matching for search params

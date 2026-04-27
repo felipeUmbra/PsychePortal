@@ -375,7 +375,7 @@ export default function Settings() {
           
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-surface border border-border-custom rounded-xl mt-4 gap-4">
             <div>
-              <h3 className="font-bold text-text-main text-[14px]">Google Drive (Persistência)</h3>
+              <h3 className="font-bold text-text-main text-[14px]">{t('settings.drive_title')}</h3>
               <p className="text-text-muted text-[13px] mt-1">
                 {t('settings.drive_sync_desc')}
               </p>
