@@ -122,8 +122,8 @@ export default function Calendar() {
             <div className="flex items-center justify-between mb-8 border-b border-border-custom pb-4">
               <h2 className="text-[14px] font-bold text-text-main">{format(selectedDate, 'MMMM yyyy')}</h2>
               <div className="flex gap-1">
-                <button onClick={() => setSelectedDate(addDays(selectedDate, -7))} className="p-1.5 hover:bg-bg rounded-lg text-text-muted hover:text-primary-custom transition-colors"><ChevronLeft className="w-4 h-4" /></button>
-                <button onClick={() => setSelectedDate(addDays(selectedDate, 7))} className="p-1.5 hover:bg-bg rounded-lg text-text-muted hover:text-primary-custom transition-colors"><ChevronRight className="w-4 h-4" /></button>
+                <button onClick={() => setSelectedDate(addDays(selectedDate, -7))} className="p-1.5 hover:bg-bg rounded-lg text-text-muted hover:text-primary-custom transition-colors" aria-label={t('common.previous_week', 'Previous Week')}><ChevronLeft className="w-4 h-4" /></button>
+                <button onClick={() => setSelectedDate(addDays(selectedDate, 7))} className="p-1.5 hover:bg-bg rounded-lg text-text-muted hover:text-primary-custom transition-colors" aria-label={t('common.next_week', 'Next Week')}><ChevronRight className="w-4 h-4" /></button>
               </div>
             </div>
             <div className="grid grid-cols-7 gap-1 text-center mb-3">
@@ -220,7 +220,7 @@ export default function Calendar() {
                                   </p>
                                 </div>
                                 {session.status === 'scheduled' && (
-                                  <button onClick={() => cancelSession(session)} className="p-1.5 text-text-muted hover:text-red-500 rounded-lg hover:bg-red-50">
+                                  <button onClick={() => cancelSession(session)} className="p-1.5 text-text-muted hover:text-red-500 rounded-lg hover:bg-red-50" aria-label={t('calendar.cancel_session', 'Cancel Session')}>
                                     <X className="w-4 h-4" />
                                   </button>
                                 )}

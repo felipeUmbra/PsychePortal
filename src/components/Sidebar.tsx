@@ -79,6 +79,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         <button 
           onClick={onClose}
           className="lg:hidden p-1.5 hover:bg-bg rounded-lg text-text-muted"
+          aria-label={t('common.close', 'Close')}
         >
           <X className="w-5 h-5" />
         </button>

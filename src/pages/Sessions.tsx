@@ -350,7 +350,7 @@ export default function Sessions() {
             >
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-slate-900">{t('session_action.edit_notes')}</h2>
-                <button onClick={() => setEditingSessionId(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                <button onClick={() => setEditingSessionId(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors" aria-label={t('common.close', 'Close')}>
                   <X className="w-5 h-5 text-slate-500" />
                 </button>
               </div>
@@ -405,6 +405,7 @@ export default function Sessions() {
                           type="button" 
                           onClick={() => removeAttachment(idx)}
                           className="ml-1 text-text-muted hover:text-red-500"
+                          aria-label={t('common.remove', 'Remove')}
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>

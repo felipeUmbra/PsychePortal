@@ -68,7 +68,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((stat, i) => (
-          <Link key={stat.label} to={stat.link} className="block h-full">
+          <Link key={stat.label} to={stat.link} className="block h-full" aria-label={`${t('common.view', 'View')} ${stat.label}`}>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -113,7 +113,7 @@ export default function Dashboard() {
                           {t('dashboard.one_hour_session')} • {t(`session_status.${session.status}`)}
                         </p>
                       </div>
-                      <Link to={`/app/patients/${session.patientId}`} className="p-2 rounded-sm hover:bg-surface text-text-muted hover:text-primary-custom transition-all">
+                      <Link to={`/app/patients/${session.patientId}`} className="p-2 rounded-sm hover:bg-surface text-text-muted hover:text-primary-custom transition-all" aria-label={t('patients.view_profile', 'View Profile')}>
                         <ChevronRight className="w-5 h-5" />
                       </Link>
                     </div>

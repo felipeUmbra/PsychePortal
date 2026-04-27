@@ -119,7 +119,7 @@ export default function Patients() {
                 <div className="w-10 h-10 bg-accent-custom border border-border-custom rounded-lg flex items-center justify-center text-primary-custom font-bold text-lg">
                   {patient.name.charAt(0)}
                 </div>
-                <button className="text-text-muted hover:text-text-main">
+                <button className="text-text-muted hover:text-text-main" aria-label={t('common.options', 'Options')}>
                   <MoreVertical className="w-5 h-5" />
                 </button>
               </div>

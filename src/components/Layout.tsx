@@ -95,6 +95,7 @@ export default function Layout() {
               <button 
                 onClick={() => setAuthError(null)}
                 className="p-1.5 hover:bg-amber-100 rounded-lg text-amber-600"
+                aria-label={t('common.close', 'Close')}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -112,6 +113,8 @@ export default function Layout() {
               <button 
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                 className="flex items-center gap-4 hover:opacity-80 transition-opacity"
+                aria-label={t('layout.user_menu', 'User Menu')}
+                aria-expanded={isUserMenuOpen}
               >
                 <div className="flex flex-col items-end hidden sm:flex">
                   <span className="text-[13px] font-semibold text-text-main">{user.displayName}</span>
