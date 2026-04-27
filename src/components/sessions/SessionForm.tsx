@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
 import MDEditor from '@uiw/react-md-editor';
@@ -44,7 +44,7 @@ export function SessionForm({
     }
   }, [initialData]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     try {
       setIsSubmitting(true);
@@ -54,7 +54,7 @@ export function SessionForm({
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !onUploadFile) return;
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth, db } from '../firebase';

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { addDoc, collection } from 'firebase/firestore';
@@ -73,7 +73,7 @@ export function NewSessionModal({ isOpen, onClose, userId, patients, preselected
     }
   };
 
-  const handleAddAppt = async (e: React.FormEvent) => {
+  const handleAddAppt = async (e: FormEvent) => {
     e.preventDefault();
     if (!userId || !patientId) return;
 

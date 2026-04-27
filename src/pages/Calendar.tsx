@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Calendar as BigCalendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { ptBR, enUS } from 'date-fns/locale';

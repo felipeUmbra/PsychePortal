@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { collection, query, where, onSnapshot, orderBy, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, auth, storage } from '../firebase';
@@ -85,7 +85,7 @@ export default function Sessions() {
     }
   }, [sessionForm, editingSessionId]);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user || !editingSessionId) return;
 
@@ -120,7 +120,7 @@ export default function Sessions() {
     }));
   };
 
-  const handleEditSession = async (e: React.FormEvent) => {
+  const handleEditSession = async (e: FormEvent) => {
     e.preventDefault();
     if (!editingSessionId) return;
 
@@ -227,14 +227,16 @@ export default function Sessions() {
             transition={{ delay: i * 0.05 }}
             className="card p-0 overflow-hidden bg-[#fafbfc] hover:border-primary-custom/20 transition-all group"
           >
-            <div className="px-6 py-4 bg-surface border-b border-border-custom flex justify-between items-center">
+            <div className="px-6 py-4 bg-surface border-b border-border-custom flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 bg-accent-custom border border-border-custom rounded-lg flex items-center justify-center text-primary-custom font-bold">
                   {patients[session.patientId]?.name?.charAt(0) || '?'}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[15px] font-bold text-text-main">{patients[session.patientId]?.name || 'Unknown Patient'}</span>
+                    <Link to={`/app/patients/${session.patientId}`} className="hover:underline">
+                      <span className="text-[15px] font-bold text-primary-custom">{patients[session.patientId]?.name || 'Unknown Patient'}</span>
+                    </Link>
                     <span className="text-border-custom">•</span>
                     <span className="text-[12px] font-bold text-text-muted uppercase tracking-wider">{t(`patient_detail.types.${session.type || 'individual'}`)}</span>
                   </div>
@@ -250,7 +252,7 @@ export default function Sessions() {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
                 <span className={cn(
                   "status-badge",
                   session.status === 'completed' ? "bg-emerald-100 text-emerald-700" :

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
@@ -35,7 +35,7 @@ export default function Patients() {
 
   return (
     <div className="space-y-6">
-      <header className="flex justify-between items-center">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-text-main tracking-tight">{t('patients.title')}</h1>
           <p className="text-text-muted text-[14px]">{t('patients.subtitle')}</p>
@@ -49,7 +49,7 @@ export default function Patients() {
         </button>
       </header>
 
-      <div className="flex gap-4 mb-6 relative">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 relative">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted w-5 h-5" />
           <input 
@@ -64,7 +64,7 @@ export default function Patients() {
         <div className="relative">
           <button 
             onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
-            className="btn-secondary flex items-center gap-2 text-[14px] h-full"
+            className="btn-secondary flex items-center justify-center gap-2 text-[14px] h-10 sm:h-auto w-full sm:w-auto"
           >
             <Filter className={cn("w-4 h-4", filterPlan !== 'all' ? "text-primary-custom" : "")} />
             {t('patients.filters')}
@@ -124,7 +124,9 @@ export default function Patients() {
                 </button>
               </div>
               
-              <h3 className="text-[16px] font-bold text-text-main mb-1">{patient.name}</h3>
+              <Link to={`/app/patients/${patient.id}`} className="hover:underline">
+                <h3 className="text-[16px] font-bold text-primary-custom mb-1">{patient.name}</h3>
+              </Link>
               <p className="text-[12px] text-text-muted mb-4 font-medium uppercase tracking-wider">{t('patients.patient_since', { date: format(new Date(patient.createdAt), 'MMM yyyy') })}</p>
               
               <div className="space-y-2.5 mb-6">

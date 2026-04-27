@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { setDriveToken } from '../lib/firestore-mock';
@@ -13,7 +13,7 @@ interface GoogleAuthContextType {
 
 const GoogleAuthContext = createContext<GoogleAuthContextType | undefined>(undefined);
 
-export function GoogleAuthProvider({ children }: { children: React.ReactNode }) {
+export function GoogleAuthProvider({ children }: { children: ReactNode }) {
   const [user] = useAuthState(auth);
   const [driveToken, setDriveTokenState] = useState<string | null>(null);
   const [calendarToken, setCalendarTokenState] = useState<string | null>(null);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -14,7 +14,7 @@ import { motion } from 'motion/react';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addHours, setHours, setMinutes, setSeconds, setMilliseconds } from 'date-fns';
 import { ptBR, enUS } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { handleFirestoreError, OperationType } from '../lib/error-handler';
 import { cn } from '../lib/utils';
 import { NewSessionModal } from '../components/NewSessionModal';
@@ -101,7 +101,7 @@ export default function Calendar() {
 
   return (
     <div className="space-y-8">
-      <header className="flex justify-between items-end">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
           <h1 className="text-2xl font-bold text-text-main tracking-tight">{t('sidebar.sessions_by_day')}</h1>
           <p className="text-text-muted text-[14px]">{t('calendar.subtitle')}</p>
@@ -176,7 +176,7 @@ export default function Calendar() {
 
         <div className="lg:col-span-3 space-y-6">
           <section className="card min-h-[500px]">
-            <div className="flex justify-between items-center mb-8 border-b border-border-custom pb-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 border-b border-border-custom pb-4 gap-4">
               <h2 className="text-[16px] font-bold text-text-main flex items-center gap-2">
                 <span className="capitalize">
                   {format(selectedDate, "EEEE", { locale: dateLocale })}
@@ -212,7 +212,9 @@ export default function Calendar() {
                             <div key={session.id} className="absolute inset-1 p-3 rounded-lg bg-bg border-l-4 shadow-sm" style={{ borderLeftColor: session.status === 'completed' ? '#10b981' : session.status === 'cancelled' ? '#ef4444' : '#f59e0b' }}>
                               <div className="flex justify-between items-start">
                                 <div>
-                                  <h3 className="text-[14px] font-bold text-text-main">{patient?.name || 'Unknown Patient'}</h3>
+                                  <Link to={`/app/patients/${session.patientId}`} className="hover:underline">
+                                    <h3 className="text-[14px] font-bold text-primary-custom">{patient?.name || 'Unknown Patient'}</h3>
+                                  </Link>
                                   <p className="text-[12px] text-text-muted flex items-center gap-1 mt-1">
                                     <Clock className="w-3 h-3" />
                                     1 {t('common.hour', 'hour')} • {t(`session_status.${session.status}`)}

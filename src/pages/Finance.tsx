@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, orderBy, updateDoc, doc, getDocs } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -13,6 +13,7 @@ import {
 import { motion } from 'motion/react';
 import { format, isSameDay, isSameWeek, isSameMonth, isSameYear } from 'date-fns';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { handleFirestoreError, OperationType } from '../lib/error-handler';
 import { cn } from '../lib/utils';
 
@@ -151,18 +152,18 @@ export default function Finance() {
 
   return (
     <div className="space-y-6">
-      <header className="flex items-center justify-between">
+      <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-text-main tracking-tight">{t('finance.title')}</h1>
           <p className="text-text-muted text-[14px]">{t('finance.subtitle')}</p>
         </div>
-        <div className="flex bg-surface border border-border-custom rounded-lg p-1">
+        <div className="flex flex-wrap bg-surface border border-border-custom rounded-lg p-1 w-full sm:w-auto justify-center sm:justify-start">
           {(['day', 'week', 'month', 'year', 'all'] as const).map(p => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
               className={cn(
-                "px-4 py-1.5 text-[13px] font-bold rounded-md transition-all",
+                "px-3 sm:px-4 py-1.5 text-[11px] sm:text-[13px] font-bold rounded-md transition-all flex-1 sm:flex-none",
                 period === p 
                   ? "bg-bg text-primary-custom shadow-sm" 
                   : "text-text-muted hover:text-text-main"
@@ -248,7 +249,7 @@ export default function Finance() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className="card p-0 overflow-hidden bg-[#fafbfc] hover:border-primary-custom/20 transition-all flex items-center justify-between px-6 py-4"
+                  className="card p-0 overflow-hidden bg-[#fafbfc] hover:border-primary-custom/20 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between px-6 py-4 gap-4"
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-accent-custom border border-border-custom rounded-lg flex items-center justify-center text-primary-custom font-bold">
@@ -256,7 +257,9 @@ export default function Finance() {
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[15px] font-bold text-text-main">{patient?.name || 'Unknown Patient'}</span>
+                        <Link to={`/app/patients/${session.patientId}`} className="hover:underline">
+                          <span className="text-[15px] font-bold text-primary-custom">{patient?.name || 'Unknown Patient'}</span>
+                        </Link>
                         <span className="text-border-custom">•</span>
                         <span className="text-[12px] font-bold text-text-muted uppercase tracking-wider">{t(`session_status.${session.status}`)}</span>
                       </div>
@@ -272,7 +275,7 @@ export default function Finance() {
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-6 w-full sm:w-auto justify-between sm:justify-end">
                     <div className="text-right">
                       <div className="text-[15px] font-bold text-text-main">{isPerSession ? formatCurrency(sessionValue) : '-'}</div>
                       {isPerSession && (

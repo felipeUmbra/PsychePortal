@@ -18,6 +18,9 @@
   body {
     @apply bg-bg text-text-main font-sans antialiased;
   }
+  a {
+    @apply text-primary-custom transition-all hover:underline decoration-primary-custom/30;
+  }
 }
 
 @layer components {

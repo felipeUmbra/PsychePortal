@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -138,7 +138,7 @@ export default function Settings() {
     fetchProfile();
   }, [user]);
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSave = async (e: FormEvent) => {
     e.preventDefault();
     if (!user || !profile) return;
 
@@ -347,7 +347,7 @@ export default function Settings() {
             {t('settings.integrations')}
           </h2>
           
-          <div className="flex items-center justify-between p-4 bg-surface border border-border-custom rounded-xl">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-surface border border-border-custom rounded-xl gap-4">
             <div>
               <h3 className="font-bold text-text-main text-[14px]">Google Calendar</h3>
               <p className="text-text-muted text-[13px] mt-1">
@@ -373,14 +373,14 @@ export default function Settings() {
             </div>
           </div>
           
-          <div className="flex items-center justify-between p-4 bg-surface border border-border-custom rounded-xl mt-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-surface border border-border-custom rounded-xl mt-4 gap-4">
             <div>
               <h3 className="font-bold text-text-main text-[14px]">Google Drive (Persistência)</h3>
               <p className="text-text-muted text-[13px] mt-1">
                 {t('settings.drive_sync_desc')}
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
                <button 
                   type="button"
                   onClick={async () => {

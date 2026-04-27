@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, FileText, Plus, Clock, Edit3 } from 'lucide-react';
 import { format, isPast } from 'date-fns';
@@ -63,7 +63,7 @@ export default function PatientDetail() {
 
   return (
     <div className="space-y-8">
-      <header className="flex items-center justify-between">
+      <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <button 
             onClick={() => navigate('/app/patients')}
@@ -76,24 +76,24 @@ export default function PatientDetail() {
             <p className="text-text-muted text-[14px]">{t('patient_detail.id')}: {patient.id.slice(0, 8).toUpperCase()}</p>
           </div>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2 sm:gap-3 w-full sm:w-auto">
           <button 
             onClick={() => setIsEditModalOpen(true)}
-            className="btn-secondary flex items-center gap-2 text-[14px]"
+            className="btn-secondary flex items-center gap-2 text-[13px] sm:text-[14px] flex-1 sm:flex-none justify-center"
           >
             <FileText className="w-4 h-4" />
             {t('patient_detail.edit_profile')}
           </button>
           <button 
             onClick={() => setIsScheduleModalOpen(true)}
-            className="btn-secondary flex items-center gap-2 text-[14px]"
+            className="btn-secondary flex items-center gap-2 text-[13px] sm:text-[14px] flex-1 sm:flex-none justify-center"
           >
             <Calendar className="w-4 h-4" />
             {t('calendar.schedule_session', 'Schedule Appointment')}
           </button>
           <button 
             onClick={() => setIsAddingSession(true)}
-            className="btn-primary flex items-center gap-2 text-[14px]"
+            className="btn-primary flex items-center gap-2 text-[13px] sm:text-[14px] flex-1 sm:flex-none justify-center"
           >
             <Plus className="w-4 h-4" />
             {t('patient_detail.log_session')}
@@ -129,7 +129,7 @@ export default function PatientDetail() {
               <h2 className="text-[18px] font-bold text-text-main mb-4">{t('dashboard.upcoming_appts')}</h2>
               <div className="space-y-3">
                 {upcomingSessions.map((session: any) => (
-                  <div key={session.id} className="card p-4 flex items-center justify-between bg-accent-custom/50 border-primary-custom/20">
+                  <div key={session.id} className="card p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-accent-custom/50 border-primary-custom/20 gap-4">
                     <div className="flex items-center gap-4">
                       <div className="p-2 bg-white rounded-lg border border-border-custom">
                         <Calendar className="w-4 h-4 text-primary-custom" />
@@ -144,7 +144,7 @@ export default function PatientDetail() {
                     </div>
                     <button 
                       onClick={() => cancelSession(session)}
-                      className="btn-secondary text-[12px] text-red-600 hover:bg-red-50 hover:border-red-200"
+                      className="btn-secondary text-[12px] text-red-600 hover:bg-red-50 hover:border-red-200 w-full sm:w-auto"
                     >
                       {t('session_action.cancel')}
                     </button>
@@ -192,7 +192,7 @@ export default function PatientDetail() {
                     </div>
                   ) : (
                     <>
-                      <div className="px-6 py-4 bg-surface border-b border-border-custom flex justify-between items-center">
+                      <div className="px-6 py-4 bg-surface border-b border-border-custom flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div className="flex items-center gap-4">
                           <div className="p-2 bg-accent-custom rounded-lg border border-border-custom">
                             <FileText className="w-4 h-4 text-primary-custom" />
@@ -205,7 +205,7 @@ export default function PatientDetail() {
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
                           <span className={cn(
                             "status-badge",
                             session.status === 'completed' ? "bg-emerald-100 text-emerald-700" :

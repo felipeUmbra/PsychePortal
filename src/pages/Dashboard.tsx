@@ -1,4 +1,3 @@
-import React from 'react';
 import { 
   Users, 
   Calendar as CalendarIcon, 
@@ -49,19 +48,19 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      <header className="flex justify-between items-end">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
           <h1 className="text-2xl font-bold text-text-main tracking-tight">{t('dashboard.title')}</h1>
           <p className="text-text-muted text-[14px] mt-1">{t('dashboard.welcome', { name: user?.displayName?.split(' ')[1] || 'Psychologist' })}</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3 w-full sm:w-auto">
           <Link to="/app/calendar" className="btn-secondary flex items-center gap-2 text-[14px]">
             <CalendarIcon className="w-4 h-4" />
-            {t('dashboard.view_calendar')}
+            <span className="truncate">{t('dashboard.view_calendar')}</span>
           </Link>
           <Link to="/app/calendar" className="btn-primary flex items-center gap-2 text-[14px]">
             <Plus className="w-4 h-4" />
-            {t('dashboard.new_session')}
+            <span className="truncate">{t('dashboard.new_session')}</span>
           </Link>
         </div>
       </header>
@@ -90,7 +89,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
           <section className="card">
-            <div className="flex justify-between items-center mb-8 border-b border-border-custom pb-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 border-b border-border-custom pb-4 gap-2">
               <h2 className="text-[16px] font-bold text-text-main">{t('dashboard.today_schedule')}</h2>
               <span className="text-[12px] font-semibold text-text-muted uppercase tracking-wider">{format(new Date(), i18n.language.startsWith('pt') ? "EEEE, d 'de' MMMM" : 'EEEE, MMMM do', { locale: dateLocale })}</span>
             </div>
@@ -107,7 +106,9 @@ export default function Dashboard() {
                         <p className="text-[11px] text-text-muted font-medium">{format(endDate, 'HH:mm')}</p>
                       </div>
                       <div className="flex-1">
-                        <h3 className="text-[15px] font-semibold text-text-main">{patientMap[session.patientId]?.name || 'Unknown Patient'}</h3>
+                        <Link to={`/app/patients/${session.patientId}`} className="hover:underline">
+                          <h3 className="text-[15px] font-semibold text-primary-custom">{patientMap[session.patientId]?.name || 'Unknown Patient'}</h3>
+                        </Link>
                         <p className="text-[13px] text-text-muted flex items-center gap-1">
                           <Clock className="w-3.5 h-3.5" />
                           {t('dashboard.one_hour_session')} • {t(`session_status.${session.status}`)}
@@ -134,7 +135,7 @@ export default function Dashboard() {
             <h2 className="text-[16px] font-bold text-text-main mb-8 border-b border-border-custom pb-4">{t('dashboard.recent_sessions')}</h2>
             <div className="space-y-4">
               {recentSessions.map((session) => (
-                <div key={session.id} className="flex items-center justify-between p-4 rounded bg-bg border border-border-custom">
+                <div key={session.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded bg-bg border border-border-custom gap-3">
                   <div>
                     <p className="text-[14px] font-semibold text-text-main">{patientMap[session.patientId]?.name || 'Unknown Patient'}</p>
                     <p className="text-[12px] text-text-muted font-medium">{format((session.date as any)?.toDate ? (session.date as any).toDate() : new Date(session.date as any), i18n.language.startsWith('pt') ? "d 'de' MMM, yyyy" : 'MMM d, yyyy', { locale: dateLocale })}</p>

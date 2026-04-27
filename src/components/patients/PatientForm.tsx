@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
 import { Patient } from '../../types';
@@ -65,7 +65,7 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
     }
   }, [initialData, isOpen]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     try {
       setIsSubmitting(true);

@@ -1,4 +1,3 @@
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { Mail, Phone, Calendar } from 'lucide-react';
@@ -28,14 +27,22 @@ export function PatientInfoCard({ patient }: PatientInfoCardProps) {
           <p className="text-[11px] text-text-muted font-bold uppercase tracking-wider mb-1">{t('patients.email')}</p>
           <p className="text-[14px] font-medium text-text-main flex items-center gap-2">
             <Mail className="w-4 h-4 text-text-muted" />
-            {patient.email || 'N/A'}
+            {patient.email ? (
+              <a href={`mailto:${patient.email}`} className="text-primary-custom hover:underline">
+                {patient.email}
+              </a>
+            ) : 'N/A'}
           </p>
         </div>
         <div className="property-group">
           <p className="text-[11px] text-text-muted font-bold uppercase tracking-wider mb-1">{t('patients.phone')}</p>
           <p className="text-[14px] font-medium text-text-main flex items-center gap-2">
             <Phone className="w-4 h-4 text-text-muted" />
-            {patient.phone || 'N/A'}
+            {patient.phone ? (
+              <a href={`tel:${patient.phone.replace(/\D/g, '')}`} className="text-primary-custom hover:underline">
+                {patient.phone}
+              </a>
+            ) : 'N/A'}
           </p>
         </div>
         <div className="property-group">
