@@ -24,6 +24,17 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
     setDriveTokenMock(newToken);
   };
 
+  // Expose token setters to window for E2E testing
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).Cypress) {
+      (window as any).setTestTokens = (tokens: { driveToken: string | null, calendarToken: string | null }) => {
+        setDriveToken(tokens.driveToken);
+        setCalendarToken(tokens.calendarToken);
+      };
+    }
+  }, [setDriveToken, setCalendarToken]);
+
+
   const setCalendarToken = (newToken: string | null) => {
     setCalendarTokenState(newToken);
   };
