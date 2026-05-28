@@ -41,8 +41,21 @@ export default function PatientDetail() {
 
   if (!patient) return null;
 
-  const upcomingSessions = sessions.filter(s => s.status === 'scheduled' && !isPast((s.date as any)?.toDate ? (s.date as any).toDate() : new Date(s.date)));
-  const pastSessions = sessions.filter(s => s.status !== 'scheduled' || isPast((s.date as any)?.toDate ? (s.date as any).toDate() : new Date(s.date)));
+  const getSessionDate = (s: any) => s?.date ? ((s.date as any).toDate ? (s.date as any).toDate() : new Date(s.date)) : new Date(NaN);
+
+  const formatSessionDate = (session: any) => {
+    const d = getSessionDate(session);
+    return !isNaN(d.getTime()) ? format(d, 'MMMM d, yyyy - HH:mm') : t('common.na', 'N/A');
+  };
+
+  const upcomingSessions = sessions.filter(s => {
+    const d = getSessionDate(s);
+    return s.status === 'scheduled' && !isNaN(d.getTime()) && !isPast(d);
+  });
+  const pastSessions = sessions.filter(s => {
+    const d = getSessionDate(s);
+    return s.status !== 'scheduled' || isNaN(d.getTime()) || isPast(d);
+  });
 
   const handleAddSessionSubmit = async (data: any) => {
     await addSession(data);
@@ -112,7 +125,10 @@ export default function PatientDetail() {
       <PatientForm 
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        onSubmit={async (data) => { await updatePatient(data); }}
+        onSubmit={async (data) => { 
+          await updatePatient(data); 
+          setIsEditModalOpen(false);
+        }}
         initialData={patient}
         title={t('patient_detail.edit_profile')}
       />
@@ -135,7 +151,7 @@ export default function PatientDetail() {
                         <Calendar className="w-4 h-4 text-primary-custom" />
                       </div>
                       <div>
-                        <p className="text-[14px] font-bold text-text-main">{format((session.date as any)?.toDate ? (session.date as any).toDate() : new Date(session.date), 'MMMM d, yyyy - HH:mm')}</p>
+                        <p className="text-[14px] font-bold text-text-main">{formatSessionDate(session)}</p>
                         <p className="text-[11px] text-text-muted font-bold uppercase tracking-wider flex items-center gap-1.5">
                           <Clock className="w-3 h-3" />
                           1 hour • {t(`session_status.${session.status}`)}
@@ -174,19 +190,31 @@ export default function PatientDetail() {
           <div className="space-y-4">
             {pastSessions.length > 0 ? (
               pastSessions.map((session: any) => (
-                <div key={session.id} className="card p-0 overflow-hidden bg-[#fafbfc] hover:border-primary-custom/20 transition-all">
+                <div key={session.id || Math.random()} className="card p-0 overflow-hidden bg-[#fafbfc] hover:border-primary-custom/20 transition-all">
                   {(editingSessionId === session.id || registeringSessionId === session.id) ? (
                     <div className="p-6 bg-white">
                       <SessionForm 
-                        title={registeringSessionId === session.id ? t('session_action.register') : t('session_action.edit_notes')}
+                        title={registeringSessionId === session.id ? t('session_action.register') : t('session_action.edit_session')}
                         submitLabel={t('common.save')}
                         initialData={session}
-                        onSubmit={(data) => handleUpdateSessionSubmit(data, session.id)}
+                        onSubmit={(data) => {
+                          if (!session.id) {
+                            alert(t('common.error_invalid_session', 'ID de sessão inválido. Salve a sessão primeiro.'));
+                            return Promise.reject();
+                          }
+                          return handleUpdateSessionSubmit(data, session.id);
+                        }}
                         onCancel={() => {
                           setEditingSessionId(null);
                           setRegisteringSessionId(null);
                         }}
-                        onUploadFile={(file) => uploadFile(file, session.id)}
+                        onUploadFile={(file) => {
+                          if (!session.id) {
+                            alert(t('common.error_upload_no_id', 'Não é possível fazer upload: Sessão sem identificador.'));
+                            return Promise.reject();
+                          }
+                          return uploadFile(file, session.id);
+                        }}
                         isUploading={isUploading}
                       />
                     </div>
@@ -198,7 +226,7 @@ export default function PatientDetail() {
                             <FileText className="w-4 h-4 text-primary-custom" />
                           </div>
                           <div>
-                            <p className="text-[14px] font-bold text-text-main">{format((session.date as any)?.toDate ? (session.date as any).toDate() : new Date(session.date), 'MMMM d, yyyy - HH:mm')}</p>
+                            <p className="text-[14px] font-bold text-text-main">{formatSessionDate(session)}</p>
                             <p className="text-[11px] text-text-muted font-bold uppercase tracking-wider flex items-center gap-1.5">
                               <Clock className="w-3 h-3" />
                               1 hour • {t(`patient_detail.types.${session.type || 'individual'}`)}
@@ -225,7 +253,7 @@ export default function PatientDetail() {
                             <button 
                               onClick={() => setEditingSessionId(session.id)}
                               className="p-1.5 text-text-muted hover:text-primary-custom hover:bg-bg rounded-md transition-colors"
-                              title={t('session_action.edit_notes')}
+                              title={t('session_action.edit_session')}
                             >
                               <Edit3 className="w-4 h-4" />
                             </button>
@@ -258,7 +286,7 @@ export default function PatientDetail() {
                                     <a 
                                       key={idx} 
                                       href={att.url} 
-                                      target="_blank" 
+                                      download={att.name}
                                       rel="noopener noreferrer"
                                       className="flex items-center gap-2 px-3 py-2 bg-surface border border-border-custom rounded-lg hover:border-primary-custom/50 hover:bg-bg transition-all group"
                                     >

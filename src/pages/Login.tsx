@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth, db } from '../firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, setDriveToken as setMockToken, forceSync } from 'firebase/firestore';
 import { Users, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
@@ -26,24 +26,29 @@ export default function Login() {
 
   const handleGoogleLogin = async () => {
     if (isLoading) return;
-    
+
     setIsLoading(true);
     setError(null);
     try {
+      setMockToken(null);
       setDriveToken(null);
       setCalendarToken(null);
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'consent' });
       googleScopes.forEach(scope => provider.addScope(scope));
-      
+
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
-      
+
       // Save the OAuth token for Google APIs
       const credential = GoogleAuthProvider.credentialFromResult(result);
       if (credential?.accessToken) {
+        // Note: setMockToken internally calls forceSync now, 
+        // but we await it here to ensure the profile check uses fresh data.
+        setMockToken(credential.accessToken); 
         setDriveToken(credential.accessToken);
         setCalendarToken(credential.accessToken);
+        await forceSync();
       }
 
       // Check if psychologist profile exists, if not create it
@@ -64,10 +69,16 @@ export default function Login() {
 
       navigate('/app');
     } catch (err: any) {
-      console.error('Login failed:', err);
       // Don't show error if user just closed the popup
       if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
-        setError(err.message || t('login.error_fallback'));
+        console.error('Login failed:', err);
+        const errorMessages: Record<string, string> = {
+          'auth/network-request-failed': t('login.error_network', 'Network error. Please check your connection.'),
+          'auth/too-many-requests': t('login.error_rate_limit', 'Too many attempts. Please try again later.'),
+          'auth/user-disabled': t('login.error_user_disabled', 'This account has been disabled.'),
+          'auth/operation-not-allowed': t('login.error_operation_not_allowed', 'Operation not allowed.'),
+        };
+        setError(errorMessages[err.code] || t('login.error_fallback', 'An error occurred. Please try again.'));
       }
     } finally {
       setIsLoading(false);
@@ -76,7 +87,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-bg p-4 font-sans">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="max-w-md w-full bg-surface rounded-sm shadow-xl shadow-primary-custom/5 border border-border-custom p-10 text-center"
@@ -86,10 +97,10 @@ export default function Login() {
             <Users className="text-white w-10 h-10" />
           </div>
         </div>
-        
+
         <h1 className="text-3xl font-bold text-text-main tracking-tight mb-2">PsychePortal</h1>
         <p className="text-text-muted text-[15px] mb-8">{t('login.title')}</p>
-        
+
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded text-red-600 text-sm font-medium">
             {error}
@@ -112,7 +123,7 @@ export default function Login() {
             )}
           </button>
         </div>
-        
+
         <div className="mt-10 pt-8 border-t border-border-custom">
           <p className="text-[12px] text-text-muted font-medium leading-relaxed">
             {t('login.secure_text_1')}

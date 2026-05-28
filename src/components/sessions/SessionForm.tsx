@@ -26,6 +26,7 @@ export function SessionForm({
 }: SessionFormProps) {
   const { t } = useTranslation();
   const [formData, setFormData] = useState({
+    date: '',
     notes: '',
     type: 'individual',
     status: 'completed',
@@ -35,7 +36,9 @@ export function SessionForm({
 
   useEffect(() => {
     if (initialData) {
+      const sessionDate = initialData.date?.toDate ? initialData.date.toDate() : new Date(initialData.date);
       setFormData({
+        date: !isNaN(sessionDate.getTime()) ? sessionDate.toISOString().slice(0, 16) : '',
         notes: initialData.notes || '',
         type: initialData.type || 'individual',
         status: initialData.status || 'completed',
@@ -84,6 +87,17 @@ export function SessionForm({
     >
       <h3 className="text-[16px] font-bold text-text-main mb-6">{title}</h3>
       <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('common.date_time')}</label>
+          <input 
+            required
+            type="datetime-local"
+            className="input-field text-[14px]"
+            value={formData.date}
+            onChange={(e) => setFormData({...formData, date: e.target.value})}
+          />
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('patient_detail.session_type')}</label>
@@ -129,7 +143,7 @@ export function SessionForm({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">Attachments (Max 40MB)</label>
+          <label className="block text-sm font-medium text-slate-700 mb-2">{t('patient_detail.attachments', 'Attachments')} (Max 40MB)</label>
           <div className="flex flex-wrap gap-3 mb-3">
             {formData.attachments.map((att, idx) => (
               <div key={idx} className="flex items-center gap-2 px-3 py-1.5 bg-surface border border-border-custom rounded-lg text-[12px]">
@@ -149,7 +163,7 @@ export function SessionForm({
             <div className="flex items-center gap-3">
               <label className="btn-secondary cursor-pointer flex items-center gap-2">
                 {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
-                {isUploading ? 'Uploading...' : 'Add File'}
+                {isUploading ? t('common.uploading', 'Uploading...') : t('patient_detail.add_file', 'Add File')}
                 <input 
                   type="file" 
                   className="hidden" 

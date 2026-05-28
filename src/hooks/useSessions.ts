@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { collection, query, where, orderBy, onSnapshot, addDoc, doc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, auth, storage } from '../firebase';
+import { ref, uploadBytes, getDownloadURL, getStorage, deleteObject, setDriveToken as setMockToken } from '../lib/firestore-mock'; // Import from mock
+import { db, auth } from '../firebase'; // Remove 'storage' import
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { handleFirestoreError, OperationType } from '../lib/error-handler';
 import { Session } from '../types';
@@ -12,7 +13,15 @@ export function useSessions(patientId?: string) {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
-  const { driveToken } = useGoogleAuth();
+  const { driveToken, calendarToken } = useGoogleAuth();
+  const { t } = useTranslation();
+
+  // Sync context token with mock module variable
+  useEffect(() => {
+    if (driveToken) {
+      setMockToken(driveToken);
+    }
+  }, [driveToken]);
 
   useEffect(() => {
     if (!patientId || !user) {
@@ -27,10 +36,10 @@ export function useSessions(patientId?: string) {
       orderBy('date', 'desc')
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setSessions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Session)));
+    const unsubscribe = onSnapshot(q, (snapshot: any) => {
+      setSessions(snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as Session)));
       setLoading(false);
-    }, (error) => {
+    }, (error: any) => {
       handleFirestoreError(error, OperationType.LIST, 'sessions');
       setLoading(false);
     });
@@ -45,7 +54,7 @@ export function useSessions(patientId?: string) {
         ...sessionData,
         patientId,
         psychologistId: user.uid,
-        createdAt: new Date()
+        createdAt: new Date().toISOString()
       });
       return docRef.id;
     } catch (error) {
@@ -57,7 +66,33 @@ export function useSessions(patientId?: string) {
   const updateSession = async (sessionId: string, updates: Partial<Session>) => {
     if (!user) throw new Error('Unauthenticated');
     try {
+      const session = sessions.find(s => s.id === sessionId);
+      const googleEventId = updates.googleEventId || session?.googleEventId;
+
       await updateDoc(doc(db, 'sessions', sessionId), updates);
+
+      // Sincronização com Google Calendar se a data mudou e existe um evento vinculado
+      if (googleEventId && updates.date && calendarToken) {
+        const startTime = new Date(updates.date);
+        const endTime = new Date(startTime.getTime() + 3600000); // Padrão 1h
+
+        const eventUpdate = {
+          start: { dateTime: startTime.toISOString() },
+          end: { dateTime: endTime.toISOString() },
+          summary: `${t('layout.workspace')}: ${updates.type || session?.type || ''}`
+        };
+
+        await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${googleEventId}`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${calendarToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(eventUpdate)
+        });
+        
+        window.dispatchEvent(new CustomEvent('google-auth-success'));
+      }
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `sessions/${sessionId}`);
       throw error;
@@ -69,7 +104,7 @@ export function useSessions(patientId?: string) {
       await updateSession(session.id, { status: 'cancelled' });
 
       if (session.googleEventId) {
-        const token = driveToken;
+        const token = calendarToken;
         if (token) {
           const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${session.googleEventId}`, {
             method: 'DELETE',
@@ -107,7 +142,7 @@ export function useSessions(patientId?: string) {
 
     try {
       setIsUploading(true);
-      const storageRef = ref(storage, `sessions/${sessionId}/${Date.now()}_${file.name}`);
+      const storageRef = ref(getStorage(), `sessions/${sessionId}/${Date.now()}_${file.name}`); // Use getStorage() from mock
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
       return { name: file.name, url, size: file.size };
@@ -119,6 +154,16 @@ export function useSessions(patientId?: string) {
     }
   };
 
+  const deleteFile = async (url: string, sessionId: string) => {
+    if (!user) throw new Error('Unauthenticated');
+    try {
+      const storageRef = { path: url.split('attachment:')[1] || url };
+      await deleteObject(storageRef);
+    } catch (error) {
+      console.error('File deletion failed:', error);
+    }
+  };
+
   return { 
     sessions, 
     loading, 
@@ -126,6 +171,7 @@ export function useSessions(patientId?: string) {
     updateSession, 
     cancelSession,
     uploadFile,
+    deleteFile,
     isUploading
   };
 }

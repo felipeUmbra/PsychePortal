@@ -1,22 +1,25 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
 import { format } from 'date-fns';
-import { Search, Plus, Filter, MoreVertical, Mail, Phone, Calendar, ChevronRight } from 'lucide-react';
+import { Search, Plus, Filter, MoreVertical, Mail, Phone, Calendar, ChevronRight, Eye, Edit, Trash2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { usePatients } from '../hooks/usePatients';
 import { PatientForm } from '../components/patients/PatientForm';
 
 export default function Patients() {
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { patients, loading, addPatient } = usePatients();
+  const { patients, loading, addPatient, deletePatient, updatePatient } = usePatients();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [filterPlan, setFilterPlan] = useState<string>('all');
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(searchParams.get('action') === 'add');
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  const [editingPatient, setEditingPatient] = useState<any | null>(null);
 
   useEffect(() => {
     if (searchParams.get('action') === 'add') {
@@ -25,6 +28,16 @@ export default function Patients() {
       setSearchParams(searchParams, { replace: true });
     }
   }, [searchParams, setSearchParams]);
+
+  const handlePatientSubmit = async (data: any) => {
+    if (editingPatient) {
+      await updatePatient?.(editingPatient.id, data);
+      setEditingPatient(null);
+    } else {
+      await addPatient(data);
+      setIsAddModalOpen(false);
+    }
+  };
 
   const filteredPatients = patients.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -119,9 +132,58 @@ export default function Patients() {
                 <div className="w-10 h-10 bg-accent-custom border border-border-custom rounded-lg flex items-center justify-center text-primary-custom font-bold text-lg">
                   {patient.name.charAt(0)}
                 </div>
-                <button className="text-text-muted hover:text-text-main" aria-label={t('common.options', 'Options')}>
-                  <MoreVertical className="w-5 h-5" />
-                </button>
+                
+                <div className="relative">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveMenuId(activeMenuId === patient.id ? null : patient.id);
+                    }}
+                    className="text-text-muted hover:text-text-main p-1 rounded-md hover:bg-bg transition-colors" 
+                    aria-label={t('common.options', 'Options')}
+                  >
+                    <MoreVertical className="w-5 h-5" />
+                  </button>
+                  
+                  {activeMenuId === patient.id && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setActiveMenuId(null)} />
+                      <div className="absolute right-0 mt-1 w-36 bg-white border border-border-custom rounded-lg shadow-xl z-50 p-1 overflow-hidden">
+                        <button
+                          onClick={() => navigate(`/app/patients/${patient.id}`)}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-text-main hover:bg-bg rounded-md transition-colors"
+                        >
+                          <Eye className="w-4 h-4 text-text-muted" />
+                          {t('common.view', 'Abrir')}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingPatient(patient);
+                            setActiveMenuId(null);
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-text-main hover:bg-bg rounded-md transition-colors"
+                        >
+                          <Edit className="w-4 h-4 text-text-muted" />
+                          {t('common.edit', 'Editar')}
+                        </button>
+                        <div className="h-px bg-border-custom my-1" />
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (window.confirm(t('common.confirm_delete_patient', { patientName: patient.name }))) {
+                              await deletePatient?.(patient.id);
+                            }
+                            setActiveMenuId(null);
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          {t('common.delete', 'Excluir')}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
               
               <Link to={`/app/patients/${patient.id}`} className="hover:underline">
@@ -157,10 +219,11 @@ export default function Patients() {
       )}
 
       <PatientForm 
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onSubmit={addPatient}
-        title={t('patients.add_modal_title')}
+        isOpen={isAddModalOpen || !!editingPatient}
+        onClose={() => { setIsAddModalOpen(false); setEditingPatient(null); }}
+        onSubmit={handlePatientSubmit}
+        title={editingPatient ? t('patients.edit_profile', 'Editar Perfil') : t('patients.add_modal_title')}
+        initialData={editingPatient}
       />
     </div>
   );
