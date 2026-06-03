@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, User } from 'firebase/auth';
+import { getAuth, User, Auth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import firebaseConfig from '../firebase-applet-config.json';
@@ -32,14 +32,15 @@ class MockAuth {
 const app = initializeApp(firebaseConfig);
 
 // Substitute real auth with MockAuth when running in Cypress
-export const auth = (typeof window !== 'undefined' && (window as any).Cypress)
-  ? (function() {
-      const mockAuth = new MockAuth();
-      (window as any).mockAuth = mockAuth;
-      return mockAuth;
-    })()
-  : getAuth(app);
+export const auth: Auth = ((typeof window !== 'undefined' && (window as any).Cypress)
+  ? (function () {
+    const mockAuth = new MockAuth();
+    (window as any).mockAuth = mockAuth;
+    return mockAuth;
+  })()
+  : getAuth(app)) as Auth;
 
+// @ts-ignore getFirestore may accept optional second arg depending on SDK version
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const storage = getStorage(app);
 

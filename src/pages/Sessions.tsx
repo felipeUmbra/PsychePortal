@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
+import { ptBR, enUS } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import RichTextEditor from '../components/RichTextEditor';
@@ -28,7 +29,8 @@ import { useGoogleAuth } from '../context/GoogleAuthContext';
 
 export default function Sessions() {
   const [user] = useAuthState(auth);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language.startsWith('pt') ? ptBR : enUS;
   const { driveToken } = useGoogleAuth();
   const [sessions, setSessions] = useState<any[]>([]);
   const [patients, setPatients] = useState<Record<string, any>>({});
@@ -258,11 +260,11 @@ export default function Sessions() {
                   <div className="flex items-center gap-3 text-[11px] text-text-muted font-bold uppercase tracking-wider mt-0.5">
                     <span className="flex items-center gap-1.5">
                       <Calendar className="w-3 h-3" />
-                      {format(session.date?.toDate ? session.date.toDate() : new Date(session.date), 'MMM d, yyyy - HH:mm')}
+                      {format(session.date?.toDate ? session.date.toDate() : new Date(session.date), 'MMM d, yyyy - HH:mm', { locale: dateLocale })}
                     </span>
                     <span className="flex items-center gap-1.5">
                       <Clock className="w-3 h-3" />
-                      1 hour
+                      {t('dashboard.one_hour_session')}
                     </span>
                   </div>
                 </div>

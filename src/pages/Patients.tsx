@@ -3,6 +3,7 @@ import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
 import { format } from 'date-fns';
+import { ptBR, enUS } from 'date-fns/locale';
 import { Search, Plus, Filter, MoreVertical, Mail, Phone, Calendar, ChevronRight, Eye, Edit, Trash2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { usePatients } from '../hooks/usePatients';
@@ -10,10 +11,11 @@ import { PatientForm } from '../components/patients/PatientForm';
 
 export default function Patients() {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language.startsWith('pt') ? ptBR : enUS;
   const [searchParams, setSearchParams] = useSearchParams();
   const { patients, loading, addPatient, deletePatient, updatePatient } = usePatients();
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filterPlan, setFilterPlan] = useState<string>('all');
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
@@ -41,7 +43,7 @@ export default function Patients() {
 
   const filteredPatients = patients.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          p.email.toLowerCase().includes(searchTerm.toLowerCase());
+      p.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesPlan = filterPlan === 'all' || p.financialPlan === filterPlan;
     return matchesSearch && matchesPlan;
   });
@@ -53,7 +55,7 @@ export default function Patients() {
           <h1 className="text-2xl font-bold text-text-main tracking-tight">{t('patients.title')}</h1>
           <p className="text-text-muted text-[14px]">{t('patients.subtitle')}</p>
         </div>
-        <button 
+        <button
           onClick={() => setIsAddModalOpen(true)}
           className="btn-primary flex items-center gap-2 text-[14px]"
         >
@@ -65,24 +67,24 @@ export default function Patients() {
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 relative">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted w-5 h-5" />
-          <input 
-            type="text" 
+          <input
+            type="text"
             placeholder={t('patients.search_placeholder')}
             className="input-field pl-10 text-[14px]"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        
+
         <div className="relative">
-          <button 
+          <button
             onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
             className="btn-secondary flex items-center justify-center gap-2 text-[14px] h-10 sm:h-auto w-full sm:w-auto"
           >
             <Filter className={cn("w-4 h-4", filterPlan !== 'all' ? "text-primary-custom" : "")} />
             {t('patients.filters')}
           </button>
-          
+
           {isFilterMenuOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setIsFilterMenuOpen(false)} />
@@ -132,19 +134,19 @@ export default function Patients() {
                 <div className="w-10 h-10 bg-accent-custom border border-border-custom rounded-lg flex items-center justify-center text-primary-custom font-bold text-lg">
                   {patient.name.charAt(0)}
                 </div>
-                
+
                 <div className="relative">
-                  <button 
+                  <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setActiveMenuId(activeMenuId === patient.id ? null : patient.id);
                     }}
-                    className="text-text-muted hover:text-text-main p-1 rounded-md hover:bg-bg transition-colors" 
+                    className="text-text-muted hover:text-text-main p-1 rounded-md hover:bg-bg transition-colors"
                     aria-label={t('common.options', 'Options')}
                   >
                     <MoreVertical className="w-5 h-5" />
                   </button>
-                  
+
                   {activeMenuId === patient.id && (
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setActiveMenuId(null)} />
@@ -185,12 +187,12 @@ export default function Patients() {
                   )}
                 </div>
               </div>
-              
+
               <Link to={`/app/patients/${patient.id}`} className="hover:underline">
                 <h3 className="text-[16px] font-bold text-primary-custom mb-1">{patient.name}</h3>
               </Link>
-              <p className="text-[12px] text-text-muted mb-4 font-medium uppercase tracking-wider">{t('patients.patient_since', { date: format(new Date(patient.createdAt), 'MMM yyyy') })}</p>
-              
+              <p className="text-[12px] text-text-muted mb-4 font-medium uppercase tracking-wider">{t('patients.patient_since', { date: format(new Date(patient.createdAt), 'MMM yyyy', { locale: dateLocale }) })}</p>
+
               <div className="space-y-2.5 mb-6">
                 <div className="flex items-center gap-2 text-[13px] text-text-main">
                   <Mail className="w-4 h-4 text-text-muted" />
@@ -202,11 +204,11 @@ export default function Patients() {
                 </div>
                 <div className="flex items-center gap-2 text-[13px] text-text-main">
                   <Calendar className="w-4 h-4 text-text-muted" />
-                  {t('patients.dob')}: {patient.dateOfBirth ? format(new Date(patient.dateOfBirth), 'MMM d, yyyy') : t('common.na', 'N/A')}
+                  {t('patients.dob')}: {patient.dateOfBirth ? format(new Date(patient.dateOfBirth), 'MMM d, yyyy', { locale: dateLocale }) : t('common.na', 'N/A')}
                 </div>
               </div>
 
-              <Link 
+              <Link
                 to={`/app/patients/${patient.id}`}
                 className="w-full btn-secondary flex items-center justify-center gap-2 text-[13px] group-hover:bg-primary-custom group-hover:text-white group-hover:border-primary-custom transition-all"
               >
@@ -218,7 +220,7 @@ export default function Patients() {
         </div>
       )}
 
-      <PatientForm 
+      <PatientForm
         isOpen={isAddModalOpen || !!editingPatient}
         onClose={() => { setIsAddModalOpen(false); setEditingPatient(null); }}
         onSubmit={handlePatientSubmit}

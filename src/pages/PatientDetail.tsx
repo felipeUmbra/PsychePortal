@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, FileText, Plus, Clock, Edit3, Trash2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format, isPast } from 'date-fns';
+import { ptBR, enUS } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
 import RichTextRenderer from '../components/RichTextRenderer';
 import { cn } from '../lib/utils';
@@ -18,7 +19,8 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 export default function PatientDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language.startsWith('pt') ? ptBR : enUS;
   const [user] = useAuthState(auth);
 
   const { patient, loading: patientLoading, updatePatient } = usePatient(id);
@@ -37,7 +39,7 @@ export default function PatientDetail() {
 
   const formatSessionDate = (session: any) => {
     const d = getSessionDate(session);
-    return !isNaN(d.getTime()) ? format(d, 'MMMM d, yyyy - HH:mm') : t('common.na', 'N/A');
+    return !isNaN(d.getTime()) ? format(d, 'MMMM d, yyyy - HH:mm', { locale: dateLocale }) : t('common.na', 'N/A');
   };
 
   const handleAddSessionSubmit = async (data: any) => {
@@ -168,7 +170,7 @@ export default function PatientDetail() {
                         <p className="text-[14px] font-bold text-text-main">{formatSessionDate(session)}</p>
                         <p className="text-[11px] text-text-muted font-bold uppercase tracking-wider flex items-center gap-1.5">
                           <Clock className="w-3 h-3" />
-                          1 hour • {t(`session_status.${session.status}`)}
+                          {t('dashboard.one_hour_session')} • {t(`session_status.${session.status}`)}
                         </p>
                       </div>
                     </div>
@@ -243,7 +245,7 @@ export default function PatientDetail() {
                             <p className="text-[14px] font-bold text-text-main">{formatSessionDate(session)}</p>
                             <p className="text-[11px] text-text-muted font-bold uppercase tracking-wider flex items-center gap-1.5">
                               <Clock className="w-3 h-3" />
-                              1 hour • {t(`patient_detail.types.${session.type || 'individual'}`)}
+                              {t('dashboard.one_hour_session')} • {t(`patient_detail.types.${session.type || 'individual'}`)}
                             </p>
                           </div>
                         </div>
