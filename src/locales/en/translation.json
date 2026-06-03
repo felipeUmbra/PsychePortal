@@ -270,7 +270,9 @@
         "search_placeholder": "Search by patient name or session notes...",
         "view_patient": "View Patient",
         "no_sessions": "No sessions found",
-        "no_sessions_hint": "Try adjusting your search or filters."
+        "no_sessions_hint": "Try adjusting your search or filters.",
+        "delete_confirm_title": "Delete Session",
+        "delete_confirm_message": "Are you sure you want to delete this session? This action cannot be undone."
     },
     "settings": {
         "title": "Account Settings",

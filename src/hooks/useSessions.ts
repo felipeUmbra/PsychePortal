@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { collection, query, where, orderBy, onSnapshot, addDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, getStorage, deleteObject, setDriveToken as setMockToken } from '../lib/firestore-mock'; // Import from mock
 import { db, auth } from '../firebase'; // Remove 'storage' import
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -90,7 +90,7 @@ export function useSessions(patientId?: string) {
           },
           body: JSON.stringify(eventUpdate)
         });
-        
+
         window.dispatchEvent(new CustomEvent('google-auth-success'));
       }
     } catch (error) {
@@ -112,15 +112,15 @@ export function useSessions(patientId?: string) {
               'Authorization': `Bearer ${token}`
             }
           });
-          
+
           if (res.status === 401 || res.status === 403) {
             const errorData = await res.json().catch(() => ({}));
-            window.dispatchEvent(new CustomEvent('google-auth-error', { 
-              detail: { 
-                status: res.status, 
+            window.dispatchEvent(new CustomEvent('google-auth-error', {
+              detail: {
+                status: res.status,
                 service: 'calendar',
                 message: errorData.error?.message || res.statusText
-              } 
+              }
             }));
           } else if (res.ok) {
             window.dispatchEvent(new CustomEvent('google-auth-success'));
@@ -134,7 +134,7 @@ export function useSessions(patientId?: string) {
 
   const uploadFile = async (file: File, sessionId: string) => {
     if (!user) throw new Error('Unauthenticated');
-    
+
     // 40MB limit
     if (file.size > 40 * 1024 * 1024) {
       throw new Error('File size exceeds 40MB limit.');
@@ -164,12 +164,23 @@ export function useSessions(patientId?: string) {
     }
   };
 
-  return { 
-    sessions, 
-    loading, 
-    addSession, 
-    updateSession, 
+  const deleteSession = async (sessionId: string) => {
+    if (!user) throw new Error('Unauthenticated');
+    try {
+      await deleteDoc(doc(db, 'sessions', sessionId));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `sessions/${sessionId}`);
+      throw error;
+    }
+  };
+
+  return {
+    sessions,
+    loading,
+    addSession,
+    updateSession,
     cancelSession,
+    deleteSession,
     uploadFile,
     deleteFile,
     isUploading

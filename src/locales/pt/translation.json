@@ -269,7 +269,9 @@
         "search_placeholder": "Pesquisar por nome do paciente ou notas...",
         "view_patient": "Ver Paciente",
         "no_sessions": "Nenhuma sessão encontrada",
-        "no_sessions_hint": "Tente ajustar sua pesquisa ou filtros."
+        "no_sessions_hint": "Tente ajustar sua pesquisa ou filtros.",
+        "delete_confirm_title": "Excluir Sessão",
+        "delete_confirm_message": "Tem certeza que deseja excluir esta sessão? Esta ação não pode ser desfeita."
     },
     "settings": {
         "title": "Configurações da Conta",

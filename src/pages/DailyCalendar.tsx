@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { 
-  Calendar as CalendarIcon, 
-  Clock, 
-  Plus, 
-  ChevronLeft, 
+import {
+  Calendar as CalendarIcon,
+  Clock,
+  Plus,
+  ChevronLeft,
   ChevronRight,
   X
 } from 'lucide-react';
@@ -26,11 +26,11 @@ export default function Calendar() {
   const { driveToken } = useGoogleAuth();
   const navigate = useNavigate();
   const dateLocale = i18n.language.startsWith('pt') ? ptBR : enUS;
-  
+
   const [sessions, setSessions] = useState<any[]>([]);
   const [patients, setPatients] = useState<any[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
-  
+
   // Modal state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [modalInitialDate, setModalInitialDate] = useState<Date | undefined>(undefined);
@@ -56,7 +56,7 @@ export default function Calendar() {
   const cancelSession = async (session: any) => {
     try {
       await updateDoc(doc(db, 'sessions', session.id), { status: 'cancelled' });
-      
+
       if (session.googleEventId) {
         const token = driveToken;
         if (token) {
@@ -66,15 +66,15 @@ export default function Calendar() {
               'Authorization': `Bearer ${token}`
             }
           });
-          
+
           if (res.status === 401 || res.status === 403) {
             const errorData = await res.json().catch(() => ({}));
-            window.dispatchEvent(new CustomEvent('google-auth-error', { 
-              detail: { 
-                status: res.status, 
+            window.dispatchEvent(new CustomEvent('google-auth-error', {
+              detail: {
+                status: res.status,
                 service: 'calendar',
                 message: errorData.error?.message || res.statusText
-              } 
+              }
             }));
           } else if (res.ok) {
             window.dispatchEvent(new CustomEvent('google-auth-success'));
@@ -90,9 +90,16 @@ export default function Calendar() {
   const weekEnd = endOfWeek(selectedDate);
   const days = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
+  // Filter sessions to only those within the current week
+  const weeklySessions = sessions.filter(session => {
+    if (!session.date) return false;
+    const sD = session.date.toDate ? session.date.toDate() : new Date(session.date);
+    return sD >= weekStart && sD <= weekEnd;
+  });
+
   // Generate working hours (8:00 to 18:00)
   const workingHours = Array.from({ length: 11 }, (_, i) => i + 8);
-  
+
   const handleSlotClick = (hour: number) => {
     const slotDate = setMilliseconds(setSeconds(setMinutes(setHours(selectedDate, hour), 0), 0), 0);
     setModalInitialDate(slotDate);
@@ -106,7 +113,7 @@ export default function Calendar() {
           <h1 className="text-2xl font-bold text-text-main tracking-tight">{t('sidebar.sessions_by_day')}</h1>
           <p className="text-text-muted text-[14px]">{t('calendar.subtitle')}</p>
         </div>
-        <button 
+        <button
           onClick={() => setIsAddModalOpen(true)}
           className="btn-primary flex items-center gap-2 text-[14px]"
         >
@@ -137,8 +144,8 @@ export default function Calendar() {
                   onClick={() => setSelectedDate(day)}
                   className={cn(
                     "aspect-square flex items-center justify-center rounded-lg text-[13px] transition-all border border-transparent",
-                    isSameDay(day, selectedDate) 
-                      ? "bg-primary-custom text-white font-bold shadow-md shadow-primary-custom/20" 
+                    isSameDay(day, selectedDate)
+                      ? "bg-primary-custom text-white font-bold shadow-md shadow-primary-custom/20"
                       : "hover:bg-accent-custom text-text-main hover:border-primary-custom/20"
                   )}
                 >
@@ -156,18 +163,18 @@ export default function Calendar() {
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-blue-100 text-[13px]">{t('dashboard.total_sessions')}</span>
-                <span className="font-bold text-[14px]">{sessions.length}</span>
+                <span className="font-bold text-[14px]">{weeklySessions.length}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-blue-100 text-[13px]">{t('calendar.completed')}</span>
                 <span className="font-bold text-[14px] text-emerald-300">
-                  {sessions.filter(s => s.status === 'completed').length}
+                  {weeklySessions.filter(s => s.status === 'completed').length}
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-blue-100 text-[13px]">{t('calendar.cancelled')}</span>
                 <span className="font-bold text-[14px] text-red-300">
-                  {sessions.filter(s => s.status === 'cancelled').length}
+                  {weeklySessions.filter(s => s.status === 'cancelled').length}
                 </span>
               </div>
             </div>
@@ -230,8 +237,8 @@ export default function Calendar() {
                           );
                         })
                       ) : (
-                        <button 
-                          onClick={() => handleSlotClick(hour)} 
+                        <button
+                          onClick={() => handleSlotClick(hour)}
                           className="absolute inset-0 w-full h-full flex items-center justify-center lg:opacity-0 lg:hover:opacity-100 bg-primary-custom/5 lg:bg-transparent lg:hover:bg-primary-custom/5 transition-all text-primary-custom gap-2 font-bold text-[13px] z-10 cursor-pointer"
                         >
                           <Plus className="w-4 h-4" />
@@ -247,8 +254,8 @@ export default function Calendar() {
         </div>
       </div>
 
-      <NewSessionModal 
-        isOpen={isAddModalOpen} 
+      <NewSessionModal
+        isOpen={isAddModalOpen}
         onClose={() => {
           setIsAddModalOpen(false);
           setModalInitialDate(undefined);

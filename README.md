@@ -17,6 +17,7 @@ PsychePortal is a modern, secure, and clinical-grade web application designed sp
 - **👥 Patient Directory:** Manage patient profiles, anamnesis, financial plans, and demographics with quick-navigation links.
 - **📅 Interactive Calendar:** Schedule and manage sessions with Month, Week, and Daily Hourly views, plus recurrence support.
 - **📝 Clinical Notes:** Markdown-supported session logging with organized clinical history tracking.
+- **🗑️ Session Management:** Edit and delete session records with confirmation safeguards.
 - **💰 Financial Management:** Real-time revenue tracking, pending payments, and revenue summaries.
 - **📊 Dashboard:** Quick overview of daily schedules, patient metrics, and clinical growth.
 - **📤 Data Export:** Export patient and session records to CSV for external reporting.
@@ -26,8 +27,9 @@ PsychePortal is a modern, secure, and clinical-grade web application designed sp
 - **Frontend:** React 19, Vite 6, TypeScript
 - **PWA:** `vite-plugin-pwa` (Service Workers, Manifest, Offline support)
 - **Styling:** Tailwind CSS v4, Motion (Animations), Lucide React (Icons)
-- **Routing:** React Router v7 (HashRouter for GitHub Pages)
-- **Backend:** Firebase (Authentication, Firestore Database)
+- **Routing:** React Router (HashRouter for GitHub Pages)
+- **Backend:** Firebase (Authentication, Firestore Database, Storage)
+- **Date Utilities:** `date-fns`
 - **i18n:** i18next & react-i18next
 - **Charts:** Recharts
 - **Deployment:** GitHub Pages (`gh-pages`)
@@ -52,7 +54,9 @@ PsychePortal is a modern, secure, and clinical-grade web application designed sp
    ```
 
 3. **Environment Setup:**
-   Create a `.env` file in the root directory and add your Firebase configuration (e.g., API keys, auth domain).
+   Create a `.env` file in the root directory and add your Firebase configuration (e.g., API keys, auth domain, project ID).
+   
+   *Optional: For local development without a live Firebase project, the app includes a mock data layer that can simulate Firestore operations.*
 
 4. **Run the development server:**
    ```bash

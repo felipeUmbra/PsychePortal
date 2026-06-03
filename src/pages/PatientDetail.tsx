@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, FileText, Plus, Clock, Edit3 } from 'lucide-react';
+import { ArrowLeft, Calendar, FileText, Plus, Clock, Edit3, Trash2, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { format, isPast } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import RichTextRenderer from '../components/RichTextRenderer';
@@ -19,9 +20,9 @@ export default function PatientDetail() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [user] = useAuthState(auth);
-  
+
   const { patient, loading: patientLoading, updatePatient } = usePatient(id);
-  const { sessions, loading: sessionsLoading, addSession, updateSession, cancelSession, uploadFile, isUploading } = useSessions(id);
+  const { sessions, loading: sessionsLoading, addSession, updateSession, cancelSession, deleteSession, uploadFile, isUploading } = useSessions(id);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
@@ -29,16 +30,8 @@ export default function PatientDetail() {
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [registeringSessionId, setRegisteringSessionId] = useState<string | null>(null);
   const [expandedSessions, setExpandedSessions] = useState<string[]>([]);
-
-  if (patientLoading || sessionsLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-2 border-primary-custom/30 border-t-primary-custom rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  if (!patient) return null;
+  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const getSessionDate = (s: any) => s?.date ? ((s.date as any).toDate ? (s.date as any).toDate() : new Date(s.date)) : new Date(NaN);
 
@@ -46,15 +39,6 @@ export default function PatientDetail() {
     const d = getSessionDate(session);
     return !isNaN(d.getTime()) ? format(d, 'MMMM d, yyyy - HH:mm') : t('common.na', 'N/A');
   };
-
-  const upcomingSessions = sessions.filter(s => {
-    const d = getSessionDate(s);
-    return s.status === 'scheduled' && !isNaN(d.getTime()) && !isPast(d);
-  });
-  const pastSessions = sessions.filter(s => {
-    const d = getSessionDate(s);
-    return s.status !== 'scheduled' || isNaN(d.getTime()) || isPast(d);
-  });
 
   const handleAddSessionSubmit = async (data: any) => {
     await addSession(data);
@@ -67,17 +51,48 @@ export default function PatientDetail() {
     setRegisteringSessionId(null);
   };
 
+  const handleDeleteSession = async () => {
+    if (!deletingSessionId) return;
+
+    try {
+      await deleteSession(deletingSessionId);
+      setShowDeleteModal(false);
+      setDeletingSessionId(null);
+    } catch (error) {
+      console.error('Failed to delete session:', error);
+    }
+  };
+
   const toggleSessionNotes = (sessionId: string) => {
-    setExpandedSessions(prev => 
+    setExpandedSessions(prev =>
       prev.includes(sessionId) ? prev.filter(id => id !== sessionId) : [...prev, sessionId]
     );
   };
+
+  if (patientLoading || sessionsLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="w-8 h-8 border-2 border-primary-custom/30 border-t-primary-custom rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (!patient) return null;
+
+  const upcomingSessions = sessions.filter(s => {
+    const d = getSessionDate(s);
+    return s.status === 'scheduled' && !isNaN(d.getTime()) && !isPast(d);
+  });
+  const pastSessions = sessions.filter(s => {
+    const d = getSessionDate(s);
+    return s.status !== 'scheduled' || isNaN(d.getTime()) || isPast(d);
+  });
 
   return (
     <div className="space-y-8">
       <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={() => navigate('/app/patients')}
             className="p-2 hover:bg-surface rounded-lg text-text-muted transition-colors border border-transparent hover:border-border-custom"
           >
@@ -89,21 +104,21 @@ export default function PatientDetail() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2 sm:gap-3 w-full sm:w-auto">
-          <button 
+          <button
             onClick={() => setIsEditModalOpen(true)}
             className="btn-secondary flex items-center gap-2 text-[13px] sm:text-[14px] flex-1 sm:flex-none justify-center"
           >
             <FileText className="w-4 h-4" />
             {t('patient_detail.edit_profile')}
           </button>
-          <button 
+          <button
             onClick={() => setIsScheduleModalOpen(true)}
             className="btn-secondary flex items-center gap-2 text-[13px] sm:text-[14px] flex-1 sm:flex-none justify-center"
           >
             <Calendar className="w-4 h-4" />
             {t('calendar.schedule_session', 'Schedule Appointment')}
           </button>
-          <button 
+          <button
             onClick={() => setIsAddingSession(true)}
             className="btn-primary flex items-center gap-2 text-[13px] sm:text-[14px] flex-1 sm:flex-none justify-center"
           >
@@ -112,7 +127,7 @@ export default function PatientDetail() {
           </button>
         </div>
       </header>
-      
+
       <NewSessionModal
         isOpen={isScheduleModalOpen}
         onClose={() => setIsScheduleModalOpen(false)}
@@ -121,11 +136,11 @@ export default function PatientDetail() {
         preselectedPatientId={patient.id}
       />
 
-      <PatientForm 
+      <PatientForm
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        onSubmit={async (data) => { 
-          await updatePatient(data); 
+        onSubmit={async (data) => {
+          await updatePatient(data);
           setIsEditModalOpen(false);
         }}
         initialData={patient}
@@ -138,7 +153,7 @@ export default function PatientDetail() {
         </div>
 
         <div className="lg:col-span-2 space-y-6">
-          
+
           {upcomingSessions.length > 0 && (
             <div className="mb-8">
               <h2 className="text-[18px] font-bold text-text-main mb-4">{t('dashboard.upcoming_appts')}</h2>
@@ -157,7 +172,7 @@ export default function PatientDetail() {
                         </p>
                       </div>
                     </div>
-                    <button 
+                    <button
                       onClick={() => cancelSession(session)}
                       className="btn-secondary text-[12px] text-red-600 hover:bg-red-50 hover:border-red-200 w-full sm:w-auto"
                     >
@@ -175,7 +190,7 @@ export default function PatientDetail() {
 
           {isAddingSession && (
             <div className="mb-4">
-              <SessionForm 
+              <SessionForm
                 title={t('patient_detail.log_new_title')}
                 submitLabel={t('patient_detail.save_record')}
                 onSubmit={handleAddSessionSubmit}
@@ -192,7 +207,7 @@ export default function PatientDetail() {
                 <div key={session.id || Math.random()} className="card p-0 overflow-hidden bg-[#fafbfc] hover:border-primary-custom/20 transition-all">
                   {(editingSessionId === session.id || registeringSessionId === session.id) ? (
                     <div className="p-6 bg-white">
-                      <SessionForm 
+                      <SessionForm
                         title={registeringSessionId === session.id ? t('session_action.register') : t('session_action.edit_session')}
                         submitLabel={t('common.save')}
                         initialData={session}
@@ -236,32 +251,44 @@ export default function PatientDetail() {
                           <span className={cn(
                             "status-badge",
                             session.status === 'completed' ? "bg-emerald-100 text-emerald-700" :
-                            session.status === 'scheduled' ? "bg-amber-100 text-amber-700" :
-                            "bg-red-100 text-red-700"
+                              session.status === 'scheduled' ? "bg-amber-100 text-amber-700" :
+                                "bg-red-100 text-red-700"
                           )}>
                             {t(`session_status.${session.status}`)}
                           </span>
                           {session.status === 'scheduled' ? (
-                            <button 
+                            <button
                               onClick={() => setRegisteringSessionId(session.id)}
                               className="btn-primary py-1 px-3 text-[12px]"
                             >
                               {t('session_action.register')}
                             </button>
                           ) : (
-                            <button 
-                              onClick={() => setEditingSessionId(session.id)}
-                              className="p-1.5 text-text-muted hover:text-primary-custom hover:bg-bg rounded-md transition-colors"
-                              title={t('session_action.edit_session')}
-                            >
-                              <Edit3 className="w-4 h-4" />
-                            </button>
+                            <>
+                              <button
+                                onClick={() => setEditingSessionId(session.id)}
+                                className="p-1.5 text-text-muted hover:text-primary-custom hover:bg-bg rounded-md transition-colors"
+                                title={t('session_action.edit_session')}
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setDeletingSessionId(session.id);
+                                  setShowDeleteModal(true);
+                                }}
+                                className="p-1.5 text-text-muted hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                title={t('common.delete')}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </>
                           )}
                         </div>
                       </div>
                       {(session.notes || (session.attachments && session.attachments.length > 0)) && (
                         <div className="px-6 pb-6 pt-2">
-                          <button 
+                          <button
                             onClick={() => toggleSessionNotes(session.id)}
                             className="text-[12px] font-bold text-primary-custom flex items-center gap-1.5 hover:underline mb-2"
                           >
@@ -270,18 +297,18 @@ export default function PatientDetail() {
                           {expandedSessions.includes(session.id) && (
                             <div className="mt-3">
                               {session.notes && (
-                                <RichTextRenderer 
-                                  content={session.notes} 
-                                  className="!bg-[#fafbfc]" 
-                                  style={{ fontSize: '14px' }} 
+                                <RichTextRenderer
+                                  content={session.notes}
+                                  className="!bg-[#fafbfc]"
+                                  style={{ fontSize: '14px' }}
                                 />
                               )}
                               {session.attachments && session.attachments.length > 0 && (
                                 <div className="mt-4 flex flex-wrap gap-2 pt-4 border-t border-border-custom">
                                   {session.attachments.map((att: any, idx: number) => (
-                                    <a 
-                                      key={idx} 
-                                      href={att.url} 
+                                    <a
+                                      key={idx}
+                                      href={att.url}
                                       download={att.name}
                                       rel="noopener noreferrer"
                                       className="flex items-center gap-2 px-3 py-2 bg-surface border border-border-custom rounded-lg hover:border-primary-custom/50 hover:bg-bg transition-all group"
@@ -313,7 +340,7 @@ export default function PatientDetail() {
               <div className="text-center py-12 card border-dashed border-2 bg-transparent">
                 <FileText className="w-12 h-12 text-border-custom mx-auto mb-4" />
                 <p className="text-text-muted text-[14px]">{t('patient_detail.no_sessions')}</p>
-                <button 
+                <button
                   onClick={() => setIsAddingSession(true)}
                   className="mt-4 btn-primary inline-flex items-center gap-2 text-[13px]"
                 >
@@ -325,6 +352,52 @@ export default function PatientDetail() {
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {showDeleteModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowDeleteModal(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6"
+            >
+              <div className="mb-6">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Trash2 className="w-6 h-6 text-red-600" />
+                </div>
+                <h2 className="text-xl font-bold text-slate-900 text-center mb-2">
+                  {t('sessions.delete_confirm_title', 'Delete Session')}
+                </h2>
+                <p className="text-text-muted text-[14px] text-center">
+                  {t('sessions.delete_confirm_message', 'Are you sure you want to delete this session? This action cannot be undone.')}
+                </p>
+              </div>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  className="btn-secondary"
+                >
+                  {t('common.cancel', 'Cancel')}
+                </button>
+                <button
+                  onClick={handleDeleteSession}
+                  className="btn-primary bg-red-600 hover:bg-red-700 border-red-600 hover:border-red-700"
+                >
+                  {t('common.delete', 'Delete')}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

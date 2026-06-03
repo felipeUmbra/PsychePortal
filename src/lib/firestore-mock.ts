@@ -9,7 +9,7 @@ export const setDriveToken = (token: string | null) => {
     if (token) sessionStorage.setItem('google_drive_token', token);
     else sessionStorage.removeItem('google_drive_token');
   }
-   if (token && !isLoaded) {
+  if (token && !isLoaded) {
     forceSync();
   }
   // Always force a clean sync when a new token is provided to prevent 
@@ -44,7 +44,7 @@ export const doc = (dbOrCol: any, path: string, id?: string) => {
   // Handle doc(collectionRef, id) overload
   if (dbOrCol && typeof dbOrCol === 'object' && dbOrCol.type === 'collection') {
     finalPath = dbOrCol.path;
-    finalId = path; 
+    finalId = path;
   } else if (!finalId) {
     const parts = finalPath.split('/');
     finalId = parts.pop();
@@ -66,7 +66,7 @@ export const limit = (num: number) => ({ type: 'limit', num });
 export class DocSnapshot {
   constructor(public id: string, private _data: any) { }
   exists() { return !!this._data; }
-  data() { 
+  data() {
     if (!this._data) return undefined;
     // Return a deep clone to prevent accidental direct mutation of the mock state.
     // We also remove the 'id' field if it's present in the body to match real Firestore behavior.
@@ -199,7 +199,7 @@ export const loadFromDrive = async () => {
               }
             }));
             isLoading = false;
-          loadPromise = null;
+            loadPromise = null;
             return;
           }
           throw new Error(`Drive download failed: ${dlRes.status}`);
@@ -225,6 +225,11 @@ export const loadFromDrive = async () => {
           notify();
         }
       }
+
+      // Process any pending operations before marking as loaded
+      // This ensures user changes are not lost
+      processPendingOperations();
+
       isLoaded = true; // Only mark as loaded if we successfully communicated with drive
     } catch (err) {
       console.error('Failed to load from Drive:', err);
@@ -262,18 +267,41 @@ export const forceSync = async () => {
 let syncTimer: any;
 let isSyncing = false;
 
+// Pending operations queue to prevent data loss when Drive is loading
+let pendingOperations: Array<() => void> = [];
+let isQueueProcessing = false;
+
+const processPendingOperations = () => {
+  if (isQueueProcessing || pendingOperations.length === 0) return;
+  isQueueProcessing = true;
+
+  console.log(`Processing ${pendingOperations.length} pending operations...`);
+
+  // Apply all pending operations to state
+  pendingOperations.forEach(op => {
+    try {
+      op();
+    } catch (err) {
+      console.error('Error processing pending operation:', err);
+    }
+  });
+  pendingOperations = [];
+
+  isQueueProcessing = false;
+  // Now save the merged state to Drive
+  saveToDrive();
+};
+
 const saveToDrive = () => {
   clearTimeout(syncTimer);
   syncTimer = setTimeout(async () => {
     const token = driveToken;
 
     // Always backup to localStorage as a safety net
-    if (isLoaded) {
-      localStorage.setItem('mock_db_cache', JSON.stringify(state));
-    }
+    // Even if not fully loaded, backup what we have
+    localStorage.setItem('mock_db_cache', JSON.stringify(state));
 
-    if (!token || isSyncing || !isLoaded) {
-      if (!isLoaded) console.warn('Skipping saveToDrive because state is not fully loaded yet.');
+    if (!token || isSyncing) {
       return;
     }
     isSyncing = true;
@@ -421,6 +449,17 @@ export const addDoc = async (colRef: any, data: any) => {
     }
   }
 
+  // If not loaded yet, queue this operation to prevent data loss
+  if (!isLoaded) {
+    console.log('Queueing addDoc operation until Drive loads...');
+    pendingOperations.push(() => {
+      state[colRef.path].push({ id, ...processedData });
+      notify();
+    });
+    // Still return the ID so the caller can use it
+    return { id };
+  }
+
   state[colRef.path].push({ id, ...processedData });
   saveToDrive();
   notify();
@@ -430,13 +469,28 @@ export const addDoc = async (colRef: any, data: any) => {
 export const setDoc = async (docRef: any, data: any) => {
   if (!state[docRef.path]) state[docRef.path] = [];
   const idx = state[docRef.path].findIndex(i => i.id === docRef.id);
-  
+
   // Process server timestamps and strip provided ID
   const { id: _, ...processedData } = { ...data } as any;
   for (let key in processedData) {
     if (processedData[key] && processedData[key].isServerTimestamp) {
       processedData[key] = new Date().toISOString();
     }
+  }
+
+  // If not loaded yet, queue this operation to prevent data loss
+  if (!isLoaded) {
+    console.log('Queueing setDoc operation until Drive loads...');
+    pendingOperations.push(() => {
+      const currentIdx = state[docRef.path].findIndex(i => i.id === docRef.id);
+      if (currentIdx >= 0) {
+        state[docRef.path][currentIdx] = { id: docRef.id, ...processedData };
+      } else {
+        state[docRef.path].push({ id: docRef.id, ...processedData });
+      }
+      notify();
+    });
+    return;
   }
 
   if (idx >= 0) {
@@ -459,7 +513,20 @@ export const updateDoc = async (docRef: any, data: any) => {
         processedData[key] = new Date().toISOString();
       }
     }
-    
+
+    // If not loaded yet, queue this operation to prevent data loss
+    if (!isLoaded) {
+      console.log('Queueing updateDoc operation until Drive loads...');
+      pendingOperations.push(() => {
+        const currentIdx = state[docRef.path].findIndex(i => i.id === docRef.id);
+        if (currentIdx >= 0) {
+          state[docRef.path][currentIdx] = { ...state[docRef.path][currentIdx], ...processedData };
+          notify();
+        }
+      });
+      return;
+    }
+
     state[docRef.path][idx] = { ...state[docRef.path][idx], ...processedData };
     saveToDrive();
     notify();
@@ -468,6 +535,17 @@ export const updateDoc = async (docRef: any, data: any) => {
 
 export const deleteDoc = async (docRef: any) => {
   if (!state[docRef.path]) return;
+
+  // If not loaded yet, queue this operation to prevent data loss
+  if (!isLoaded) {
+    console.log('Queueing deleteDoc operation until Drive loads...');
+    pendingOperations.push(() => {
+      state[docRef.path] = state[docRef.path].filter(i => i.id !== docRef.id);
+      notify();
+    });
+    return;
+  }
+
   state[docRef.path] = state[docRef.path].filter(i => i.id !== docRef.id);
   saveToDrive();
   notify();
@@ -516,19 +594,19 @@ export const uploadBytes = async (storageRef: any, data: Blob | Uint8Array) => {
 
 export const getDownloadURL = async (storageRef: any) => {
   if (!driveToken) throw new Error('No drive token');
-  
+
   try {
     const fileName = storageRef.path.split('/').pop();
     // Search by name only using double quotes to handle spaces correctly
     const query = `name = "${fileName?.replace(/"/g, '\\"')}"`;
-    
+
     const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${encodeURIComponent(query)}&fields=files(id,description)`, {
       headers: { Authorization: `Bearer ${driveToken}` }
     });
 
     if (!searchRes.ok) throw new Error('Failed to find file on Drive');
     const searchData = await searchRes.json();
-    
+
     // Find the specific file that matches our unique path tag in the description
     const targetFile = searchData.files?.find((f: any) => f.description === `attachment:${storageRef.path}`);
 
@@ -540,9 +618,9 @@ export const getDownloadURL = async (storageRef: any) => {
     const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
       headers: { Authorization: `Bearer ${driveToken}` }
     });
-    
+
     if (!res.ok) throw new Error('Failed to fetch file content');
-    
+
     const blob = await res.blob();
     return URL.createObjectURL(blob);
   } catch (error) {
@@ -554,11 +632,11 @@ export const getDownloadURL = async (storageRef: any) => {
 
 export const deleteObject = async (storageRef: any) => {
   if (!driveToken) throw new Error('No drive token');
-  
+
   try {
     const fileName = storageRef.path.split('/').pop();
     const query = `name = "${fileName?.replace(/"/g, '\\"')}" and description = 'attachment:${storageRef.path}'`;
-    
+
     const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${encodeURIComponent(query)}`, {
       headers: { Authorization: `Bearer ${driveToken}` }
     });
