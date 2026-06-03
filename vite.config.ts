@@ -58,7 +58,7 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       headers: {
-        'Cross-Origin-Opener-Policy': 'unsafe-none',
+        'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
       },
       hmr: false,
     },

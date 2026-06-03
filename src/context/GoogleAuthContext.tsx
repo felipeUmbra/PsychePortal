@@ -24,6 +24,10 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
     setDriveTokenMock(newToken);
   };
 
+  const setCalendarToken = (newToken: string | null) => {
+    setCalendarTokenState(newToken);
+  };
+
   // Expose token setters to window for E2E testing
   useEffect(() => {
     if (typeof window !== 'undefined' && (window as any).Cypress) {
@@ -33,11 +37,6 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
       };
     }
   }, [setDriveToken, setCalendarToken]);
-
-
-  const setCalendarToken = (newToken: string | null) => {
-    setCalendarTokenState(newToken);
-  };
 
   // Inactivity timer to clear tokens after 30 minutes
   useEffect(() => {
