@@ -13,7 +13,7 @@ PsychePortal is a secure, clinical-grade workspace designed for mental health pr
 ### Backend & Security
 - **Authentication**: Firebase Auth (Google Provider)
 - **Database**: Firebase Firestore
-- **Persistence**: Google Drive API integration (storing data in a secure, hidden application folder)
+- **Storage**: Firebase Storage (for file uploads)
 - **Error Handling**: Centralized clinical-grade error boundary and logging system
 
 ### UI & UX
@@ -61,11 +61,10 @@ PsychePortal/
 │   ├── types.ts            # Global TypeScript definitions
 │   ├── i18n.ts             # Internationalization config
 │   ├── main.tsx            # Entry point & PWA registration
-│   └── index.css           # Global styles and Tailwind v4 theme
+│  │   └── index.css           # Global styles and Tailwind v4 theme
 ├── vite.config.ts          # Build and PWA configuration
 └── tsconfig.json           # TypeScript configuration
 ```
-
 ---
 
 ## ✨ Key Features
@@ -99,9 +98,6 @@ PsychePortal/
 - Fully installable on mobile devices.
 - Offline support and automatic updates.
 - Native-like experience with standalone display mode.
-
-### 7. Google Drive Persistence
-- Optional synchronization that stores clinical data in a hidden folder on the user's personal Google Drive, ensuring privacy and data ownership.
 
 ---
 
