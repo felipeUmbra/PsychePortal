@@ -1,9 +1,8 @@
 import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
-import MDEditor from '@uiw/react-md-editor';
+import RichTextEditor from '../RichTextEditor';
 import { Paperclip, X, Loader2 } from 'lucide-react';
-import rehypeSanitize from 'rehype-sanitize';
 
 interface SessionFormProps {
   initialData?: any;
@@ -126,19 +125,14 @@ export function SessionForm({
           </div>
         </div>
 
-        <div data-color-mode="light">
+        <div>
           <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">
             {t('patient_detail.observations')}
           </label>
-          <MDEditor
+          <RichTextEditor
             value={formData.notes}
-            onChange={(val) => setFormData({...formData, notes: val || ''})}
-            preview="edit"
+            onChange={(val) => setFormData({...formData, notes: val})}
             height={300}
-            className="border border-border-custom rounded-xl overflow-hidden"
-            previewOptions={{
-              rehypePlugins: [[rehypeSanitize]],
-            }}
           />
         </div>
 

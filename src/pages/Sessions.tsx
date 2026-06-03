@@ -19,11 +19,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import MDEditor from '@uiw/react-md-editor';
+import RichTextEditor from '../components/RichTextEditor';
+import RichTextRenderer from '../components/RichTextRenderer';
 import { handleFirestoreError, OperationType } from '../lib/error-handler';
 import { cn } from '../lib/utils';
 import { useGoogleAuth } from '../context/GoogleAuthContext';
-import rehypeSanitize from 'rehype-sanitize';
 
 export default function Sessions() {
   const [user] = useAuthState(auth);
@@ -288,14 +288,11 @@ export default function Sessions() {
                 {expandedSessions.includes(session.id) && (
                   <div className="mt-3">
                     {session.notes && (
-                      <div data-color-mode="light" className="text-text-main text-[14px]">
-                        <MDEditor.Markdown 
-                          source={session.notes} 
-                          className="!bg-[#fafbfc]" 
-                          style={{ fontSize: '14px' }} 
-                          rehypePlugins={[rehypeSanitize]}
-                        />
-                      </div>
+                      <RichTextRenderer 
+                        content={session.notes} 
+                        className="!bg-[#fafbfc]" 
+                        style={{ fontSize: '14px' }} 
+                      />
                     )}
                     {session.attachments && session.attachments.length > 0 && (
                       <div className="mt-4 flex flex-wrap gap-2 pt-4 border-t border-border-custom">
@@ -382,14 +379,12 @@ export default function Sessions() {
                   </div>
                 </div>
                 
-                <div data-color-mode="light">
+                <div>
                   <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('patient_detail.observations')}</label>
-                  <MDEditor
+                  <RichTextEditor
                     value={sessionForm.notes}
-                    onChange={(val) => setSessionForm({...sessionForm, notes: val || ''})}
-                    preview="edit"
+                    onChange={(val) => setSessionForm({...sessionForm, notes: val})}
                     height={300}
-                    className="border border-border-custom rounded-xl overflow-hidden"
                   />
                 </div>
 

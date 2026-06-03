@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, FileText, Plus, Clock, Edit3 } from 'lucide-react';
 import { format, isPast } from 'date-fns';
 import { useTranslation } from 'react-i18next';
-import MDEditor from '@uiw/react-md-editor';
+import RichTextRenderer from '../components/RichTextRenderer';
 import { cn } from '../lib/utils';
 import { NewSessionModal } from '../components/NewSessionModal';
 import { PatientForm } from '../components/patients/PatientForm';
@@ -13,7 +13,6 @@ import { usePatient } from '../hooks/usePatients';
 import { useSessions } from '../hooks/useSessions';
 import { auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import rehypeSanitize from 'rehype-sanitize';
 
 export default function PatientDetail() {
   const { id } = useParams();
@@ -271,14 +270,11 @@ export default function PatientDetail() {
                           {expandedSessions.includes(session.id) && (
                             <div className="mt-3">
                               {session.notes && (
-                                <div data-color-mode="light" className="text-text-main text-[14px]">
-                                  <MDEditor.Markdown 
-                                    source={session.notes} 
-                                    className="!bg-[#fafbfc]" 
-                                    style={{ fontSize: '14px' }} 
-                                    rehypePlugins={[rehypeSanitize]}
-                                  />
-                                </div>
+                                <RichTextRenderer 
+                                  content={session.notes} 
+                                  className="!bg-[#fafbfc]" 
+                                  style={{ fontSize: '14px' }} 
+                                />
                               )}
                               {session.attachments && session.attachments.length > 0 && (
                                 <div className="mt-4 flex flex-wrap gap-2 pt-4 border-t border-border-custom">
