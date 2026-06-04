@@ -7,3 +7,5 @@ coverage/
 .env*
 !.env.example
 firebase-applet-config.json
+Claude.md
+e2e.md

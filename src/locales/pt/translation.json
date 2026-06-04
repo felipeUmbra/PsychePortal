@@ -25,11 +25,17 @@
         "hide_notes": "Ocultar Notas",
         "date_time": "Data e Hora",
         "hour": "hora",
-        "hours": "horas"
+        "hours": "horas",
+        "confirm_delete_patient": "Tem certeza que deseja excluir \"{{patientName}}\"?",
+        "uploading": "Enviando..."
     },
     "login": {
         "title": "Seu espaço profissional para gestão em psicologia clínica.",
         "error_fallback": "Falha no login. Tente novamente.",
+        "error_network": "Erro de rede. Verifique sua conexão.",
+        "error_rate_limit": "Muitas tentativas. Tente novamente mais tarde.",
+        "error_user_disabled": "Esta conta foi desativada.",
+        "error_operation_not_allowed": "Operação não permitida.",
         "sign_in": "Entrar com o Google",
         "secure_text_1": "Espaço de trabalho seguro e de nível clínico para profissionais de saúde mental. Ao fazer login, você concorda com nossos ",
         "terms": "Termos e Política de Privacidade",
@@ -91,7 +97,8 @@
     "session_action": {
         "register": "Registrar",
         "cancel": "Cancelar",
-        "edit_notes": "Editar Notas"
+        "edit_notes": "Editar Notas",
+        "edit_session": "Editar Sessão"
     },
     "dashboard": {
         "title": "Visão Geral do Painel",
@@ -116,6 +123,7 @@
         "add_new": "Adicionar Novo Paciente",
         "search_placeholder": "Pesquisar pacientes por nome ou email...",
         "filters": "Filtros",
+        "basic_info": "Informações Básicas",
         "patient_since": "Paciente desde {{date}}",
         "view_profile": "Ver Perfil",
         "add_modal_title": "Adicionar Novo Paciente",
@@ -124,7 +132,6 @@
         "phone": "Telefone",
         "dob": "Data de Nascimento",
         "gender": "Gênero",
-        "notes": "Notas Iniciais",
         "create_button": "Criar Paciente",
         "genders": {
             "male": "Masculino",
@@ -202,7 +209,9 @@
         },
         "markdown_supported": "Suporta formatação Markdown",
         "status": "Status",
-        "notes_placeholder": "Escreva suas notas aqui..."
+        "notes_placeholder": "Escreva suas notas aqui...",
+        "attachments": "Anexos",
+        "add_file": "Adicionar Arquivo"
     },
     "anamnesis": {
         "title": "Anamnese",
@@ -211,7 +220,12 @@
         "psychiatric_history": "Histórico Psiquiátrico",
         "family_history": "Histórico Familiar",
         "medications": "Medicamentos em Uso",
-        "substance_use": "Uso de Substâncias"
+        "family_structure": "Estrutura familiar",
+        "work_studies": "Caso trabalhe ou estude, qual é a área de atuação e área de formação?",
+        "social_habits": "Hábitos sociais e hobbies",
+        "psychiatric_history_detailed": "Possui histórico psiquiátrico próprio ou familiar (medicação psiquiátrica, quadro neuro atípico, vício em substâncias ou alcoolismo)?",
+        "recurrent_symptoms": "Possui alguma dor ou sintoma recorrente?",
+        "predominant_emotions": "Quais são suas emoções predominantes no dia-a-dia?"
     },
     "calendar": {
         "title": "Agenda de Consultas",
@@ -255,7 +269,9 @@
         "search_placeholder": "Pesquisar por nome do paciente ou notas...",
         "view_patient": "Ver Paciente",
         "no_sessions": "Nenhuma sessão encontrada",
-        "no_sessions_hint": "Tente ajustar sua pesquisa ou filtros."
+        "no_sessions_hint": "Tente ajustar sua pesquisa ou filtros.",
+        "delete_confirm_title": "Excluir Sessão",
+        "delete_confirm_message": "Tem certeza que deseja excluir esta sessão? Esta ação não pode ser desfeita."
     },
     "settings": {
         "title": "Configurações da Conta",
@@ -277,6 +293,7 @@
         "export_desc": "Exporte seus dados de pacientes e sessões para CSV.",
         "export_all_patients_period": "Todos os pacientes pelo período",
         "export_patient_info": "Informações dos pacientes",
+        "export_options": "Opções de Exportação",
         "export_patient_info_session": "Informações dos pacientes com sessões pelo período",
         "export_button": "Exportar para CSV",
         "start_date": "Data de Início",

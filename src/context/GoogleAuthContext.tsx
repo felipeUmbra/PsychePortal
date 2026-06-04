@@ -28,6 +28,46 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
     setCalendarTokenState(newToken);
   };
 
+  // Expose token setters to window for E2E testing
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).Cypress) {
+      (window as any).setTestTokens = (tokens: { driveToken: string | null, calendarToken: string | null }) => {
+        setDriveToken(tokens.driveToken);
+        setCalendarToken(tokens.calendarToken);
+      };
+    }
+  }, [setDriveToken, setCalendarToken]);
+
+  // Inactivity timer to clear tokens after 30 minutes
+  useEffect(() => {
+    let inactivityTimer: NodeJS.Timeout;
+
+    const resetTimer = () => {
+      clearTimeout(inactivityTimer);
+      inactivityTimer = setTimeout(() => {
+        setDriveToken(null);
+        setCalendarToken(null);
+      }, 30 * 60 * 1000); // 30 minutes
+    };
+
+    // Reset timer on user activity
+    window.addEventListener('mousemove', resetTimer);
+    window.addEventListener('keydown', resetTimer);
+    window.addEventListener('click', resetTimer);
+    window.addEventListener('scroll', resetTimer);
+
+    // Initial reset
+    resetTimer();
+
+    return () => {
+      clearTimeout(inactivityTimer);
+      window.removeEventListener('mousemove', resetTimer);
+      window.removeEventListener('keydown', resetTimer);
+      window.removeEventListener('click', resetTimer);
+      window.removeEventListener('scroll', resetTimer);
+    };
+  }, [setDriveToken, setCalendarToken]);
+
   useEffect(() => {
     if (!user) {
       setDriveToken(null);
@@ -36,12 +76,12 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   return (
-    <GoogleAuthContext.Provider value={{ 
-      driveToken, 
-      calendarToken, 
-      setDriveToken, 
+    <GoogleAuthContext.Provider value={{
+      driveToken,
+      calendarToken,
+      setDriveToken,
       setCalendarToken,
-      isAuthenticated: !!driveToken 
+      isAuthenticated: !!driveToken
     }}>
       {children}
     </GoogleAuthContext.Provider>

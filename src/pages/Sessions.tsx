@@ -1,11 +1,11 @@
 import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
-import { collection, query, where, onSnapshot, orderBy, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, auth, storage } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { 
-  History, 
-  Search, 
+import {
+  History,
+  Search,
   Filter,
   Calendar,
   Clock,
@@ -13,21 +13,24 @@ import {
   Edit3,
   X,
   Paperclip,
-  Loader2
+  Loader2,
+  Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
+import { ptBR, enUS } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import MDEditor from '@uiw/react-md-editor';
+import RichTextEditor from '../components/RichTextEditor';
+import RichTextRenderer from '../components/RichTextRenderer';
 import { handleFirestoreError, OperationType } from '../lib/error-handler';
 import { cn } from '../lib/utils';
 import { useGoogleAuth } from '../context/GoogleAuthContext';
-import rehypeSanitize from 'rehype-sanitize';
 
 export default function Sessions() {
   const [user] = useAuthState(auth);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language.startsWith('pt') ? ptBR : enUS;
   const { driveToken } = useGoogleAuth();
   const [sessions, setSessions] = useState<any[]>([]);
   const [patients, setPatients] = useState<Record<string, any>>({});
@@ -35,7 +38,9 @@ export default function Sessions() {
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [expandedSessions, setExpandedSessions] = useState<string[]>([]);
-  
+  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
   const [sessionForm, setSessionForm] = useState({
     notes: '',
     type: 'individual',
@@ -44,9 +49,9 @@ export default function Sessions() {
   });
 
   const toggleSessionNotes = (sessionId: string) => {
-    setExpandedSessions(prev => 
-      prev.includes(sessionId) 
-        ? prev.filter(id => id !== sessionId) 
+    setExpandedSessions(prev =>
+      prev.includes(sessionId)
+        ? prev.filter(id => id !== sessionId)
         : [...prev, sessionId]
     );
   };
@@ -100,7 +105,7 @@ export default function Sessions() {
       const storageRef = ref(storage, `sessions/${editingSessionId}/${file.name}`);
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
-      
+
       setSessionForm(prev => ({
         ...prev,
         attachments: [...(prev.attachments || []), { name: file.name, url, size: file.size }]
@@ -126,7 +131,7 @@ export default function Sessions() {
 
     try {
       const session = sessions.find(s => s.id === editingSessionId);
-      
+
       await updateDoc(doc(db, 'sessions', editingSessionId), {
         notes: sessionForm.notes,
         type: sessionForm.type,
@@ -144,15 +149,15 @@ export default function Sessions() {
               'Authorization': `Bearer ${token}`
             }
           });
-          
+
           if (res.status === 401 || res.status === 403) {
             const errorData = await res.json().catch(() => ({}));
-            window.dispatchEvent(new CustomEvent('google-auth-error', { 
-              detail: { 
-                status: res.status, 
+            window.dispatchEvent(new CustomEvent('google-auth-error', {
+              detail: {
+                status: res.status,
                 service: 'calendar',
                 message: errorData.error?.message || res.statusText
-              } 
+              }
             }));
           } else if (res.ok) {
             window.dispatchEvent(new CustomEvent('google-auth-success'));
@@ -186,12 +191,24 @@ export default function Sessions() {
     setEditingSessionId(session.id);
   };
 
+  const handleDeleteSession = async () => {
+    if (!deletingSessionId) return;
+
+    try {
+      await deleteDoc(doc(db, 'sessions', deletingSessionId));
+      setShowDeleteModal(false);
+      setDeletingSessionId(null);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `sessions/${deletingSessionId}`);
+    }
+  };
+
   const filteredSessions = sessions.filter(s => {
     if (s.status === 'scheduled') return false; // Hide future scheduled sessions
     const patientName = patients[s.patientId]?.name || '';
     const notes = s.notes || '';
     return patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-           notes.toLowerCase().includes(searchTerm.toLowerCase());
+      notes.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
   return (
@@ -204,8 +221,8 @@ export default function Sessions() {
       <div className="flex gap-4 mb-8">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted w-5 h-5" />
-          <input 
-            type="text" 
+          <input
+            type="text"
             placeholder={t('sessions.search_placeholder')}
             className="input-field pl-10 text-[14px]"
             value={searchTerm}
@@ -243,11 +260,11 @@ export default function Sessions() {
                   <div className="flex items-center gap-3 text-[11px] text-text-muted font-bold uppercase tracking-wider mt-0.5">
                     <span className="flex items-center gap-1.5">
                       <Calendar className="w-3 h-3" />
-                      {format(session.date?.toDate ? session.date.toDate() : new Date(session.date), 'MMM d, yyyy - HH:mm')}
+                      {format(session.date?.toDate ? session.date.toDate() : new Date(session.date), 'MMM d, yyyy - HH:mm', { locale: dateLocale })}
                     </span>
                     <span className="flex items-center gap-1.5">
                       <Clock className="w-3 h-3" />
-                      1 hour
+                      {t('dashboard.one_hour_session')}
                     </span>
                   </div>
                 </div>
@@ -256,30 +273,40 @@ export default function Sessions() {
                 <span className={cn(
                   "status-badge",
                   session.status === 'completed' ? "bg-emerald-100 text-emerald-700" :
-                  session.status === 'no_show' ? "bg-red-100 text-red-700" :
-                  "bg-amber-100 text-amber-700"
+                    session.status === 'no_show' ? "bg-red-100 text-red-700" :
+                      "bg-amber-100 text-amber-700"
                 )}>
                   {t(`session_status.${session.status}`)}
                 </span>
-                <button 
+                <button
                   onClick={() => openEditForm(session)}
                   className="btn-secondary py-1.5 px-3 text-[12px] flex items-center gap-1.5"
                 >
                   <Edit3 className="w-3.5 h-3.5" />
                   {t('common.edit')}
                 </button>
-                <Link 
-                  to={`/patients/${session.patientId}`}
+                <Link
+                  to={`/app/patients/${session.patientId}`}
                   className="btn-secondary py-1.5 px-4 text-[12px] flex items-center gap-1.5 group-hover:bg-primary-custom group-hover:text-white group-hover:border-primary-custom transition-all"
                 >
                   {t('sessions.view_patient')}
                   <ChevronRight className="w-3.5 h-3.5" />
                 </Link>
+                <button
+                  onClick={() => {
+                    setDeletingSessionId(session.id);
+                    setShowDeleteModal(true);
+                  }}
+                  className="btn-secondary py-1.5 px-3 text-[12px] flex items-center gap-1.5 text-red-600 hover:bg-red-50 hover:border-red-200"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  {t('common.delete')}
+                </button>
               </div>
             </div>
             {(session.notes || (session.attachments && session.attachments.length > 0)) && (
               <div className="px-6 pb-6 pt-2">
-                <button 
+                <button
                   onClick={() => toggleSessionNotes(session.id)}
                   className="text-[12px] font-bold text-primary-custom flex items-center gap-1.5 hover:underline mb-2"
                 >
@@ -288,22 +315,19 @@ export default function Sessions() {
                 {expandedSessions.includes(session.id) && (
                   <div className="mt-3">
                     {session.notes && (
-                      <div data-color-mode="light" className="text-text-main text-[14px]">
-                        <MDEditor.Markdown 
-                          source={session.notes} 
-                          className="!bg-[#fafbfc]" 
-                          style={{ fontSize: '14px' }} 
-                          rehypePlugins={[rehypeSanitize]}
-                        />
-                      </div>
+                      <RichTextRenderer
+                        content={session.notes}
+                        className="!bg-[#fafbfc]"
+                        style={{ fontSize: '14px' }}
+                      />
                     )}
                     {session.attachments && session.attachments.length > 0 && (
                       <div className="mt-4 flex flex-wrap gap-2 pt-4 border-t border-border-custom">
                         {session.attachments.map((att: any, idx: number) => (
-                          <a 
-                            key={idx} 
-                            href={att.url} 
-                            target="_blank" 
+                          <a
+                            key={idx}
+                            href={att.url}
+                            target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-2 px-3 py-1.5 bg-surface border border-border-custom rounded-lg text-[12px] hover:bg-bg transition-colors"
                           >
@@ -334,14 +358,14 @@ export default function Sessions() {
       <AnimatePresence>
         {editingSessionId && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setEditingSessionId(null)}
               className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -357,10 +381,10 @@ export default function Sessions() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">{t('patient_detail.session_type')}</label>
-                    <select 
+                    <select
                       className="input-field"
                       value={sessionForm.type}
-                      onChange={(e) => setSessionForm({...sessionForm, type: e.target.value})}
+                      onChange={(e) => setSessionForm({ ...sessionForm, type: e.target.value })}
                     >
                       <option value="individual">{t('patient_detail.types.individual')}</option>
                       <option value="couples">{t('patient_detail.types.couples')}</option>
@@ -370,10 +394,10 @@ export default function Sessions() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">{t('patient_detail.status')}</label>
-                    <select 
+                    <select
                       className="input-field"
                       value={sessionForm.status}
-                      onChange={(e) => setSessionForm({...sessionForm, status: e.target.value})}
+                      onChange={(e) => setSessionForm({ ...sessionForm, status: e.target.value })}
                     >
                       <option value="completed">{t('session_status.completed')}</option>
                       <option value="no_show">{t('session_status.no_show')}</option>
@@ -381,15 +405,13 @@ export default function Sessions() {
                     </select>
                   </div>
                 </div>
-                
-                <div data-color-mode="light">
+
+                <div>
                   <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('patient_detail.observations')}</label>
-                  <MDEditor
+                  <RichTextEditor
                     value={sessionForm.notes}
-                    onChange={(val) => setSessionForm({...sessionForm, notes: val || ''})}
-                    preview="edit"
+                    onChange={(val) => setSessionForm({ ...sessionForm, notes: val })}
                     height={300}
-                    className="border border-border-custom rounded-xl overflow-hidden"
                   />
                 </div>
 
@@ -400,8 +422,8 @@ export default function Sessions() {
                       <div key={idx} className="flex items-center gap-2 px-3 py-1.5 bg-surface border border-border-custom rounded-lg text-[12px]">
                         <Paperclip className="w-3.5 h-3.5 text-text-muted" />
                         <span className="font-medium text-text-main truncate max-w-[150px]">{att.name}</span>
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => removeAttachment(idx)}
                           className="ml-1 text-text-muted hover:text-red-500"
                           aria-label={t('common.remove', 'Remove')}
@@ -415,9 +437,9 @@ export default function Sessions() {
                     <label className="btn-secondary cursor-pointer flex items-center gap-2">
                       {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
                       {isUploading ? 'Uploading...' : 'Add File'}
-                      <input 
-                        type="file" 
-                        className="hidden" 
+                      <input
+                        type="file"
+                        className="hidden"
                         onChange={handleFileUpload}
                         disabled={isUploading}
                       />
@@ -426,14 +448,14 @@ export default function Sessions() {
                 </div>
 
                 <div className="flex gap-3 pt-4 border-t border-border-custom">
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setEditingSessionId(null)}
                     className="flex-1 btn-secondary"
                   >
                     {t('common.cancel')}
                   </button>
-                  <button 
+                  <button
                     type="submit"
                     className="flex-1 btn-primary"
                     disabled={isUploading}
@@ -442,6 +464,52 @@ export default function Sessions() {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showDeleteModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowDeleteModal(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6"
+            >
+              <div className="mb-6">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Trash2 className="w-6 h-6 text-red-600" />
+                </div>
+                <h2 className="text-xl font-bold text-slate-900 text-center mb-2">
+                  {t('sessions.delete_confirm_title', 'Delete Session')}
+                </h2>
+                <p className="text-text-muted text-[14px] text-center">
+                  {t('sessions.delete_confirm_message', 'Are you sure you want to delete this session? This action cannot be undone.')}
+                </p>
+              </div>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  className="flex-1 btn-secondary"
+                >
+                  {t('common.cancel', 'Cancel')}
+                </button>
+                <button
+                  onClick={handleDeleteSession}
+                  className="flex-1 btn-primary bg-red-600 hover:bg-red-700 border-red-600 hover:border-red-700"
+                >
+                  {t('common.delete', 'Delete')}
+                </button>
+              </div>
             </motion.div>
           </div>
         )}

@@ -21,7 +21,6 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
     phone: '',
     dateOfBirth: '',
     gender: 'Other',
-    notes: '',
     address: {
       country: '',
       zipCode: '',
@@ -42,7 +41,12 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
       psychiatricHistory: '',
       familyHistory: '',
       medications: '',
-      substanceUse: ''
+      familyStructure: '',
+      workStudies: '',
+      socialHabits: '',
+      psychiatricHistoryDetailed: '',
+      recurrentSymptoms: '',
+      predominantEmotions: ''
     }
   });
 
@@ -51,16 +55,18 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
       setFormData(prev => ({
         ...prev,
         ...initialData,
+        dateOfBirth: initialData.dateOfBirth ? initialData.dateOfBirth.split('T')[0] : '',
         address: { ...prev.address, ...(initialData.address || {}) },
         anamnesis: { ...prev.anamnesis, ...(initialData.anamnesis || {}) }
       }));
     } else if (!isOpen && !initialData) {
       // Reset when closed for new creation
       setFormData({
-        name: '', email: '', phone: '', dateOfBirth: '', gender: 'Other', notes: '',
+        name: '', email: '', phone: '', dateOfBirth: '', gender: 'Other',
         address: { country: '', zipCode: '', city: '', state: '', street: '', number: '', complement: '', neighborhood: '' },
         education: '', ethnicity: '', financialPlan: 'per_session', financialValue: '',
-        anamnesis: { chiefComplaint: '', medicalHistory: '', psychiatricHistory: '', familyHistory: '', medications: '', substanceUse: '' }
+        anamnesis: { chiefComplaint: '', medicalHistory: '', psychiatricHistory: '', familyHistory: '', medications: '', 
+          familyStructure: '', workStudies: '', socialHabits: '', psychiatricHistoryDetailed: '', recurrentSymptoms: '', predominantEmotions: '' }
       });
     }
   }, [initialData, isOpen]);
@@ -69,7 +75,18 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
     e.preventDefault();
     try {
       setIsSubmitting(true);
-      await onSubmit(formData);
+
+      // Clean the data: remove internal IDs and metadata before sending to parent
+      // to ensure we match the Omit<Patient, ...> type and don't pollute the DB body
+      const { 
+        id: _id, 
+        createdAt: _c, 
+        updatedAt: _u, 
+        psychologistId: _p, 
+        ...cleanData 
+      } = formData as any;
+
+      await onSubmit(cleanData);
       onClose();
     } catch (error) {
       console.error(error);
@@ -100,7 +117,7 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
               
               {/* Basic Info */}
               <div className="space-y-4">
-                <h3 className="text-sm font-bold text-text-muted uppercase tracking-wider border-b border-border-custom pb-2">Informações Básicas</h3>
+                <h3 className="text-sm font-bold text-text-muted uppercase tracking-wider border-b border-border-custom pb-2">{t('patients.basic_info')}</h3>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">{t('patients.full_name')} *</label>
                   <input 
@@ -167,7 +184,7 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                       type="text" 
                       className="input-field" 
                       value={formData.address.country}
-                      onChange={(e) => setFormData({...formData, address: {...formData.address, country: e.target.value}})}
+                    onChange={(e) => setFormData(prev => ({...prev, address: {...prev.address, country: e.target.value}}))}
                     />
                   </div>
                   <div>
@@ -178,7 +195,7 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                       value={formData.address.zipCode}
                       onChange={(e) => {
                         const val = e.target.value.replace(/\D/g, '').slice(0, 8);
-                        setFormData({...formData, address: {...formData.address, zipCode: val}});
+                      setFormData(prev => ({...prev, address: {...prev.address, zipCode: val}}));
                       }}
                       placeholder="00000000"
                     />
@@ -191,7 +208,7 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                       type="text" 
                       className="input-field" 
                       value={formData.address.state}
-                      onChange={(e) => setFormData({...formData, address: {...formData.address, state: e.target.value}})}
+                      onChange={(e) => setFormData(prev => ({...prev, address: {...prev.address, state: e.target.value}}))}
                     />
                   </div>
                   <div>
@@ -200,7 +217,7 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                       type="text" 
                       className="input-field" 
                       value={formData.address.city}
-                      onChange={(e) => setFormData({...formData, address: {...formData.address, city: e.target.value}})}
+                      onChange={(e) => setFormData(prev => ({...prev, address: {...prev.address, city: e.target.value}}))}
                     />
                   </div>
                 </div>
@@ -211,7 +228,7 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                       type="text" 
                       className="input-field" 
                       value={formData.address.neighborhood}
-                      onChange={(e) => setFormData({...formData, address: {...formData.address, neighborhood: e.target.value}})}
+                      onChange={(e) => setFormData(prev => ({...prev, address: {...prev.address, neighborhood: e.target.value}}))}
                     />
                   </div>
                   <div>
@@ -220,7 +237,7 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                       type="text" 
                       className="input-field" 
                       value={formData.address.street}
-                      onChange={(e) => setFormData({...formData, address: {...formData.address, street: e.target.value}})}
+                      onChange={(e) => setFormData(prev => ({...prev, address: {...prev.address, street: e.target.value}}))}
                     />
                   </div>
                 </div>
@@ -231,7 +248,7 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                       type="text" 
                       className="input-field" 
                       value={formData.address.number}
-                      onChange={(e) => setFormData({...formData, address: {...formData.address, number: e.target.value}})}
+                      onChange={(e) => setFormData(prev => ({...prev, address: {...prev.address, number: e.target.value}}))}
                     />
                   </div>
                   <div>
@@ -240,7 +257,7 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                       type="text" 
                       className="input-field" 
                       value={formData.address.complement}
-                      onChange={(e) => setFormData({...formData, address: {...formData.address, complement: e.target.value}})}
+                      onChange={(e) => setFormData(prev => ({...prev, address: {...prev.address, complement: e.target.value}}))}
                     />
                   </div>
                 </div>
@@ -316,7 +333,7 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                         step="0.01"
                         className="input-field" 
                         value={formData.financialValue}
-                        onChange={(e) => setFormData({...formData, financialValue: e.target.value})}
+                      onChange={(e) => setFormData(prev => ({...prev, financialValue: e.target.value}))}
                         placeholder="0.00"
                       />
                     </div>
@@ -327,13 +344,13 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
               {/* Anamnesis */}
               <div className="space-y-4">
                 <h3 className="text-sm font-bold text-text-muted uppercase tracking-wider border-b border-border-custom pb-2">{t('anamnesis.title')}</h3>
-                <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.chief_complaint')}</label>
                     <textarea 
                       className="input-field h-20 resize-none" 
                       value={formData.anamnesis.chiefComplaint}
-                      onChange={(e) => setFormData({...formData, anamnesis: {...formData.anamnesis, chiefComplaint: e.target.value}})}
+                      onChange={(e) => setFormData(prev => ({...prev, anamnesis: {...prev.anamnesis, chiefComplaint: e.target.value}}))}
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -342,7 +359,7 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                       <textarea 
                         className="input-field h-20 resize-none" 
                         value={formData.anamnesis.medicalHistory}
-                        onChange={(e) => setFormData({...formData, anamnesis: {...formData.anamnesis, medicalHistory: e.target.value}})}
+                        onChange={(e) => setFormData(prev => ({...prev, anamnesis: {...prev.anamnesis, medicalHistory: e.target.value}}))}
                       />
                     </div>
                     <div>
@@ -350,7 +367,7 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                       <textarea 
                         className="input-field h-20 resize-none" 
                         value={formData.anamnesis.psychiatricHistory}
-                        onChange={(e) => setFormData({...formData, anamnesis: {...formData.anamnesis, psychiatricHistory: e.target.value}})}
+                        onChange={(e) => setFormData(prev => ({...prev, anamnesis: {...prev.anamnesis, psychiatricHistory: e.target.value}}))}
                       />
                     </div>
                   </div>
@@ -360,7 +377,7 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                       <textarea 
                         className="input-field h-20 resize-none" 
                         value={formData.anamnesis.familyHistory}
-                        onChange={(e) => setFormData({...formData, anamnesis: {...formData.anamnesis, familyHistory: e.target.value}})}
+                        onChange={(e) => setFormData(prev => ({...prev, anamnesis: {...prev.anamnesis, familyHistory: e.target.value}}))}
                       />
                     </div>
                     <div>
@@ -368,29 +385,64 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                       <textarea 
                         className="input-field h-20 resize-none" 
                         value={formData.anamnesis.medications}
-                        onChange={(e) => setFormData({...formData, anamnesis: {...formData.anamnesis, medications: e.target.value}})}
+                        onChange={(e) => setFormData(prev => ({...prev, anamnesis: {...prev.anamnesis, medications: e.target.value}}))}
                       />
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.substance_use')}</label>
-                    <textarea 
-                      className="input-field h-20 resize-none" 
-                      value={formData.anamnesis.substanceUse}
-                      onChange={(e) => setFormData({...formData, anamnesis: {...formData.anamnesis, substanceUse: e.target.value}})}
-                    />
+                  
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.family_structure')}</label>
+                      <textarea 
+                        className="input-field h-20 resize-none" 
+                        value={formData.anamnesis.familyStructure}
+                        onChange={(e) => setFormData(prev => ({...prev, anamnesis: {...prev.anamnesis, familyStructure: e.target.value}}))}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.work_studies')}</label>
+                      <textarea 
+                        className="input-field h-20 resize-none" 
+                        value={formData.anamnesis.workStudies}
+                        onChange={(e) => setFormData(prev => ({...prev, anamnesis: {...prev.anamnesis, workStudies: e.target.value}}))}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.social_habits')}</label>
+                      <textarea 
+                        className="input-field h-20 resize-none" 
+                        value={formData.anamnesis.socialHabits}
+                        onChange={(e) => setFormData(prev => ({...prev, anamnesis: {...prev.anamnesis, socialHabits: e.target.value}}))}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.psychiatric_history_detailed')}</label>
+                      <textarea 
+                        className="input-field h-24 resize-none" 
+                        value={formData.anamnesis.psychiatricHistoryDetailed}
+                        onChange={(e) => setFormData(prev => ({...prev, anamnesis: {...prev.anamnesis, psychiatricHistoryDetailed: e.target.value}}))}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.recurrent_symptoms')}</label>
+                      <textarea 
+                        className="input-field h-20 resize-none" 
+                        value={formData.anamnesis.recurrentSymptoms}
+                        onChange={(e) => setFormData(prev => ({...prev, anamnesis: {...prev.anamnesis, recurrentSymptoms: e.target.value}}))}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.predominant_emotions')}</label>
+                      <textarea 
+                        className="input-field h-20 resize-none" 
+                        value={formData.anamnesis.predominantEmotions}
+                        onChange={(e) => setFormData(prev => ({...prev, anamnesis: {...prev.anamnesis, predominantEmotions: e.target.value}}))}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">{t('patients.notes')}</label>
-                <textarea 
-                  className="input-field h-24 resize-none" 
-                  value={formData.notes}
-                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                />
-              </div>
+              
               <div className="flex gap-3 pt-4">
                 <button 
                   type="button"

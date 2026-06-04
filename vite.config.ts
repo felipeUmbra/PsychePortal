@@ -53,6 +53,9 @@ export default defineConfig(({ mode }) => {
         'firebase/firestore': path.resolve(__dirname, './src/lib/firestore-mock.ts')
       },
     },
+    optimizeDeps: {
+      exclude: ['firebase/firestore']
+    },
     server: {
       headers: {
         'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',

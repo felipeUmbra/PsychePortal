@@ -1,5 +1,5 @@
 import { useState, useEffect, FormEvent } from 'react';
-import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc, collection, query, where, getDocs, setDriveToken as setMockToken, forceSync } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { 
@@ -48,8 +48,6 @@ export default function Settings() {
       const credential = GoogleAuthProvider.credentialFromResult(result);
       if (credential?.accessToken) {
         setCalendarToken(credential.accessToken);
-        // Also update health check for drive if scopes match
-        setDriveToken(credential.accessToken);
       }
     } catch (err: any) {
       console.error('Calendar connect failed', err);
@@ -65,7 +63,9 @@ export default function Settings() {
     if (isReauthorizingDrive) return;
     setIsReauthorizingDrive(true);
     try {
+      setMockToken(null);
       setDriveToken(null);
+      setCalendarToken(null);
       const { googleScopes } = await import('./Login');
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'consent' });
@@ -74,15 +74,12 @@ export default function Settings() {
       const result = await signInWithPopup(auth, provider);
       const credential = GoogleAuthProvider.credentialFromResult(result);
       if (credential?.accessToken) {
+        setMockToken(credential.accessToken);
         setDriveToken(credential.accessToken);
+        setCalendarToken(credential.accessToken);
         setProfile(null);
-        const mock = await import('firebase/firestore') as any;
-        if (mock.forceSync) {
-          await mock.forceSync();
-          await fetchProfile();
-        } else {
-          window.location.reload();
-        }
+        await forceSync();
+        await fetchProfile();
         alert(t('settings.reauth_success'));
       }
     } catch (err: any) {
@@ -96,6 +93,7 @@ export default function Settings() {
   };
 
   const fetchProfile = async () => {
+    if (!user) return;
     try {
       const docRef = doc(db, 'psychologists', user.uid);
       const docSnap = await getDoc(docRef);
@@ -112,10 +110,7 @@ export default function Settings() {
           avatarUrl: user.photoURL || '',
           createdAt: new Date().toISOString()
         };
-        // Use setDoc for initial creation in mock
-        const mock = await import('firebase/firestore') as any;
-        const mockSetDoc = mock.setDoc;
-        await mockSetDoc(docRef, newProfile);
+        await setDoc(docRef, newProfile);
         setProfile(newProfile);
       }
     } catch (error) {
@@ -205,10 +200,12 @@ export default function Settings() {
              return s.patientId === p.id && sTime >= startDate && sTime <= endDate;
           });
           patientSessions.forEach(s => {
+            const sDate = s.date?.toDate ? s.date.toDate() : new Date(s.date);
+            const formattedDate = !isNaN(sDate.getTime()) ? format(sDate, 'yyyy-MM-dd HH:mm') : t('common.na');
             exportData.push({
               [t('patients.full_name', 'Paciente')]: p.name,
               [t('patients.email', 'E-mail')]: p.email,
-              [t('common.date', 'Data da Sessão')]: format(s.date?.toDate ? s.date.toDate() : new Date(s.date), 'yyyy-MM-dd HH:mm'),
+              [t('common.date', 'Data da Sessão')]: formattedDate,
               [t('common.status', 'Status da Sessão')]: t(`session_status.${s.status}`, s.status),
               [t('sessions.type', 'Tipo')]: t(`session_types.${s.type}`, s.type),
               [t('sessions.payment_status', 'Status Financeiro')]: s.paymentStatus
@@ -385,13 +382,8 @@ export default function Settings() {
                   type="button"
                   onClick={async () => {
                     setProfile(null);
-                    const mock = await import('firebase/firestore') as any;
-                    if (mock.forceSync) {
-                      await mock.forceSync();
-                      await fetchProfile();
-                    } else {
-                      window.location.reload();
-                    }
+                  await forceSync();
+                  await fetchProfile();
                   }}
                   className="btn-secondary text-[12px] h-9"
                >

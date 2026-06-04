@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, orderBy, updateDoc, doc, getDocs } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { 
-  DollarSign, 
-  Search, 
+import {
+  DollarSign,
+  Search,
   CheckCircle2,
   Clock,
   TrendingUp,
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { format, isSameDay, isSameWeek, isSameMonth, isSameYear } from 'date-fns';
+import { ptBR, enUS } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { handleFirestoreError, OperationType } from '../lib/error-handler';
@@ -19,7 +20,8 @@ import { cn } from '../lib/utils';
 
 export default function Finance() {
   const [user] = useAuthState(auth);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language.startsWith('pt') ? ptBR : enUS;
   const [sessions, setSessions] = useState<any[]>([]);
   const [patients, setPatients] = useState<Record<string, any>>({});
   const [searchTerm, setSearchTerm] = useState('');
@@ -70,7 +72,7 @@ export default function Finance() {
     if (period === 'all') return true;
     const date = sessionDate?.toDate ? sessionDate.toDate() : new Date(sessionDate);
     if (!date || isNaN(date.getTime())) return false;
-    
+
     if (period === 'day') return isSameDay(date, now);
     if (period === 'week') return isSameWeek(date, now, { weekStartsOn: 1 });
     if (period === 'month') return isSameMonth(date, now);
@@ -102,7 +104,7 @@ export default function Finance() {
       if (patient.financialPlan === 'per_session' && patient.financialValue) {
         const val = Number(patient.financialValue) || 0;
         patientStats[patient.id].expected += val;
-        
+
         // Update global period totals only if patient matches filter
         if (filterPatientId === 'all' || filterPatientId === patient.id) {
           periodExpectedSessions += val;
@@ -164,8 +166,8 @@ export default function Finance() {
               onClick={() => setPeriod(p)}
               className={cn(
                 "px-3 sm:px-4 py-1.5 text-[11px] sm:text-[13px] font-bold rounded-md transition-all flex-1 sm:flex-none",
-                period === p 
-                  ? "bg-bg text-primary-custom shadow-sm" 
+                period === p
+                  ? "bg-bg text-primary-custom shadow-sm"
                   : "text-text-muted hover:text-text-main"
               )}
             >
@@ -227,8 +229,8 @@ export default function Finance() {
           <div className="flex gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted w-5 h-5" />
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder={t('common.search')}
                 className="input-field pl-10 text-[14px]"
                 value={searchTerm}
@@ -264,7 +266,7 @@ export default function Finance() {
                         <span className="text-[12px] font-bold text-text-muted uppercase tracking-wider">{t(`session_status.${session.status}`)}</span>
                       </div>
                       <div className="flex items-center gap-3 text-[11px] text-text-muted font-bold uppercase tracking-wider mt-0.5">
-                        <span>{format(session.date?.toDate ? session.date.toDate() : new Date(session.date), 'MMM d, yyyy - HH:mm')}</span>
+                        <span>{format(session.date?.toDate ? session.date.toDate() : new Date(session.date), 'MMM d, yyyy - HH:mm', { locale: dateLocale })}</span>
                         {patient?.financialPlan && (
                           <>
                             <span className="text-border-custom">•</span>
@@ -274,7 +276,7 @@ export default function Finance() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-6 w-full sm:w-auto justify-between sm:justify-end">
                     <div className="text-right">
                       <div className="text-[15px] font-bold text-text-main">{isPerSession ? formatCurrency(sessionValue) : '-'}</div>
@@ -288,12 +290,12 @@ export default function Finance() {
                       )}
                     </div>
                     {isPerSession && (
-                      <button 
+                      <button
                         onClick={() => togglePaymentStatus(session.id, session.paymentStatus)}
                         className={cn(
                           "py-1.5 px-4 rounded-md text-[12px] font-bold transition-all",
-                          session.paymentStatus === 'paid' 
-                            ? "bg-bg text-text-muted hover:bg-border-custom" 
+                          session.paymentStatus === 'paid'
+                            ? "bg-bg text-text-muted hover:bg-border-custom"
                             : "bg-success-custom/10 text-success-custom hover:bg-success-custom/20"
                         )}
                       >
@@ -323,7 +325,7 @@ export default function Finance() {
                 <Users className="w-5 h-5 text-primary-custom" />
                 {t('finance.patient_summary')} ({t(`finance.period.${period}`, { defaultValue: period })})
               </h3>
-              <select 
+              <select
                 value={filterPatientId}
                 onChange={(e) => setFilterPatientId(e.target.value)}
                 className="input-field text-[13px] py-2 bg-surface"
@@ -339,37 +341,37 @@ export default function Finance() {
                 const displayedStats = Object.entries(patientStats)
                   .filter(([patientId]) => filterPatientId === 'all' || patientId === filterPatientId)
                   .filter(([patientId, stats]) => {
-                     if (filterPatientId !== 'all') return true;
-                     if (period === 'all') return true;
-                     return stats.expected > 0 || stats.paid > 0 || stats.pending > 0 || stats.monthlyFee > 0;
+                    if (filterPatientId !== 'all') return true;
+                    if (period === 'all') return true;
+                    return stats.expected > 0 || stats.paid > 0 || stats.pending > 0 || stats.monthlyFee > 0;
                   });
-                
+
                 if (displayedStats.length === 0) {
                   return <p className="text-text-muted text-[13px] text-center py-4">{t('finance.no_data_period')}</p>;
                 }
 
                 return displayedStats.map(([patientId, stats]) => {
-                    const p = patients[patientId];
-                    if (!p) return null;
-                    const isMonthly = p.financialPlan === 'monthly';
-                    return (
-                      <div key={patientId} className="p-4 bg-[#fafbfc] border border-border-custom rounded-xl flex flex-col gap-2">
-                        <div className="flex justify-between items-center">
-                          <span className="font-bold text-[14px] text-text-main">{p.name}</span>
-                          <span className="text-[11px] font-bold text-text-muted uppercase">{t(`patients.financial.plans.${p.financialPlan}`, { defaultValue: p.financialPlan })}</span>
+                  const p = patients[patientId];
+                  if (!p) return null;
+                  const isMonthly = p.financialPlan === 'monthly';
+                  return (
+                    <div key={patientId} className="p-4 bg-[#fafbfc] border border-border-custom rounded-xl flex flex-col gap-2">
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-[14px] text-text-main">{p.name}</span>
+                        <span className="text-[11px] font-bold text-text-muted uppercase">{t(`patients.financial.plans.${p.financialPlan}`, { defaultValue: p.financialPlan })}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-[13px]">
+                        <div className="flex flex-col">
+                          <span className="text-text-muted text-[11px] uppercase font-bold">{t('finance.status.paid')}</span>
+                          <span className="text-success-custom font-bold">{isMonthly ? '-' : formatCurrency(stats.paid)}</span>
                         </div>
-                        <div className="grid grid-cols-2 gap-2 text-[13px]">
-                          <div className="flex flex-col">
-                            <span className="text-text-muted text-[11px] uppercase font-bold">{t('finance.status.paid')}</span>
-                            <span className="text-success-custom font-bold">{isMonthly ? '-' : formatCurrency(stats.paid)}</span>
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-text-muted text-[11px] uppercase font-bold">{t('finance.status.pending')}</span>
-                            <span className="text-amber-500 font-bold">{isMonthly ? '-' : formatCurrency(stats.pending)}</span>
-                          </div>
+                        <div className="flex flex-col">
+                          <span className="text-text-muted text-[11px] uppercase font-bold">{t('finance.status.pending')}</span>
+                          <span className="text-amber-500 font-bold">{isMonthly ? '-' : formatCurrency(stats.pending)}</span>
                         </div>
                       </div>
-                    );
+                    </div>
+                  );
                 });
               })()}
             </div>

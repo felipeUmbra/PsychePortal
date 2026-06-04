@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot, addDoc, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, addDoc, doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { handleFirestoreError, OperationType } from '../lib/error-handler';
@@ -18,10 +18,10 @@ export function usePatients() {
       where('psychologistId', '==', user.uid)
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setPatients(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Patient)));
+    const unsubscribe = onSnapshot(q, (snapshot: any) => {
+      setPatients(snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as Patient)));
       setLoading(false);
-    }, (error) => {
+    }, (error: any) => {
       handleFirestoreError(error, OperationType.LIST, 'patients');
       setLoading(false);
     });
@@ -45,7 +45,30 @@ export function usePatients() {
     }
   };
 
-  return { patients, loading, addPatient };
+  const updatePatient = async (id: string, updates: Partial<Patient>) => {
+    if (!user) throw new Error('Unauthenticated');
+    try {
+      await updateDoc(doc(db, 'patients', id), {
+        ...updates,
+        updatedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `patients/${id}`);
+      throw error;
+    }
+  };
+
+  const deletePatient = async (id: string) => {
+    if (!user) throw new Error('Unauthenticated');
+    try {
+      await deleteDoc(doc(db, 'patients', id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `patients/${id}`);
+      throw error;
+    }
+  };
+
+  return { patients, loading, addPatient, updatePatient, deletePatient };
 }
 
 export function usePatient(id?: string) {
