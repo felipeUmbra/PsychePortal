@@ -37,7 +37,7 @@ export default function Layout() {
 
   const handleLogout = async () => {
     await auth.signOut();
-    navigate('/');
+    navigate('/login');
   };
 
   if (loading) {
@@ -49,7 +49,7 @@ export default function Layout() {
   }
 
   if (!user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return (
