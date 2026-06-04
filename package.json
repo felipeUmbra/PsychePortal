@@ -18,6 +18,7 @@
     "@types/uuid": "^10.0.0",
     "@uiw/react-md-editor": "^4.1.0",
     "clsx": "^2.1.1",
+    "cypress": "^15.16.0",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
