@@ -1,11 +1,11 @@
 <div align="center">
-  <h1>🧠 PsychePortal</h1>
+  <h1>🧠 Portal Psis</h1>
   <p>A professional workspace for clinical psychology management.</p>
 </div>
 
 ## 📌 Overview
 
-PsychePortal is a modern, secure, and clinical-grade web application designed specifically for mental health professionals. It provides a comprehensive suite of tools to manage patients, schedule sessions, track clinical notes, and monitor financial records all in one place.
+Portal Psis is a modern, secure, and clinical-grade web application designed specifically for mental health professionals. It provides a comprehensive suite of tools to manage patients, schedule sessions, track clinical notes, and monitor financial records all in one place.
 
 *Note: This platform is currently in a continuous development (Beta) phase.*
 
@@ -44,8 +44,8 @@ PsychePortal is a modern, secure, and clinical-grade web application designed sp
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/felipeumbra/PsychePortal.git
-   cd PsychePortal
+   git clone https://github.com/felipeumbra/Portal Psis.git
+   cd Portal Psis
    ```
 
 2. **Install dependencies:**
@@ -86,8 +86,8 @@ When deploying this app to a public domain (like GitHub Pages), Google requires 
 If you encounter the "Unverified App" warning during login:
 1. Ensure the app domain (`github.io`) is added to the **Authorized Domains** in the Firebase Console and Google Cloud Console.
 2. Verify ownership of your GitHub Pages URL via **Google Search Console**.
-3. Ensure the Application Home Page is set to the root URL (e.g., `https://username.github.io/PsychePortal/`).
-4. Ensure the Privacy Policy link points to the public terms page (e.g., `https://username.github.io/PsychePortal/#/terms`).
+3. Ensure the Application Home Page is set to the root URL (e.g., `https://username.github.io/Portal Psis/`).
+4. Ensure the Privacy Policy link points to the public terms page (e.g., `https://username.github.io/Portal Psis/#/terms`).
 5. Submit the application for verification in the Google Cloud Console.
 
 ## 📄 Disclaimer

@@ -98,7 +98,7 @@ export default function Login() {
           </div>
         </div>
 
-        <h1 className="text-3xl font-bold text-text-main tracking-tight mb-2">PsychePortal</h1>
+        <h1 className="text-3xl font-bold text-text-main tracking-tight mb-2">Portal Psis</h1>
         <p className="text-text-muted text-[15px] mb-8">{t('login.title')}</p>
 
         {error && (

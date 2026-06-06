@@ -61,7 +61,7 @@ export default function Landing() {
             <div className="w-9 h-9 bg-primary-custom rounded-xl flex items-center justify-center shadow-md shadow-primary-custom/15">
               <Brain className="text-white w-5 h-5" />
             </div>
-            <span className="text-lg font-bold text-text-main tracking-tight">PsychePortal</span>
+            <span className="text-lg font-bold text-text-main tracking-tight">Portal Psis</span>
           </div>
 
           <div className="flex items-center gap-4">
@@ -249,7 +249,7 @@ export default function Landing() {
             <div className="w-8 h-8 bg-primary-custom rounded-lg flex items-center justify-center shadow-sm">
               <Brain className="text-white w-4 h-4" />
             </div>
-            <span className="text-[15px] font-bold text-text-main tracking-tight">PsychePortal</span>
+            <span className="text-[15px] font-bold text-text-main tracking-tight">Portal Psis</span>
           </div>
 
           <div className="flex items-center gap-6 text-[13px] font-semibold text-text-muted">
@@ -267,7 +267,7 @@ export default function Landing() {
           </div>
         </div>
         <div className="max-w-7xl mx-auto mt-8 pt-8 border-t border-border-custom text-center text-[12px] text-text-muted">
-          &copy; {new Date().getFullYear()} PsychePortal. All rights reserved.
+          &copy; {new Date().getFullYear()} Portal Psis. All rights reserved.
         </div>
       </footer>
     </div>
