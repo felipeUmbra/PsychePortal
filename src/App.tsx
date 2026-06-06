@@ -1,8 +1,10 @@
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import Layout from './components/Layout';
+import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
 import { GoogleAuthProvider } from './context/GoogleAuthContext';
 
 // Lazy load all page components for code splitting
@@ -30,8 +32,10 @@ export default function App() {
       <Router>
         <Suspense fallback={<LoadingFallback />}>
           <Routes>
-            <Route path="/" element={<Login />} />
+            <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<Login />} />
             <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
             <Route path="/app" element={<Layout />}>
               <Route index element={<Dashboard />} />
               <Route path="patients" element={<Patients />} />
