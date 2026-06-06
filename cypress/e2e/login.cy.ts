@@ -27,7 +27,7 @@ describe('User Login Flow', () => {
     context('Login Page UI & Navigation', () => {
         it('should render all login page elements', () => {
             // App branding
-            cy.contains('PsychePortal').should('be.visible');
+            cy.contains('Portal Psis').should('be.visible');
 
             // Google sign-in button is visible and not disabled
             cy.get('button')
@@ -68,7 +68,7 @@ describe('User Login Flow', () => {
         it('should redirect unauthenticated users away from protected routes', () => {
             cy.visit('/app/patients');
             // Layout's auth guard sends us back to login
-            cy.contains('PsychePortal').should('be.visible');
+            cy.contains('Portal Psis').should('be.visible');
             cy.get('button')
                 .contains(/Sign in with Google|Entrar com o Google/i)
                 .should('be.visible');
@@ -139,7 +139,7 @@ describe('User Login Flow', () => {
             cy.contains(/Logout|Sair/i).click();
 
             // Should land back on the login page
-            cy.contains('PsychePortal').should('be.visible');
+            cy.contains('Portal Psis').should('be.visible');
             cy.get('button')
                 .contains(/Sign in with Google|Entrar com o Google/i)
                 .should('be.visible');

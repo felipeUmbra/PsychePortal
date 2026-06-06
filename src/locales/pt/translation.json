@@ -314,13 +314,13 @@
         "title": "Termos de Serviço",
         "back": "Voltar para o Início",
         "subtitle": "Última atualização: 4 de junho de 2026",
-        "intro": "Bem-vindo ao PsychePortal. Ao acessar ou usar nossos serviços, você concorda em cumprir estes termos.",
+        "intro": "Bem-vindo ao Portal Psis. Ao acessar ou usar nossos serviços, você concorda em cumprir estes termos.",
         "beta_disclaimer_title": "1. Isenção de Responsabilidade (Versão Beta)",
         "beta_disclaimer_text": "Aviso Importante: Esta plataforma está em desenvolvimento contínuo (fase de testes Beta) e não deve ser utilizada como a ferramenta principal para fins profissionais, clínicos ou comerciais. Você reconhece que o software é fornecido 'no estado em que se encontra' e 'conforme disponível', sem garantias de qualquer tipo.",
         "user_responsibility_title": "2. Responsabilidade do Usuário e Conformidade",
         "user_responsibility_text": "O gerenciamento, cuidado e conformidade legal de quaisquer registros de pacientes ou dados sensíveis de saúde inseridos na plataforma são de total e exclusiva responsabilidade do usuário. Você é responsável por cumprir as regulamentações locais sobre privacidade de dados de saúde.",
         "liability_title": "3. Limitação de Responsabilidade",
-        "liability_text": "Até o limite máximo permitido por lei, a equipe de desenvolvimento do PsychePortal não será responsável por qualquer perda de dados, vazamentos de informações, interrupções no serviço ou danos diretos/indiretos decorrentes do uso do sistema.",
+        "liability_text": "Até o limite máximo permitido por lei, a equipe de desenvolvimento do Portal Psis não será responsável por qualquer perda de dados, vazamentos de informações, interrupções no serviço ou danos diretos/indiretos decorrentes do uso do sistema.",
         "accountability_title": "4. Armazenamento Local e Serviços de Terceiros",
         "accountability_text": "Seus dados são armazenados e mantidos diretamente na sua conta pessoal do Google Drive e no armazenamento local do navegador. Nós não hospedamos seus dados em nossos próprios servidores. Sua relação com o Google é regida pelos Termos de Serviço do Google."
     },
@@ -328,9 +328,9 @@
         "title": "Política de Privacidade",
         "back": "Voltar para o Início",
         "subtitle": "Última atualização: 4 de junho de 2026",
-        "intro": "No PsychePortal, valorizamos a sua privacidade. Esta política explica como nosso aplicativo acessa, armazena e usa suas informações, especialmente no que diz respeito aos dados de usuário do Google.",
+        "intro": "No Portal Psis, valorizamos a sua privacidade. Esta política explica como nosso aplicativo acessa, armazena e usa suas informações, especialmente no que diz respeito aos dados de usuário do Google.",
         "data_storage_title": "1. Armazenamento de Dados e Arquitetura",
-        "data_storage_text": "O PsychePortal é uma aplicação client-side (executada no seu navegador). Não possuímos um banco de dados central que coleta ou armazena os registros dos seus pacientes. Em vez disso, seus dados são salvos localmente no banco de dados indexado do seu navegador e sincronizados diretamente com o seu Google Drive pessoal (por meio da pasta oculta AppData e acesso a arquivos específicos). Isso significa que você mantém total propriedade e controle dos seus arquivos clínicos.",
+        "data_storage_text": "O Portal Psis é uma aplicação client-side (executada no seu navegador). Não possuímos um banco de dados central que coleta ou armazena os registros dos seus pacientes. Em vez disso, seus dados são salvos localmente no banco de dados indexado do seu navegador e sincronizados diretamente com o seu Google Drive pessoal (por meio da pasta oculta AppData e acesso a arquivos específicos). Isso significa que você mantém total propriedade e controle dos seus arquivos clínicos.",
         "google_data_title": "2. Como Utilizamos os Dados do Usuário do Google",
         "google_data_text": "Quando você se autentica com o Google, solicitamos acesso a permissões específicas para os seguintes fins:",
         "scope_calendar": "Google Calendar (agenda): Para criar, atualizar e gerenciar compromissos de sessões de terapia diretamente no seu calendário profissional.",
@@ -338,7 +338,7 @@
         "data_sharing_title": "3. Compartilhamento de Dados e Divulgação a Terceiros",
         "data_sharing_text": "Como não armazenamos seus dados em nossos servidores, não temos dados para compartilhar, vender ou divulgar. Toda a comunicação com as APIs do Google ocorre diretamente do seu navegador para os servidores do Google. Nenhum terceiro tem acesso às suas informações de prontuários ou agenda.",
         "limited_use_title": "4. Conformidade com a Política de Uso Limitado da API do Google",
-        "limited_use_text": "O uso e a transferência de informações recebidas de APIs do Google pelo PsychePortal para qualquer outro aplicativo estarão em conformidade com a Política de Dados do Usuário dos Serviços de API do Google, incluindo os requisitos de Uso Limitado."
+        "limited_use_text": "O uso e a transferência de informações recebidas de APIs do Google pelo Portal Psis para qualquer outro aplicativo estarão em conformidade com a Política de Dados do Usuário dos Serviços de API do Google, incluindo os requisitos de Uso Limitado."
     },
     "landing_page": {
         "hero_title": "Seu espaço de psicologia clínica, simples e seguro.",
