@@ -7,7 +7,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   return {
-    base: '/PsychePortal/',
+    base: '/',
     plugins: [
       VitePWA({
         registerType: 'autoUpdate',
@@ -25,17 +25,17 @@ export default defineConfig(({ mode }) => {
           orientation: 'portrait',
           icons: [
             {
-              src: '/PsychePortal/logo.png',
+              src: '/logo.png',
               sizes: '192x192',
               type: 'image/png'
             },
             {
-              src: '/PsychePortal/logo.png',
+              src: '/logo.png',
               sizes: '512x512',
               type: 'image/png'
             },
             {
-              src: '/PsychePortal/logo.png',
+              src: '/logo.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'maskable'

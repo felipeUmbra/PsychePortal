@@ -24,9 +24,16 @@
       ]
     },
     "allowImportingTsExtensions": true,
-    "noEmit": true
+    "noEmit": true,
+    "types": [
+      "cypress",
+      "node"
+    ]
   },
   "include": [
-    "src"
+    "src",
+    "cypress",
+    "**/*.cy.ts",
+    "**/*.cy.tsx"
   ]
 }
