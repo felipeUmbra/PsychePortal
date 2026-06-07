@@ -6,7 +6,7 @@ describe('Authentication Flow', () => {
 
   it('should display the login page initially', () => {
     cy.visit('/');
-    cy.contains('PsychePortal').should('be.visible');
+    cy.contains('Portal Psis').should('be.visible');
     cy.contains('sign in').should('be.visible');
   });
 

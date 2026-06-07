@@ -315,13 +315,13 @@
         "title": "Terms of Service",
         "back": "Back to Home",
         "subtitle": "Last updated: June 4, 2026",
-        "intro": "Welcome to PsychePortal. By accessing or using our services, you agree to be bound by these terms.",
+        "intro": "Welcome to Portal Psis. By accessing or using our services, you agree to be bound by these terms.",
         "beta_disclaimer_title": "1. Beta Software Disclaimer",
         "beta_disclaimer_text": "Important Notice: This platform is in continuous development (Beta testing phase) and should not be used as the primary tool for professional, clinical, or commercial purposes. You acknowledge that the software is provided 'as is' and 'as available' without warranties of any kind.",
         "user_responsibility_title": "2. User Responsibility & Compliance",
         "user_responsibility_text": "The management, care, and legal compliance of any patient records or sensitive health data entered into the platform is the sole and exclusive responsibility of the user. You are responsible for complying with local regulations regarding healthcare data privacy.",
         "liability_title": "3. Limitation of Liability",
-        "liability_text": "To the maximum extent permitted by law, the PsychePortal development team shall not be liable for any data loss, information leaks, service interruptions, or direct/indirect damages arising from your use of the system.",
+        "liability_text": "To the maximum extent permitted by law, the Portal Psis development team shall not be liable for any data loss, information leaks, service interruptions, or direct/indirect damages arising from your use of the system.",
         "accountability_title": "4. Local Storage & Third-Party Services",
         "accountability_text": "Your data is stored and persisted directly to your personal Google Drive account and local storage. We do not host your data on our own servers. Your relationship with Google is governed by Google's Terms of Service."
     },
@@ -329,9 +329,9 @@
         "title": "Privacy Policy",
         "back": "Back to Home",
         "subtitle": "Last updated: June 4, 2026",
-        "intro": "At PsychePortal, we value your privacy. This policy explains how our application accesses, stores, and uses your information, particularly regarding Google User Data.",
+        "intro": "At Portal Psis, we value your privacy. This policy explains how our application accesses, stores, and uses your information, particularly regarding Google User Data.",
         "data_storage_title": "1. Data Storage & Architecture",
-        "data_storage_text": "PsychePortal is a client-side application. We do not run any central backend database that collects or stores your patient records. Instead, your data is saved locally in your browser's indexed database and synced directly to your personal Google Drive (via the App Data folder and specific file access). This means you retain complete ownership and control of your clinical files.",
+        "data_storage_text": "Portal Psis is a client-side application. We do not run any central backend database that collects or stores your patient records. Instead, your data is saved locally in your browser's indexed database and synced directly to your personal Google Drive (via the App Data folder and specific file access). This means you retain complete ownership and control of your clinical files.",
         "google_data_title": "2. How We Use Google User Data",
         "google_data_text": "When you authenticate with Google, we request access to specific scopes for the following purposes:",
         "scope_calendar": "Google Calendar (events scope): To create, update, and manage therapy session appointments directly on your professional calendar.",
@@ -339,7 +339,7 @@
         "data_sharing_title": "3. Data Sharing & Third-Party Disclosure",
         "data_sharing_text": "Because we do not store your data on our servers, we have no data to share, sell, or disclose. All communications with Google APIs occur directly from your browser to Google servers. No third parties have access to your database or scheduling information.",
         "limited_use_title": "4. Google API Limited Use Policy Compliance",
-        "limited_use_text": "PsychePortal's use and transfer of information received from Google APIs to any other app will adhere to Google API Services User Data Policy, including the Limited Use requirements."
+        "limited_use_text": "Portal Psis's use and transfer of information received from Google APIs to any other app will adhere to Google API Services User Data Policy, including the Limited Use requirements."
     },
     "landing_page": {
         "hero_title": "Your Clinical Psychology Workspace, Simplified & Secure.",
@@ -360,7 +360,7 @@
         "google_drive_title": "Encrypted Google Drive Storage",
         "google_drive_desc": "All patient profiles, anamnesis, notes, and financial records are stored directly in your personal Google Drive. We use a hidden AppData folder to ensure files cannot be accidentally deleted.",
         "google_calendar_title": "Google Calendar Sync",
-        "google_calendar_desc": "Keep your clinical schedule synced automatically. Any session created or updated in PsychePortal updates your Google Calendar in real-time, preventing scheduling conflicts.",
+        "google_calendar_desc": "Keep your clinical schedule synced automatically. Any session created or updated in Portal Psis updates your Google Calendar in real-time, preventing scheduling conflicts.",
         "security_badge": "Secure Direct Sync",
         "footer_terms": "Terms of Service",
         "footer_privacy": "Privacy Policy"

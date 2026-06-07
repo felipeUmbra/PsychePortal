@@ -157,7 +157,7 @@ export function NewSessionModal({ isOpen, onClose, userId, patients, preselected
 
           const event: any = {
             summary: `Psy: Consulta - ${patient?.name || 'Paciente'}`,
-            description: `**Consulta Psicológica**\n\nPaciente: ${patient?.name || 'Não informado'}\nPsicólogo(a): ${auth.currentUser?.displayName || 'Não informado'}\nTipo de sessão: ${sessionData.type || 'Individual'}\nStatus: Agendado\n\nAgendamento automático gerado via PsychePortal.`,
+            description: `**Consulta Psicológica**\n\nPaciente: ${patient?.name || 'Não informado'}\nPsicólogo(a): ${auth.currentUser?.displayName || 'Não informado'}\nTipo de sessão: ${sessionData.type || 'Individual'}\nStatus: Agendado\n\nAgendamento automático gerado via Portal Psis.`,
             start: {
               dateTime: startDate.toISOString(),
               timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,

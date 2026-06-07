@@ -16,8 +16,8 @@ export default defineConfig(({ mode }) => {
         },
         includeAssets: ['logo.png'],
         manifest: {
-          name: 'PsychePortal',
-          short_name: 'PsychePortal',
+          name: 'Portal Psis',
+          short_name: 'Portal Psis',
           description: 'A secure, clinical-grade workspace for mental health professionals.',
           theme_color: '#4338CA',
           background_color: '#F4F6F9',

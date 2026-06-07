@@ -1,6 +1,6 @@
-# PsychePortal - Project Documentation
+# Portal Psis - Project Documentation
 
-PsychePortal is a secure, clinical-grade workspace designed for mental health professionals to manage their clinical practice efficiently. It provides tools for patient management, session scheduling, financial tracking, and secure clinical documentation.
+Portal Psis is a secure, clinical-grade workspace designed for mental health professionals to manage their clinical practice efficiently. It provides tools for patient management, session scheduling, financial tracking, and secure clinical documentation.
 
 ## 🚀 Technology Stack
 
@@ -37,7 +37,7 @@ PsychePortal is a secure, clinical-grade workspace designed for mental health pr
 ## 📂 Project Structure
 
 ```text
-PsychePortal/
+Portal Psis/
 ├── public/                 # Static assets (PWA icons, manifest)
 ├── src/
 │   ├── components/         # Reusable UI components

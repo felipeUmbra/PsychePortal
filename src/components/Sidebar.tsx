@@ -70,7 +70,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             <Users className="text-white w-5 h-5" />
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-bold text-text-main leading-tight">PsychePortal</span>
+            <span className="text-sm font-bold text-text-main leading-tight">Portal Psis</span>
             <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider w-fit">{t('sidebar.active')}</span>
           </div>
         </div>
