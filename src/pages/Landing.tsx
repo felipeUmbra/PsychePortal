@@ -1,16 +1,16 @@
 import { motion } from 'motion/react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { 
-  Users, 
-  Calendar, 
-  FileText, 
-  DollarSign, 
-  Languages, 
-  ArrowRight, 
-  HardDrive, 
-  CalendarDays, 
-  Lock, 
+import {
+  Users,
+  Calendar,
+  FileText,
+  DollarSign,
+  Languages,
+  ArrowRight,
+  HardDrive,
+  CalendarDays,
+  Lock,
   Brain,
   ShieldCheck
 } from 'lucide-react';
@@ -259,11 +259,6 @@ export default function Landing() {
             <Link to="/privacy" className="hover:text-text-main hover:underline transition-colors">
               {t('landing_page.footer_privacy')}
             </Link>
-          </div>
-
-          <div className="flex items-center gap-2 text-[11px] font-bold text-text-muted uppercase tracking-widest">
-            <span className="w-1.5 h-1.5 rounded-full bg-success-custom animate-pulse" />
-            System Operational
           </div>
         </div>
         <div className="max-w-7xl mx-auto mt-8 pt-8 border-t border-border-custom text-center text-[12px] text-text-muted">
