@@ -45,7 +45,7 @@ export default function Login() {
       if (credential?.accessToken) {
         // Note: setMockToken internally calls forceSync now, 
         // but we await it here to ensure the profile check uses fresh data.
-        setMockToken(credential.accessToken); 
+        setMockToken(credential.accessToken);
         setDriveToken(credential.accessToken);
         setCalendarToken(credential.accessToken);
         await forceSync();
@@ -132,10 +132,6 @@ export default function Login() {
           </p>
         </div>
 
-        <div className="mt-6 flex items-center justify-center gap-2 text-[11px] font-bold text-text-muted uppercase tracking-widest">
-          <span className="w-1.5 h-1.5 rounded-full bg-success-custom animate-pulse" />
-          {t('login.system_status')}
-        </div>
       </motion.div>
     </div>
   );
