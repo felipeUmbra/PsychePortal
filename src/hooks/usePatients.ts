@@ -77,7 +77,10 @@ export function usePatient(id?: string) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!id || !user) return;
+    if (!id || !user) {
+      setLoading(false);
+      return;
+    }
 
     const fetchPatient = async () => {
       try {
@@ -87,6 +90,7 @@ export function usePatient(id?: string) {
         }
       } catch (error) {
         handleFirestoreError(error, OperationType.GET, `patients/${id}`);
+        // Error logged but not re-thrown to avoid crashing React render
       } finally {
         setLoading(false);
       }

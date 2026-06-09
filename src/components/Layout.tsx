@@ -18,10 +18,10 @@ export default function Layout() {
     const handleAuthError = async (e: any) => {
       // Caso 401 Unauthorized / Expired ou 403 Forbidden
       if (e.detail?.status === 401 || e.detail?.status === 403) {
-         // Auto save the draft before logout happens if possible, although React handles it
-         await auth.signOut();
+        // Auto save the draft before logout happens if possible, although React handles it
+        await auth.signOut();
       } else {
-         setAuthError(e.detail);
+        setAuthError(e.detail);
       }
     };
     const handleAuthSuccess = () => {
@@ -55,10 +55,10 @@ export default function Layout() {
   return (
     <div className="flex min-h-screen bg-bg relative">
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-      
+
       {/* Mobile Backdrop */}
       {isSidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
@@ -72,8 +72,8 @@ export default function Layout() {
               </div>
               <div>
                 <p className="text-[13px] text-amber-800 font-bold">
-                  {authError.status === 403 
-                    ? t('layout.auth_missing_scopes', 'Acesso negado: Certifique-se de MARCAR TODAS AS CAIXAS de permissão na tela do Google ao autorizar.') 
+                  {authError.status === 403
+                    ? t('layout.auth_missing_scopes', 'Acesso negado: Certifique-se de MARCAR TODAS AS CAIXAS de permissão na tela do Google ao autorizar.')
                     : t('layout.auth_expired', 'Sua sessão com o Google expirou ou as permissões foram revogadas.')}
                 </p>
                 {authError.message && (
@@ -84,15 +84,15 @@ export default function Layout() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Link 
-                to="/app/settings" 
+              <Link
+                to="/app/settings"
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-lg text-[12px] font-bold transition-colors"
                 onClick={() => setAuthError(null)}
               >
                 Configurações
                 <ExternalLink className="w-3 h-3" />
               </Link>
-              <button 
+              <button
                 onClick={() => setAuthError(null)}
                 className="p-1.5 hover:bg-amber-100 rounded-lg text-amber-600"
                 aria-label={t('common.close', 'Close')}
@@ -103,22 +103,23 @@ export default function Layout() {
           </div>
         )}
         <header className="h-16 bg-surface border-b border-border-custom flex items-center justify-between px-4 sm:px-8 shrink-0">
-          <div className="flex flex-col">
-            <span className="text-[14px] font-semibold text-text-main">{t('layout.workspace', 'Workspace')}</span>
-            <span className="text-[11px] text-text-muted uppercase tracking-wider font-bold">Workspace v1.0.4</span>
-          </div>
-          
           <div className="flex items-center gap-2">
+            {/* Mobile Menu Toggle */}
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="lg:hidden p-2 hover:bg-bg rounded-lg text-text-muted transition-colors"
+              aria-label="Toggle Menu"
+            >
+              {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+
             <div className="relative">
-              <button 
+              <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                 className="flex items-center gap-4 hover:opacity-80 transition-opacity"
                 aria-label={t('layout.user_menu', 'User Menu')}
                 aria-expanded={isUserMenuOpen}
               >
-                <div className="flex flex-col items-end hidden sm:flex">
-                  <span className="text-[13px] font-semibold text-text-main">{user.displayName}</span>
-                </div>
                 <div className="w-8 h-8 rounded-full bg-accent-custom border border-border-custom flex items-center justify-center text-[12px] font-bold text-primary-custom overflow-hidden">
                   {user.photoURL ? (
                     <img src={user.photoURL} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
@@ -126,13 +127,16 @@ export default function Layout() {
                     user.displayName?.charAt(0) || 'P'
                   )}
                 </div>
+                <div className="flex flex-col items-start hidden sm:flex">
+                  <span className="text-[13px] font-semibold text-text-main">{user.displayName}</span>
+                </div>
               </button>
-              
+
               {isUserMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setIsUserMenuOpen(false)} />
-                  <div className="absolute right-0 mt-2 w-48 bg-white border border-border-custom rounded-xl shadow-lg z-50 p-2">
-                    <button 
+                  <div className="absolute left-0 mt-2 w-48 bg-white border border-border-custom rounded-xl shadow-lg z-50 p-2">
+                    <button
                       onClick={handleLogout}
                       className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-red-600 hover:bg-red-50 rounded-lg transition-colors font-bold"
                     >
@@ -143,15 +147,11 @@ export default function Layout() {
                 </>
               )}
             </div>
+          </div>
 
-            {/* Mobile Menu Toggle */}
-            <button 
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="lg:hidden p-2 hover:bg-bg rounded-lg text-text-muted transition-colors"
-              aria-label="Toggle Menu"
-            >
-              {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
+          <div className="flex flex-col items-end text-right">
+            <span className="text-[14px] font-semibold text-text-main">{t('layout.workspace', 'Workspace')}</span>
+            <span className="text-[11px] text-text-muted uppercase tracking-wider font-bold">Workspace v1.0.4</span>
           </div>
         </header>
         <main className="flex-1 p-4 sm:p-8 overflow-y-auto">

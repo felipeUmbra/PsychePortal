@@ -28,6 +28,17 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
     setCalendarTokenState(newToken);
   };
 
+  // Restore tokens from sessionStorage on mount (page reloads clear React state)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedToken = sessionStorage.getItem('google_drive_token');
+      if (savedToken) {
+        setDriveTokenState(savedToken);
+        setCalendarTokenState(savedToken);
+      }
+    }
+  }, []);
+
   // Expose token setters to window for E2E testing
   useEffect(() => {
     if (typeof window !== 'undefined' && (window as any).Cypress) {
