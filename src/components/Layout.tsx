@@ -151,7 +151,7 @@ export default function Layout() {
 
           <div className="flex flex-col items-end text-right">
             <span className="text-[14px] font-semibold text-text-main">{t('layout.workspace', 'Workspace')}</span>
-            <span className="text-[11px] text-text-muted uppercase tracking-wider font-bold">Workspace v1.0.4</span>
+            <span className="text-[11px] text-text-muted uppercase tracking-wider font-bold">Workspace v0.0.4 (Alpha)</span>
           </div>
         </header>
         <main className="flex-1 p-4 sm:p-8 overflow-y-auto">
