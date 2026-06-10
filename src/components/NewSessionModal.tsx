@@ -27,7 +27,7 @@ interface NewSessionModalProps {
 export function NewSessionModal({ isOpen, onClose, userId, patients, preselectedPatientId, preselectedDate }: NewSessionModalProps) {
   const { t } = useTranslation();
   const { driveToken } = useGoogleAuth();
-  
+
   const formatDateISO = (d: Date) => {
     return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   };
@@ -83,7 +83,7 @@ export function NewSessionModal({ isOpen, onClose, userId, patients, preselected
       const [year, month, day] = slot.date.split('-').map(Number);
       const [hour] = slot.hour.split(':').map(Number);
       const slotDate = new Date(year, month - 1, day, hour, 0, 0, 0);
-      
+
       if (slotDate < now) {
         alert(t('calendar.past_date_error', 'Cannot schedule sessions in the past.'));
         return;
@@ -112,7 +112,7 @@ export function NewSessionModal({ isOpen, onClose, userId, patients, preselected
 
         for (let i = 0; i < sessionCount; i++) {
           let sessionDate = new Date(baseDate);
-          
+
           if (recurrence.frequency === 'weekly') {
             sessionDate = addWeeks(baseDate, i);
           } else if (recurrence.frequency === 'fortnightly') {
@@ -139,16 +139,16 @@ export function NewSessionModal({ isOpen, onClose, userId, patients, preselected
       for (const sessionData of sessionsToAdd) {
         // Find matching slot for calendar sync
         const slot = slots.find(s => {
-           const [y, m, d] = s.date.split('-').map(Number);
-           const [h] = s.hour.split(':').map(Number);
-           const sD = sessionData.date?.toDate ? sessionData.date.toDate() : new Date(sessionData.date);
-           return sD.getFullYear() === y && (sD.getMonth() + 1) === m && sD.getDate() === d && sD.getHours() === h;
+          const [y, m, d] = s.date.split('-').map(Number);
+          const [h] = s.hour.split(':').map(Number);
+          const sD = sessionData.date?.toDate ? sessionData.date.toDate() : new Date(sessionData.date);
+          return sD.getFullYear() === y && (sD.getMonth() + 1) === m && sD.getDate() === d && sD.getHours() === h;
         });
 
         // Sync with Google Calendar per slot (only for the first instance of recurrence to avoid duplicates if RRULE is used)
         const isFirstInstance = sessionsToAdd.indexOf(sessionData) < slots.length;
         const googleToken = driveToken;
-        
+
         if (googleToken && isFirstInstance && slot) {
           const patient = patients.find(p => p.id === patientId);
           const [year, month, day] = slot.date.split('-').map(Number);
@@ -156,8 +156,8 @@ export function NewSessionModal({ isOpen, onClose, userId, patients, preselected
           const startDate = new Date(year, month - 1, day, hour, 0, 0, 0);
 
           const event: any = {
-            summary: `Psy: Consulta - ${patient?.name || 'Paciente'}`,
-            description: `**Consulta Psicológica**\n\nPaciente: ${patient?.name || 'Não informado'}\nPsicólogo(a): ${auth.currentUser?.displayName || 'Não informado'}\nTipo de sessão: ${sessionData.type || 'Individual'}\nStatus: Agendado\n\nAgendamento automático gerado via Portal Psis.`,
+            summary: `Psis: Consulta - ${patient?.name || 'Paciente'}`,
+            description: `**Consulta**\n\nPaciente: ${patient?.name || 'Não informado'}\nPsicólogo(a): ${auth.currentUser?.displayName || 'Não informado'}\nTipo de sessão: ${sessionData.type || 'Individual'}\nStatus: Agendado\n\nAgendamento automático gerado via Portal Psis.`,
             start: {
               dateTime: startDate.toISOString(),
               timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -193,18 +193,18 @@ export function NewSessionModal({ isOpen, onClose, userId, patients, preselected
               },
               body: JSON.stringify(event)
             });
-            
+
             const eventData = await res.json().catch(() => ({}));
 
             if (!res.ok) {
               console.error('Calendar API Error:', res.status, eventData);
               if (res.status === 401 || res.status === 403) {
-                window.dispatchEvent(new CustomEvent('google-auth-error', { 
-                  detail: { 
-                    status: res.status, 
+                window.dispatchEvent(new CustomEvent('google-auth-error', {
+                  detail: {
+                    status: res.status,
                     service: 'calendar',
                     message: eventData.error?.message || res.statusText
-                  } 
+                  }
                 }));
               }
             } else {
@@ -235,14 +235,14 @@ export function NewSessionModal({ isOpen, onClose, userId, patients, preselected
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
           />
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -252,7 +252,7 @@ export function NewSessionModal({ isOpen, onClose, userId, patients, preselected
             <form onSubmit={handleAddAppt} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">{t('calendar.patient', 'Patient')}</label>
-                <select 
+                <select
                   required
                   disabled={!!preselectedPatientId}
                   className="input-field disabled:opacity-50 disabled:bg-slate-50"
@@ -269,8 +269,8 @@ export function NewSessionModal({ isOpen, onClose, userId, patients, preselected
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-bold text-slate-900 border-l-4 border-primary-custom pl-3 uppercase tracking-wider">{t('common.date_time')}</h3>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={addSlot}
                     className="flex items-center gap-1.5 text-[12px] font-bold text-primary-custom hover:bg-primary-custom/5 px-2 py-1 rounded-lg transition-all"
                   >
@@ -278,15 +278,15 @@ export function NewSessionModal({ isOpen, onClose, userId, patients, preselected
                     {t('calendar.add_another_day', 'Add another day')}
                   </button>
                 </div>
-                
+
                 {slots.map((slot, index) => (
                   <div key={slot.id} className="relative group grid grid-cols-2 gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 group">
                     <div>
                       <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-tight mb-1">{t('common.date', 'Date')}</label>
-                      <input 
+                      <input
                         required
-                        type="date" 
-                        className="input-field text-[13px]" 
+                        type="date"
+                        className="input-field text-[13px]"
                         value={slot.date}
                         onChange={(e) => {
                           const newSlots = [...slots];
@@ -297,7 +297,7 @@ export function NewSessionModal({ isOpen, onClose, userId, patients, preselected
                     </div>
                     <div>
                       <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-tight mb-1">{t('common.time', 'Time')}</label>
-                      <select 
+                      <select
                         required
                         className="input-field text-[13px]"
                         value={slot.hour}
@@ -314,10 +314,10 @@ export function NewSessionModal({ isOpen, onClose, userId, patients, preselected
                       </select>
                     </div>
                     {slots.length > 1 && (
-                      <button 
-                         type="button"
-                         onClick={() => removeSlot(slot.id)}
-                         className="absolute -right-2 -top-2 w-6 h-6 bg-white border border-slate-200 text-slate-400 hover:text-red-500 rounded-full shadow-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                      <button
+                        type="button"
+                        onClick={() => removeSlot(slot.id)}
+                        className="absolute -right-2 -top-2 w-6 h-6 bg-white border border-slate-200 text-slate-400 hover:text-red-500 rounded-full shadow-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -348,7 +348,7 @@ export function NewSessionModal({ isOpen, onClose, userId, patients, preselected
                 </div>
 
                 {recurrence.isRecurrent && (
-                  <motion.div 
+                  <motion.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     className="space-y-4 overflow-hidden"
@@ -356,7 +356,7 @@ export function NewSessionModal({ isOpen, onClose, userId, patients, preselected
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-tight mb-1">{t('calendar.frequency', 'Frequency')}</label>
-                        <select 
+                        <select
                           className="input-field text-[13px]"
                           value={recurrence.frequency}
                           onChange={(e) => setRecurrence({ ...recurrence, frequency: e.target.value })}
@@ -368,7 +368,7 @@ export function NewSessionModal({ isOpen, onClose, userId, patients, preselected
                       </div>
                       <div className="flex items-end justify-between pb-2">
                         <div className="flex items-center gap-2">
-                          <input 
+                          <input
                             type="checkbox"
                             checked={recurrence.isInfinite}
                             onChange={(e) => setRecurrence({ ...recurrence, isInfinite: e.target.checked })}
@@ -378,11 +378,11 @@ export function NewSessionModal({ isOpen, onClose, userId, patients, preselected
                         </div>
                       </div>
                     </div>
-                    
+
                     {!recurrence.isInfinite && (
                       <div>
                         <label className="block text-sm text-slate-700 mb-1">{t('calendar.occurrences', 'Number of occurrences')}</label>
-                        <input 
+                        <input
                           type="number"
                           min="2"
                           max="52"
@@ -393,7 +393,7 @@ export function NewSessionModal({ isOpen, onClose, userId, patients, preselected
                       </div>
                     )}
                     <p className="text-[11px] text-slate-400 italic">
-                      {recurrence.isInfinite 
+                      {recurrence.isInfinite
                         ? t('calendar.infinite_info', 'Sessions will be scheduled according to frequency for the next 6 months.')
                         : t('calendar.recurrence_info', 'Sessions will be scheduled according to frequency.')}
                     </p>
@@ -402,14 +402,14 @@ export function NewSessionModal({ isOpen, onClose, userId, patients, preselected
               </div>
 
               <div className="flex gap-3 pt-4">
-                <button 
+                <button
                   type="button"
                   onClick={onClose}
                   className="flex-1 btn-secondary"
                 >
                   {t('common.cancel', 'Cancel')}
                 </button>
-                <button 
+                <button
                   type="submit"
                   className="flex-1 btn-primary"
                 >
