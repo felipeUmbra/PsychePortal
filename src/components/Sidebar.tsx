@@ -66,8 +66,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     )}>
       <div className="h-16 flex items-center justify-between gap-3 px-6 border-b border-border-custom shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-primary-custom rounded-sm flex items-center justify-center shadow-sm">
-            <Users className="text-white w-5 h-5" />
+          <div className="w-8 h-8 bg-[#897fff] rounded-sm flex items-center justify-center shadow-sm">
+            <img src="/logo.png?v=2" alt="Portal Psis" className="w-5 h-5" />
           </div>
           <div className="flex flex-col">
             <span className="text-sm font-bold text-text-main leading-tight">Portal Psis</span>

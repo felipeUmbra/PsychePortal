@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { doc, getDoc, setDoc, setDriveToken as setMockToken, forceSync } from 'firebase/firestore';
-import { Users, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { useGoogleAuth } from '../context/GoogleAuthContext';
@@ -93,8 +93,8 @@ export default function Login() {
         className="max-w-md w-full bg-surface rounded-sm shadow-xl shadow-primary-custom/5 border border-border-custom p-10 text-center"
       >
         <div className="flex justify-center mb-8">
-          <div className="w-16 h-16 bg-primary-custom rounded-sm flex items-center justify-center shadow-lg shadow-primary-custom/20">
-            <Users className="text-white w-10 h-10" />
+          <div className="w-16 h-16 bg-[#897fff] rounded-sm flex items-center justify-center shadow-lg shadow-primary-custom/20">
+            <img src="/logo.png?v=2" alt="Portal Psis" className="w-10 h-10" />
           </div>
         </div>
 
