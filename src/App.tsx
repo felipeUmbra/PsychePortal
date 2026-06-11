@@ -1,6 +1,7 @@
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import Layout from './components/Layout';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Terms from './pages/Terms';
@@ -30,25 +31,27 @@ export default function App() {
   return (
     <GoogleAuthProvider>
       <Router>
-        <Suspense fallback={<LoadingFallback />}>
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/app" element={<Layout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="patients" element={<Patients />} />
-              <Route path="patients/:id" element={<PatientDetail />} />
-              <Route path="calendar" element={<Calendar />} />
-              <Route path="calendar/daily" element={<DailyCalendar />} />
-              <Route path="sessions" element={<Sessions />} />
-              <Route path="finance" element={<Finance />} />
-              <Route path="settings" element={<Settings />} />
-            </Route>
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
+        <ErrorBoundary>
+          <Suspense fallback={<LoadingFallback />}>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/app" element={<Layout />}>
+                <Route index element={<Dashboard />} />
+                <Route path="patients" element={<Patients />} />
+                <Route path="patients/:id" element={<PatientDetail />} />
+                <Route path="calendar" element={<Calendar />} />
+                <Route path="calendar/daily" element={<DailyCalendar />} />
+                <Route path="sessions" element={<Sessions />} />
+                <Route path="finance" element={<Finance />} />
+                <Route path="settings" element={<Settings />} />
+              </Route>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
+        </ErrorBoundary>
       </Router>
     </GoogleAuthProvider>
   );
