@@ -27,7 +27,8 @@
     "noEmit": true,
     "types": [
       "cypress",
-      "node"
+      "node",
+      "react"
     ]
   },
   "include": [

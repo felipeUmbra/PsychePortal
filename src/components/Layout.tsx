@@ -3,6 +3,7 @@ import { Outlet, Navigate, useNavigate, Link } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
+import { useGoogleAuth } from '../context/GoogleAuthContext';
 import { useTranslation } from 'react-i18next';
 import { LogOut, AlertTriangle, ExternalLink, X, Menu } from 'lucide-react';
 
@@ -13,15 +14,17 @@ export default function Layout() {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [authError, setAuthError] = useState<{ status: number; message?: string; service: string } | null>(null);
+  const { clearTokens } = useGoogleAuth();
 
   useEffect(() => {
     const handleAuthError = async (e: any) => {
       // Caso 401 Unauthorized / Expired ou 403 Forbidden
       if (e.detail?.status === 401 || e.detail?.status === 403) {
-         // Auto save the draft before logout happens if possible, although React handles it
-         await auth.signOut();
+        clearTokens();
+        // Auto save the draft before logout happens if possible, although React handles it
+        await auth.signOut();
       } else {
-         setAuthError(e.detail);
+        setAuthError(e.detail);
       }
     };
     const handleAuthSuccess = () => {
@@ -36,6 +39,7 @@ export default function Layout() {
   }, []);
 
   const handleLogout = async () => {
+    clearTokens();
     await auth.signOut();
     navigate('/login');
   };
@@ -55,10 +59,10 @@ export default function Layout() {
   return (
     <div className="flex min-h-screen bg-bg relative">
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-      
+
       {/* Mobile Backdrop */}
       {isSidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
@@ -72,8 +76,8 @@ export default function Layout() {
               </div>
               <div>
                 <p className="text-[13px] text-amber-800 font-bold">
-                  {authError.status === 403 
-                    ? t('layout.auth_missing_scopes', 'Acesso negado: Certifique-se de MARCAR TODAS AS CAIXAS de permissão na tela do Google ao autorizar.') 
+                  {authError.status === 403
+                    ? t('layout.auth_missing_scopes', 'Acesso negado: Certifique-se de MARCAR TODAS AS CAIXAS de permissão na tela do Google ao autorizar.')
                     : t('layout.auth_expired', 'Sua sessão com o Google expirou ou as permissões foram revogadas.')}
                 </p>
                 {authError.message && (
@@ -84,15 +88,15 @@ export default function Layout() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Link 
-                to="/app/settings" 
+              <Link
+                to="/app/settings"
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-lg text-[12px] font-bold transition-colors"
                 onClick={() => setAuthError(null)}
               >
                 Configurações
                 <ExternalLink className="w-3 h-3" />
               </Link>
-              <button 
+              <button
                 onClick={() => setAuthError(null)}
                 className="p-1.5 hover:bg-amber-100 rounded-lg text-amber-600"
                 aria-label={t('common.close', 'Close')}
@@ -107,10 +111,10 @@ export default function Layout() {
             <span className="text-[14px] font-semibold text-text-main">{t('layout.workspace', 'Workspace')}</span>
             <span className="text-[11px] text-text-muted uppercase tracking-wider font-bold">Workspace v1.0.4</span>
           </div>
-          
+
           <div className="flex items-center gap-2">
             <div className="relative">
-              <button 
+              <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                 className="flex items-center gap-4 hover:opacity-80 transition-opacity"
                 aria-label={t('layout.user_menu', 'User Menu')}
@@ -127,12 +131,12 @@ export default function Layout() {
                   )}
                 </div>
               </button>
-              
+
               {isUserMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setIsUserMenuOpen(false)} />
                   <div className="absolute right-0 mt-2 w-48 bg-white border border-border-custom rounded-xl shadow-lg z-50 p-2">
-                    <button 
+                    <button
                       onClick={handleLogout}
                       className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-red-600 hover:bg-red-50 rounded-lg transition-colors font-bold"
                     >
@@ -145,7 +149,7 @@ export default function Layout() {
             </div>
 
             {/* Mobile Menu Toggle */}
-            <button 
+            <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className="lg:hidden p-2 hover:bg-bg rounded-lg text-text-muted transition-colors"
               aria-label="Toggle Menu"
