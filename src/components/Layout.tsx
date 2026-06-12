@@ -107,12 +107,16 @@ export default function Layout() {
           </div>
         )}
         <header className="h-16 bg-surface border-b border-border-custom flex items-center justify-between px-4 sm:px-8 shrink-0">
-          <div className="flex flex-col">
-            <span className="text-[14px] font-semibold text-text-main">{t('layout.workspace', 'Workspace')}</span>
-            <span className="text-[11px] text-text-muted uppercase tracking-wider font-bold">Workspace v1.0.4</span>
-          </div>
-
           <div className="flex items-center gap-2">
+            {/* Mobile Menu Toggle - moved to appear first (left) */}
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="lg:hidden p-2 hover:bg-bg rounded-lg text-text-muted transition-colors"
+              aria-label="Toggle Menu"
+            >
+              {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+
             <div className="relative">
               <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
@@ -147,15 +151,11 @@ export default function Layout() {
                 </>
               )}
             </div>
+          </div>
 
-            {/* Mobile Menu Toggle */}
-            <button
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="lg:hidden p-2 hover:bg-bg rounded-lg text-text-muted transition-colors"
-              aria-label="Toggle Menu"
-            >
-              {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
+          <div className="flex flex-col">
+            <span className="text-[14px] font-semibold text-text-main">{t('layout.workspace', 'Workspace')}</span>
+            <span className="text-[11px] text-text-muted uppercase tracking-wider font-bold">Workspace v0.0.4 (Alpha)</span>
           </div>
         </header>
         <main className="flex-1 p-4 sm:p-8 overflow-y-auto">
