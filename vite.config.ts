@@ -59,6 +59,7 @@ export default defineConfig(({ mode }) => {
     server: {
       headers: {
         'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+        'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'",
       },
       hmr: false,
     },

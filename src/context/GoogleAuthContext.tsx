@@ -75,17 +75,20 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
   // Restore tokens from sessionStorage on mount (page reloads clear React state)
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const savedToken = sessionStorage.getItem('google_drive_token');
-      if (savedToken) {
-        setDriveTokenState(savedToken);
-        setCalendarTokenState(savedToken);
+      const savedDriveToken = sessionStorage.getItem(DRIVE_TOKEN_STORAGE_KEY);
+      if (savedDriveToken) {
+        setDriveTokenState(savedDriveToken);
+      }
+      const savedCalendarToken = sessionStorage.getItem(CALENDAR_TOKEN_STORAGE_KEY);
+      if (savedCalendarToken) {
+        setCalendarTokenState(savedCalendarToken);
       }
     }
   }, []);
 
   // Expose token setters to window for E2E testing
   useEffect(() => {
-    if (typeof window !== 'undefined' && (window as any).Cypress) {
+    if (import.meta.env.DEV && typeof window !== 'undefined' && (window as any).Cypress) {
       (window as any).setTestTokens = (tokens: { driveToken: string | null, calendarToken: string | null }) => {
         setDriveToken(tokens.driveToken);
         setCalendarToken(tokens.calendarToken);
