@@ -362,9 +362,6 @@
         "google_calendar_desc": "Mantenha seus horários organizados automaticamente. Qualquer consulta criada ou alterada no portal atualiza sua agenda do Google em tempo real, evitando conflitos.",
         "security_badge": "Sincronização Direta e Segura",
         "footer_terms": "Termos de Serviço",
-        "footer_privacy": "Política de Privacidade",
-        "google_compliance_title": "Conformidade com a Política de Uso Limitado da API do Google",
-        "google_compliance_desc": "Seguimos estritamente a Política de Dados do Usuário dos Serviços de API do Google. Todas as solicitações de dados são processadas localmente no seu navegador. Nunca vendemos, transmitimos ou compartilhamos seus dados com qualquer serviço externo ou terceiro.",
-        "footer_copyright": "© {{year}} Portal Psis. Todos os direitos reservados."
+        "footer_privacy": "Política de Privacidade"
     }
 }
