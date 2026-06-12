@@ -1,16 +1,17 @@
 import { motion } from 'motion/react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import {
-  Users,
-  Calendar,
-  FileText,
-  DollarSign,
-  Languages,
-  ArrowRight,
-  HardDrive,
-  CalendarDays,
-  Lock,
+import { 
+  Users, 
+  Calendar, 
+  FileText, 
+  DollarSign, 
+  Languages, 
+  ArrowRight, 
+  HardDrive, 
+  CalendarDays, 
+  Lock, 
+  Brain,
   ShieldCheck
 } from 'lucide-react';
 import { changeLanguage } from '../i18n';
@@ -57,8 +58,8 @@ export default function Landing() {
       <header className="fixed top-0 left-0 right-0 h-16 bg-surface/80 backdrop-blur-md border-b border-border-custom z-50 transition-all">
         <div className="max-w-7xl mx-auto h-full flex items-center justify-between px-4 sm:px-8">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-[#897fff] rounded-xl flex items-center justify-center shadow-md shadow-primary-custom/15">
-              <img src="/logo.png?v=2" alt="Portal Psis" className="w-5 h-5" />
+            <div className="w-9 h-9 bg-primary-custom rounded-xl flex items-center justify-center shadow-md shadow-primary-custom/15">
+              <Brain className="text-white w-5 h-5" />
             </div>
             <span className="text-lg font-bold text-text-main tracking-tight">Portal Psis</span>
           </div>
@@ -232,10 +233,10 @@ export default function Landing() {
               <ShieldCheck className="w-8 h-8 text-success-custom" />
             </div>
             <p className="text-sm font-semibold text-text-main mb-2">
-              {t('landing_page.google_compliance_title')}
+              Google API Limited Use Policy Compliance
             </p>
             <p className="text-text-muted text-[13px] leading-relaxed">
-              {t('landing_page.google_compliance_desc')}
+              We strictly adhere to the Google API Services User Data Policy. All data requests are completed locally in your browser. We never sell, transmit, or share your data with any external service or third party.
             </p>
           </motion.div>
         </div>
@@ -245,8 +246,8 @@ export default function Landing() {
       <footer className="bg-surface border-t border-border-custom py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#897fff] rounded-lg flex items-center justify-center shadow-sm">
-              <img src="/logo.png?v=2" alt="Portal Psis" className="w-4 h-4" />
+            <div className="w-8 h-8 bg-primary-custom rounded-lg flex items-center justify-center shadow-sm">
+              <Brain className="text-white w-4 h-4" />
             </div>
             <span className="text-[15px] font-bold text-text-main tracking-tight">Portal Psis</span>
           </div>
@@ -259,9 +260,14 @@ export default function Landing() {
               {t('landing_page.footer_privacy')}
             </Link>
           </div>
+
+          <div className="flex items-center gap-2 text-[11px] font-bold text-text-muted uppercase tracking-widest">
+            <span className="w-1.5 h-1.5 rounded-full bg-success-custom animate-pulse" />
+            System Operational
+          </div>
         </div>
         <div className="max-w-7xl mx-auto mt-8 pt-8 border-t border-border-custom text-center text-[12px] text-text-muted">
-          {t('landing_page.footer_copyright', { year: new Date().getFullYear() })}
+          &copy; {new Date().getFullYear()} Portal Psis. All rights reserved.
         </div>
       </footer>
     </div>

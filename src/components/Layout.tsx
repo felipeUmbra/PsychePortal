@@ -3,6 +3,7 @@ import { Outlet, Navigate, useNavigate, Link } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
+import { useGoogleAuth } from '../context/GoogleAuthContext';
 import { useTranslation } from 'react-i18next';
 import { LogOut, AlertTriangle, ExternalLink, X, Menu } from 'lucide-react';
 
@@ -13,11 +14,13 @@ export default function Layout() {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [authError, setAuthError] = useState<{ status: number; message?: string; service: string } | null>(null);
+  const { clearTokens } = useGoogleAuth();
 
   useEffect(() => {
     const handleAuthError = async (e: any) => {
       // Caso 401 Unauthorized / Expired ou 403 Forbidden
       if (e.detail?.status === 401 || e.detail?.status === 403) {
+        clearTokens();
         // Auto save the draft before logout happens if possible, although React handles it
         await auth.signOut();
       } else {
@@ -36,6 +39,7 @@ export default function Layout() {
   }, []);
 
   const handleLogout = async () => {
+    clearTokens();
     await auth.signOut();
     navigate('/login');
   };
@@ -103,16 +107,12 @@ export default function Layout() {
           </div>
         )}
         <header className="h-16 bg-surface border-b border-border-custom flex items-center justify-between px-4 sm:px-8 shrink-0">
-          <div className="flex items-center gap-2">
-            {/* Mobile Menu Toggle */}
-            <button
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="lg:hidden p-2 hover:bg-bg rounded-lg text-text-muted transition-colors"
-              aria-label="Toggle Menu"
-            >
-              {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
+          <div className="flex flex-col">
+            <span className="text-[14px] font-semibold text-text-main">{t('layout.workspace', 'Workspace')}</span>
+            <span className="text-[11px] text-text-muted uppercase tracking-wider font-bold">Workspace v1.0.4</span>
+          </div>
 
+          <div className="flex items-center gap-2">
             <div className="relative">
               <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
@@ -120,6 +120,9 @@ export default function Layout() {
                 aria-label={t('layout.user_menu', 'User Menu')}
                 aria-expanded={isUserMenuOpen}
               >
+                <div className="flex flex-col items-end hidden sm:flex">
+                  <span className="text-[13px] font-semibold text-text-main">{user.displayName}</span>
+                </div>
                 <div className="w-8 h-8 rounded-full bg-accent-custom border border-border-custom flex items-center justify-center text-[12px] font-bold text-primary-custom overflow-hidden">
                   {user.photoURL ? (
                     <img src={user.photoURL} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
@@ -127,15 +130,12 @@ export default function Layout() {
                     user.displayName?.charAt(0) || 'P'
                   )}
                 </div>
-                <div className="flex flex-col items-start hidden sm:flex">
-                  <span className="text-[13px] font-semibold text-text-main">{user.displayName}</span>
-                </div>
               </button>
 
               {isUserMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setIsUserMenuOpen(false)} />
-                  <div className="absolute left-0 mt-2 w-48 bg-white border border-border-custom rounded-xl shadow-lg z-50 p-2">
+                  <div className="absolute right-0 mt-2 w-48 bg-white border border-border-custom rounded-xl shadow-lg z-50 p-2">
                     <button
                       onClick={handleLogout}
                       className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-red-600 hover:bg-red-50 rounded-lg transition-colors font-bold"
@@ -147,11 +147,15 @@ export default function Layout() {
                 </>
               )}
             </div>
-          </div>
 
-          <div className="flex flex-col items-end text-right">
-            <span className="text-[14px] font-semibold text-text-main">{t('layout.workspace', 'Workspace')}</span>
-            <span className="text-[11px] text-text-muted uppercase tracking-wider font-bold">Workspace v0.0.4 (Alpha)</span>
+            {/* Mobile Menu Toggle */}
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="lg:hidden p-2 hover:bg-bg rounded-lg text-text-muted transition-colors"
+              aria-label="Toggle Menu"
+            >
+              {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
           </div>
         </header>
         <main className="flex-1 p-4 sm:p-8 overflow-y-auto">

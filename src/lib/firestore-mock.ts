@@ -1,18 +1,43 @@
 // Mock Firestore implementation using localStorage and generic events to simulate Firebase syncing locally
 import { v4 as uuidv4 } from 'uuid';
 
-let driveToken: string | null = typeof window !== 'undefined' ? sessionStorage.getItem('google_drive_token') : null;
+const DRIVE_TOKEN_STORAGE_KEY = 'google_drive_token';
+
+let driveToken: string | null = typeof window !== 'undefined' ? sessionStorage.getItem(DRIVE_TOKEN_STORAGE_KEY) : null;
+
+const getSessionStorageItem = (key: string): string | null => {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    return window.sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
+const setSessionStorageItem = (key: string, value: string | null) => {
+  if (typeof window === 'undefined') return;
+
+  try {
+    if (value) {
+      window.sessionStorage.setItem(key, value);
+    } else {
+      window.sessionStorage.removeItem(key);
+    }
+  } catch {
+    // Ignore storage errors. Token state will still work in memory for the current session.
+  }
+};
+
+driveToken = getSessionStorageItem(DRIVE_TOKEN_STORAGE_KEY);
 
 export const setDriveToken = (token: string | null) => {
   driveToken = token;
-  if (typeof window !== 'undefined') {
-    if (token) sessionStorage.setItem('google_drive_token', token);
-    else sessionStorage.removeItem('google_drive_token');
-  }
+  setSessionStorageItem(DRIVE_TOKEN_STORAGE_KEY, token);
   if (token && !isLoaded) {
     forceSync();
   }
-  // Always force a clean sync when a new token is provided to prevent 
+  // Always force a clean sync when a new token is provided to prevent
   // data leakage between different user sessions on the same machine.
   if (token) {
     forceSync().catch(console.error);

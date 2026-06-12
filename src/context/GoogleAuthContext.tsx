@@ -1,53 +1,126 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { setDriveToken } from '../lib/firestore-mock';
+import { setDriveToken as setDriveTokenMock } from '../lib/firestore-mock';
+import { encryptToken, decryptToken, clearEncryptionKey } from '../lib/token-crypto';
+import { setTokenExpiration, clearTokenExpiration } from '../lib/token-expiration';
+
+
+
+const DRIVE_TOKEN_STORAGE_KEY = 'google_drive_token';
+const CALENDAR_TOKEN_STORAGE_KEY = 'google_calendar_token';
 
 interface GoogleAuthContextType {
   driveToken: string | null;
   calendarToken: string | null;
-  setDriveToken: (token: string | null) => void;
-  setCalendarToken: (token: string | null) => void;
+  setDriveToken: (token: string | null) => Promise<void>; // Changed to async
+  setCalendarToken: (token: string | null) => Promise<void>; // Changed to async
+  clearTokens: () => void;
   isAuthenticated: boolean;
 }
+
+const getSessionStorageItem = (key: string): string | null => {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    return window.sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
+const setSessionStorageItem = (key: string, value: string | null) => {
+  if (typeof window === 'undefined') return;
+
+  try {
+    if (value) {
+      window.sessionStorage.setItem(key, value);
+    } else {
+      window.sessionStorage.removeItem(key);
+    }
+  } catch {
+    // Ignore storage errors. Token state will still work in memory for the current session.
+  }
+};
 
 const GoogleAuthContext = createContext<GoogleAuthContextType | undefined>(undefined);
 
 export function GoogleAuthProvider({ children }: { children: ReactNode }) {
   const [user] = useAuthState(auth);
-  const [driveToken, setDriveTokenState] = useState<string | null>(null);
-  const [calendarToken, setCalendarTokenState] = useState<string | null>(null);
+  const [driveToken, setDriveTokenState] = useState<string | null>(() => getSessionStorageItem(DRIVE_TOKEN_STORAGE_KEY));
+  const [calendarToken, setCalendarTokenState] = useState<string | null>(() => getSessionStorageItem(CALENDAR_TOKEN_STORAGE_KEY));
 
-  // Persistence bridge for the mock (which runs outside React)
-  const setDriveToken = (newToken: string | null) => {
+  const clearTokens = useCallback(() => {
+    setDriveTokenState(null);
+    setCalendarTokenState(null);
+    setSessionStorageItem(DRIVE_TOKEN_STORAGE_KEY, null);
+    setSessionStorageItem(CALENDAR_TOKEN_STORAGE_KEY, null);
+    setDriveTokenMock(null);
+    clearEncryptionKey();
+    clearTokenExpiration();
+  }, []);
+
+  const setDriveToken = useCallback(async (newToken: string | null) => {
     setDriveTokenState(newToken);
+    if (newToken) {
+      const encrypted = await encryptToken(newToken);
+      setSessionStorageItem(DRIVE_TOKEN_STORAGE_KEY, encrypted);
+      setTokenExpiration(3600);
+    } else {
+      setSessionStorageItem(DRIVE_TOKEN_STORAGE_KEY, null);
+    }
     setDriveTokenMock(newToken);
-  };
+  }, []);
 
-  const setCalendarToken = (newToken: string | null) => {
+  const setCalendarToken = useCallback(async (newToken: string | null) => {
     setCalendarTokenState(newToken);
-  };
-
-  // Restore tokens from sessionStorage on mount (page reloads clear React state)
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedToken = sessionStorage.getItem('google_drive_token');
-      if (savedToken) {
-        setDriveTokenState(savedToken);
-        setCalendarTokenState(savedToken);
-      }
+    if (newToken) {
+      const encrypted = await encryptToken(newToken);
+      setSessionStorageItem(CALENDAR_TOKEN_STORAGE_KEY, encrypted);
+      setTokenExpiration(3600);
+    } else {
+      setSessionStorageItem(CALENDAR_TOKEN_STORAGE_KEY, null);
     }
   }, []);
 
+
+  // Sync restored Drive token into the mock module after the first render.
+  useEffect(() => {
+    if (driveToken) {
+      setDriveTokenMock(driveToken);
+    }
+  }, [driveToken]);
+
+  // Restore tokens from sessionStorage on mount (page reloads clear React state)
+  useEffect(() => {
+    const restoreTokens = async () => {
+      if (typeof window !== 'undefined') {
+        const savedDriveToken = sessionStorage.getItem(DRIVE_TOKEN_STORAGE_KEY);
+        if (savedDriveToken) {
+          const decrypted = await decryptToken(savedDriveToken);
+          if (decrypted) setDriveTokenState(decrypted);
+        }
+        const savedCalendarToken = sessionStorage.getItem(CALENDAR_TOKEN_STORAGE_KEY);
+        if (savedCalendarToken) {
+          const decrypted = await decryptToken(savedCalendarToken);
+          if (decrypted) setCalendarTokenState(decrypted);
+        }
+      }
+    };
+    restoreTokens();
+  }, []);
+
+
   // Expose token setters to window for E2E testing
   useEffect(() => {
-    if (typeof window !== 'undefined' && (window as any).Cypress) {
+    if (import.meta.env.DEV && typeof window !== 'undefined' && (window as any).Cypress) {
       (window as any).setTestTokens = (tokens: { driveToken: string | null, calendarToken: string | null }) => {
         setDriveToken(tokens.driveToken);
         setCalendarToken(tokens.calendarToken);
       };
+      (window as any).clearTestTokens = clearTokens;
     }
-  }, [setDriveToken, setCalendarToken]);
+  }, [setDriveToken, setCalendarToken, clearTokens]);
 
   // Inactivity timer to clear tokens after 30 minutes
   useEffect(() => {
@@ -56,8 +129,7 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
     const resetTimer = () => {
       clearTimeout(inactivityTimer);
       inactivityTimer = setTimeout(() => {
-        setDriveToken(null);
-        setCalendarToken(null);
+        clearTokens();
       }, 30 * 60 * 1000); // 30 minutes
     };
 
@@ -77,14 +149,13 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
       window.removeEventListener('click', resetTimer);
       window.removeEventListener('scroll', resetTimer);
     };
-  }, [setDriveToken, setCalendarToken]);
+  }, [clearTokens]);
 
   useEffect(() => {
     if (!user) {
-      setDriveToken(null);
-      setCalendarToken(null);
+      clearTokens();
     }
-  }, [user]);
+  }, [user, clearTokens]);
 
   return (
     <GoogleAuthContext.Provider value={{
@@ -92,15 +163,13 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
       calendarToken,
       setDriveToken,
       setCalendarToken,
+      clearTokens,
       isAuthenticated: !!driveToken
     }}>
       {children}
     </GoogleAuthContext.Provider>
   );
 }
-
-// Rename internal bridge call to avoid confusion with local state setter
-import { setDriveToken as setDriveTokenMock } from '../lib/firestore-mock';
 
 export function useGoogleAuth() {
   const context = useContext(GoogleAuthContext);

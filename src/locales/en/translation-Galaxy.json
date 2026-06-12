@@ -363,9 +363,6 @@
         "google_calendar_desc": "Keep your clinical schedule synced automatically. Any session created or updated in Portal Psis updates your Google Calendar in real-time, preventing scheduling conflicts.",
         "security_badge": "Secure Direct Sync",
         "footer_terms": "Terms of Service",
-        "footer_privacy": "Privacy Policy",
-        "google_compliance_title": "Google API Limited Use Policy Compliance",
-        "google_compliance_desc": "We strictly adhere to the Google API Services User Data Policy. All data requests are completed locally in your browser. We never sell, transmit, or share your data with any external service or third party.",
-        "footer_copyright": "© {{year}} Portal Psis. All rights reserved."
+        "footer_privacy": "Privacy Policy"
     }
 }
