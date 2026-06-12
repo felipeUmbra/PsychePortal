@@ -12,8 +12,9 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         registerType: 'autoUpdate',
         devOptions: {
-          enabled: true
+          enabled: false, // Disabled in dev - Vite HMR handles hot reload
         },
+        injectRegister: false, // Don't inject in dev mode
         includeAssets: ['logo.png'],
         manifest: {
           name: 'Portal Psis',
@@ -58,9 +59,7 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       headers: {
-        'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
-        'Cross-Origin-Window-Policy': 'allow',
-        'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' https://apis.google.com https://*.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://www.gstatic.com https://*.gstatic.com https://*.googleusercontent.com https://*.firebaseapp.com; connect-src 'self' https://*.googleapis.com https://identitytoolkit.googleapis.com https://*.firebaseapp.com https://www.googleapis.com; frame-src 'self' https://accounts.google.com https://*.firebaseapp.com",
+        'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' https://apis.google.com https://*.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: https://www.gstatic.com https://*.gstatic.com https://*.googleusercontent.com https://*.firebaseapp.com; connect-src 'self' https://*.googleapis.com https://identitytoolkit.googleapis.com https://*.firebaseapp.com https://www.googleapis.com; frame-src 'self' https://accounts.google.com https://*.firebaseapp.com; manifest-src 'self';",
       },
       hmr: false,
     },
@@ -70,7 +69,7 @@ export default defineConfig(({ mode }) => {
         compress: {
           drop_console: true,
           drop_debugger: true,
-        },
+        }
       },
       sourcemap: false,
       rollupOptions: {

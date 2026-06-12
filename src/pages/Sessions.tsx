@@ -1,7 +1,10 @@
 import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { collection, query, where, onSnapshot, orderBy, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, auth, storage } from '../firebase';
+// Note: storage functions are imported from the firestore-mock which provides Google Drive integration
+
+import { ref, uploadBytes, getDownloadURL } from '../lib/firestore-mock';
+import { db, auth } from '../firebase';
+
 import { useAuthState } from 'react-firebase-hooks/auth';
 import {
   History,
@@ -102,7 +105,7 @@ export default function Sessions() {
 
     try {
       setIsUploading(true);
-      const storageRef = ref(storage, `sessions/${editingSessionId}/${file.name}`);
+      const storageRef = ref(null, `sessions/${editingSessionId}/${file.name}`);
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
 
