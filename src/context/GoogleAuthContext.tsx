@@ -3,6 +3,8 @@ import { auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { setDriveToken as setDriveTokenMock } from '../lib/firestore-mock';
 import { encryptToken, decryptToken, clearEncryptionKey } from '../lib/token-crypto';
+import { setTokenExpiration, clearTokenExpiration } from '../lib/token-expiration';
+
 
 
 const DRIVE_TOKEN_STORAGE_KEY = 'google_drive_token';
@@ -55,6 +57,7 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
     setSessionStorageItem(CALENDAR_TOKEN_STORAGE_KEY, null);
     setDriveTokenMock(null);
     clearEncryptionKey();
+    clearTokenExpiration();
   }, []);
 
   const setDriveToken = useCallback(async (newToken: string | null) => {
@@ -62,6 +65,7 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
     if (newToken) {
       const encrypted = await encryptToken(newToken);
       setSessionStorageItem(DRIVE_TOKEN_STORAGE_KEY, encrypted);
+      setTokenExpiration(3600);
     } else {
       setSessionStorageItem(DRIVE_TOKEN_STORAGE_KEY, null);
     }
@@ -73,6 +77,7 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
     if (newToken) {
       const encrypted = await encryptToken(newToken);
       setSessionStorageItem(CALENDAR_TOKEN_STORAGE_KEY, encrypted);
+      setTokenExpiration(3600);
     } else {
       setSessionStorageItem(CALENDAR_TOKEN_STORAGE_KEY, null);
     }
