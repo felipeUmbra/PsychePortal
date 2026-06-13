@@ -11,14 +11,71 @@ interface PatientFormProps {
   title: string;
 }
 
+// CPF validation utility for Brazil (11 digits with check digits)
+const validateCPF = (cpf: string): boolean => {
+  if (!cpf) return true; // CPF is optional
+  
+  const cleanCPF = cpf.replace(/\D/g, '');
+  
+  // Must have exactly 11 digits
+  if (cleanCPF.length !== 11) return false;
+  
+  // All same digits is invalid
+  if (/^(\d)\1{10}$/.test(cleanCPF)) return false;
+
+  
+  // Validate first check digit
+  let sum = 0;
+  for (let i = 0; i < 9; i++) {
+    sum += parseInt(cleanCPF[i]) * (10 - i);
+  }
+  let remainder = (sum * 10) % 11;
+  if (remainder === 10) remainder = 0;
+  if (remainder !== parseInt(cleanCPF[9])) return false;
+  
+  // Validate second check digit
+  sum = 0;
+  for (let i = 0; i < 10; i++) {
+    sum += parseInt(cleanCPF[i]) * (11 - i);
+  }
+  remainder = (sum * 10) % 11;
+  if (remainder === 10) remainder = 0;
+  if (remainder !== parseInt(cleanCPF[10])) return false;
+  
+  return true;
+};
+
+const formatCPF = (value: string): string => {
+  const clean = value.replace(/\D/g, '').slice(0, 11);
+  if (clean.length <= 3) return clean;
+  if (clean.length <= 6) return `${clean.slice(0, 3)}.${clean.slice(3)}`;
+  if (clean.length <= 9) return `${clean.slice(0, 3)}.${clean.slice(3, 6)}.${clean.slice(6)}`;
+  return `${clean.slice(0, 3)}.${clean.slice(3, 6)}.${clean.slice(6, 9)}-${clean.slice(9)}`;
+};
+
 export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: PatientFormProps) {
   const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [cpfError, setCpfError] = useState<string | null>(null);
+  
+  // ESC key closes the form
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isOpen, onClose]);
   
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
+    cpf: '',
     dateOfBirth: '',
     gender: 'Other',
     address: {
@@ -62,7 +119,7 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
     } else if (!isOpen && !initialData) {
       // Reset when closed for new creation
       setFormData({
-        name: '', email: '', phone: '', dateOfBirth: '', gender: 'Other',
+        name: '', email: '', phone: '', cpf: '', dateOfBirth: '', gender: 'Other',
         address: { country: '', zipCode: '', city: '', state: '', street: '', number: '', complement: '', neighborhood: '' },
         education: '', ethnicity: '', financialPlan: 'per_session', financialValue: '',
         anamnesis: { chiefComplaint: '', medicalHistory: '', psychiatricHistory: '', familyHistory: '', medications: '', 
@@ -73,6 +130,18 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    
+    // Validate CPF before submission
+    const cleanCPF = formData.cpf?.replace(/\D/g, '') || '';
+    if (cleanCPF.length > 0 && cleanCPF.length < 11) {
+      setCpfError(t('patients.cpf.error_length'));
+      return;
+    }
+    if (cleanCPF.length === 11 && !validateCPF(cleanCPF)) {
+      setCpfError(t('patients.cpf.error_invalid'));
+      return;
+    }
+    
     try {
       setIsSubmitting(true);
 
@@ -118,15 +187,52 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
               {/* Basic Info */}
               <div className="space-y-4">
                 <h3 className="text-sm font-bold text-text-muted uppercase tracking-wider border-b border-border-custom pb-2">{t('patients.basic_info')}</h3>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">{t('patients.full_name')} *</label>
-                  <input 
-                    required
-                    type="text" 
-                    className="input-field" 
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('patients.full_name')} *</label>
+                    <input 
+                      required
+                      type="text" 
+                      className="input-field" 
+                      value={formData.name}
+                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('patients.cpf.label', 'CPF')}</label>
+                    <input 
+                      type="text" 
+                      className={`input-field ${cpfError ? 'border-red-500 focus:ring-red-500' : ''}`} 
+                      value={formData.cpf}
+                      onChange={(e) => {
+                        const rawValue = e.target.value.replace(/\D/g, '').slice(0, 11);
+                        const formatted = formatCPF(rawValue);
+                        setFormData({...formData, cpf: formatted});
+                        // Show error if CPF is not empty but incomplete or invalid
+                        if (rawValue.length > 0 && rawValue.length < 11) {
+                          setCpfError(t('patients.cpf.error_length'));
+                        } else if (rawValue.length === 11 && !validateCPF(rawValue)) {
+                          setCpfError(t('patients.cpf.error_invalid'));
+                        } else {
+                          setCpfError(null);
+                        }
+                      }}
+                      onBlur={(e) => {
+                        const rawValue = e.target.value.replace(/\D/g, '').slice(0, 11);
+                        // Show error on blur if CPF is not empty but incomplete or invalid
+                        if (rawValue.length > 0 && rawValue.length < 11) {
+                          setCpfError(t('patients.cpf.error_length'));
+                        } else if (rawValue.length === 11 && !validateCPF(rawValue)) {
+                          setCpfError(t('patients.cpf.error_invalid'));
+                        }
+                      }}
+                      placeholder="000.000.000-00"
+                      maxLength={14}
+                    />
+                    {cpfError && (
+                      <p className="text-red-500 text-xs mt-1">{cpfError}</p>
+                    )}
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>

@@ -22,6 +22,16 @@ export function PatientInfoCard({ patient }: PatientInfoCardProps) {
         </p>
       </div>
 
+      {/* CPF */}
+      {patient.cpf && (
+        <div className="space-y-4 border-t border-border-custom pt-6">
+          <div className="property-group">
+            <p className="text-[11px] text-text-muted font-bold uppercase tracking-wider mb-1">{t('patients.cpf.label', 'CPF')}</p>
+            <p className="text-[14px] font-medium text-text-main">{patient.cpf}</p>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-4 border-t border-border-custom pt-6">
         <div className="property-group">
           <p className="text-[11px] text-text-muted font-bold uppercase tracking-wider mb-1">{t('patients.email')}</p>

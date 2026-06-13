@@ -33,6 +33,17 @@ export function SessionForm({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // ESC key triggers cancel
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onCancel();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onCancel]);
+
   useEffect(() => {
     if (initialData) {
       const sessionDate = initialData.date?.toDate ? initialData.date.toDate() : new Date(initialData.date);

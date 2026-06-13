@@ -41,6 +41,19 @@ export function NewSessionModal({ isOpen, onClose, userId, patients, preselected
     frequency: 'weekly' // weekly, fortnightly, monthly
   });
 
+  // ESC key closes the modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isOpen, onClose]);
+
   useEffect(() => {
     if (isOpen) {
       setPatientId(preselectedPatientId || '');

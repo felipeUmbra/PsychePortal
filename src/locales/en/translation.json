@@ -187,6 +187,11 @@
             },
             "session_value": "Session Value",
             "monthly_value": "Monthly Value"
+        },
+        "cpf": {
+            "label": "CPF",
+            "error_invalid": "Invalid CPF. Please check the number.",
+            "error_length": "CPF must have 11 digits."
         }
     },
     "patient_detail": {

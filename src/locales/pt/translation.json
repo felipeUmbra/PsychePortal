@@ -186,6 +186,11 @@
             },
             "session_value": "Valor da Sessão",
             "monthly_value": "Valor da Mensalidade"
+        },
+        "cpf": {
+            "label": "CPF",
+            "error_invalid": "CPF inválido. Verifique o número.",
+            "error_length": "CPF deve ter 11 dígitos."
         }
     },
     "patient_detail": {
