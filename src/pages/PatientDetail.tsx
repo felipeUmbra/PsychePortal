@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, FileText, Plus, Clock, Edit3, Trash2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -15,6 +15,7 @@ import { usePatient } from '../hooks/usePatients';
 import { useSessions } from '../hooks/useSessions';
 import { auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
+import { logView } from '../lib/audit';
 
 export default function PatientDetail() {
   const { id } = useParams();
@@ -65,7 +66,7 @@ export default function PatientDetail() {
     }
   };
 
-  const toggleSessionNotes = (sessionId: string) => {
+  const toggleSessionNotes = (sessionId: string) => {\n    if (user) {\n      logView(user.uid, 'session', sessionId);\n    }
     setExpandedSessions(prev =>
       prev.includes(sessionId) ? prev.filter(id => id !== sessionId) : [...prev, sessionId]
     );
@@ -79,7 +80,7 @@ export default function PatientDetail() {
     );
   }
 
-  if (!patient) return null;
+  if (!patient) return null;\n\n  // Log patient view\n  useEffect(() => {\n    if (user && patient) {\n      logView(user.uid, 'patient', patient.id);\n    }\n  }, [user, patient]);
 
   const upcomingSessions = sessions.filter(s => {
     const d = getSessionDate(s);
@@ -170,7 +171,7 @@ export default function PatientDetail() {
                         <p className="text-[14px] font-bold text-text-main">{formatSessionDate(session)}</p>
                         <p className="text-[11px] text-text-muted font-bold uppercase tracking-wider flex items-center gap-1.5">
                           <Clock className="w-3 h-3" />
-                          {t('dashboard.one_hour_session')} • {t(`session_status.${session.status}`)}
+                          {t('dashboard.one_hour_session')} â€¢ {t(`session_status.${session.status}`)}
                         </p>
                       </div>
                     </div>
@@ -215,7 +216,7 @@ export default function PatientDetail() {
                         initialData={session}
                         onSubmit={(data) => {
                           if (!session.id) {
-                            alert(t('common.error_invalid_session', 'ID de sessão inválido. Salve a sessão primeiro.'));
+                            alert(t('common.error_invalid_session', 'ID de sessÃ£o invÃ¡lido. Salve a sessÃ£o primeiro.'));
                             return Promise.reject();
                           }
                           return handleUpdateSessionSubmit(data, session.id);
@@ -226,7 +227,7 @@ export default function PatientDetail() {
                         }}
                         onUploadFile={(file) => {
                           if (!session.id) {
-                            alert(t('common.error_upload_no_id', 'Não é possível fazer upload: Sessão sem identificador.'));
+                            alert(t('common.error_upload_no_id', 'NÃ£o Ã© possÃ­vel fazer upload: SessÃ£o sem identificador.'));
                             return Promise.reject();
                           }
                           return uploadFile(file, session.id);
@@ -245,7 +246,7 @@ export default function PatientDetail() {
                             <p className="text-[14px] font-bold text-text-main">{formatSessionDate(session)}</p>
                             <p className="text-[11px] text-text-muted font-bold uppercase tracking-wider flex items-center gap-1.5">
                               <Clock className="w-3 h-3" />
-                              {t('dashboard.one_hour_session')} • {t(`patient_detail.types.${session.type || 'individual'}`)}
+                              {t('dashboard.one_hour_session')} â€¢ {t(`patient_detail.types.${session.type || 'individual'}`)}
                             </p>
                           </div>
                         </div>

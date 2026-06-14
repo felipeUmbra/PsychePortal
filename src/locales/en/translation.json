@@ -1,4 +1,4 @@
-{
+﻿{
     "common": {
         "save": "Save",
         "cancel": "Cancel",
@@ -371,6 +371,58 @@
         "footer_privacy": "Privacy Policy",
         "google_compliance_title": "Google API Limited Use Policy Compliance",
         "google_compliance_desc": "We strictly adhere to the Google API Services User Data Policy. All data requests are completed locally in your browser. We never sell, transmit, or share your data with any external service or third party.",
-        "footer_copyright": "© {{year}} Portal Psis. All rights reserved."
+        "footer_copyright": "Â© {{year}} Portal Psis. All rights reserved."
+    }
+,
+    "sidebar": {
+        "audit_log": "Audit Log"
+    },
+    "audit": {
+        "title": "Audit Trail",
+        "subtitle": "Tamper-evident log of all clinical record access and modifications.",
+        "filters": {
+            "entity": "Entity",
+            "action": "Action",
+            "date_from": "From",
+            "date_to": "To",
+            "search": "Search Entity ID",
+            "all_entities": "All Entities",
+            "all_actions": "All Actions"
+        },
+        "table": {
+            "timestamp": "Timestamp",
+            "action": "Action",
+            "entity": "Entity",
+            "entity_id": "Entity ID",
+            "before_hash": "Before Hash",
+            "after_hash": "After Hash",
+            "prev_hash": "Prev Hash"
+        },
+        "actions": {
+            "view": "View",
+            "create": "Create",
+            "update": "Update",
+            "delete": "Delete",
+            "export": "Export",
+            "login": "Login",
+            "logout": "Logout"
+        },
+        "entities": {
+            "session": "Session",
+            "patient": "Patient",
+            "attachment": "Attachment",
+            "psychologist": "Psychologist"
+        },
+        "integrity": {
+            "verified": "Chain Verified",
+            "broken": "Chain Broken",
+            "check": "Verify Integrity"
+        },
+        "no_records": "No audit records found.",
+        "pagination": {
+            "previous": "Previous",
+            "next": "Next",
+            "page": "Page {{current}}"
+        }
     }
 }

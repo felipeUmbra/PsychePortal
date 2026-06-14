@@ -1,4 +1,4 @@
-// Mock Firestore implementation using localStorage and generic events to simulate Firebase syncing locally
+﻿// Mock Firestore implementation using localStorage and generic events to simulate Firebase syncing locally
 import { v4 as uuidv4 } from 'uuid';
 
 const DRIVE_TOKEN_STORAGE_KEY = 'google_drive_token';
@@ -50,7 +50,8 @@ export const getFirestore = () => ({});
 let state: Record<string, any[]> = {
   patients: [],
   sessions: [],
-  psychologists: []
+  psychologists: [],
+  audit_logs: []
 };
 
 // Setup internal events for onSnapshot
@@ -164,8 +165,9 @@ export const loadFromDrive = async () => {
     state = {
       patients: [],
       sessions: [],
-      psychologists: []
-    };
+      psychologists: [],
+  audit_logs: []
+};
 
     try {
       const token = driveToken;
@@ -236,7 +238,8 @@ export const loadFromDrive = async () => {
           state = {
             patients: Array.isArray(data.patients) ? data.patients : [],
             sessions: Array.isArray(data.sessions) ? data.sessions : [],
-            psychologists: Array.isArray(data.psychologists) ? data.psychologists : []
+            psychologists: Array.isArray(data.psychologists) ? data.psychologists : [],
+            audit_logs: Array.isArray(data.audit_logs) ? data.audit_logs : []
           };
           console.log('State successfully loaded from Google Drive');
           notify();
@@ -283,8 +286,9 @@ export const forceSync = async () => {
   state = {
     patients: [],
     sessions: [],
-    psychologists: []
-  };
+    psychologists: [],
+  audit_logs: []
+};
   loadPromise = null; // Important: Clear the promise to allow a new fetch with fresh tokens
   return loadFromDrive();
 };

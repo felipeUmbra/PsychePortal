@@ -1,4 +1,4 @@
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+﻿import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import Layout from './components/Layout';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -16,7 +16,8 @@ const Calendar = lazy(() => import('./pages/Calendar'));
 const DailyCalendar = lazy(() => import('./pages/DailyCalendar'));
 const Sessions = lazy(() => import('./pages/Sessions'));
 const Finance = lazy(() => import('./pages/Finance'));
-const Settings = lazy(() => import('./pages/Settings'));
+const Settings = lazy(() => import("./pages/Settings"));
+const AuditLog = lazy(() => import("./pages/AuditLog"));
 
 // Loading fallback component
 function LoadingFallback() {
@@ -47,6 +48,7 @@ export default function App() {
                 <Route path="sessions" element={<Sessions />} />
                 <Route path="finance" element={<Finance />} />
                 <Route path="settings" element={<Settings />} />
+                <Route path="audit" element={<AuditLog />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

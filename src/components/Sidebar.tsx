@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+﻿import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
@@ -7,7 +7,8 @@ import {
   Settings,
   LogOut,
   Languages,
-  DollarSign
+  DollarSign,
+  Shield
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { auth } from '../firebase';
@@ -47,6 +48,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     { icon: History, label: t('sidebar.sessions'), path: '/app/sessions' },
     { icon: DollarSign, label: t('sidebar.finance'), path: '/app/finance' },
     { icon: Settings, label: t('sidebar.settings'), path: '/app/settings' },
+    { icon: Shield, label: t('sidebar.audit_log'), path: '/app/audit' },
   ];
 
   const handleLogout = async () => {
@@ -148,7 +150,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           className="flex items-center gap-3 px-3 py-2.5 w-full rounded-md text-text-muted hover:bg-bg text-[14px] transition-all duration-200 group"
         >
           <Languages className="w-4 h-4 group-hover:text-primary-custom" />
-          {i18n.language.startsWith('pt') ? 'English' : 'Português'}
+          {i18n.language.startsWith('pt') ? 'English' : 'PortuguÃªs'}
         </button>
         <button
           onClick={handleLogout}

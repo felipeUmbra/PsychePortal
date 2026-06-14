@@ -1,8 +1,9 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+﻿import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { setDriveToken as setDriveTokenMock } from '../lib/firestore-mock';
 import { encryptToken, decryptToken, clearEncryptionKey } from '../lib/token-crypto';
+import { logAuth } from '../lib/audit';
 import { setTokenExpiration, clearTokenExpiration } from '../lib/token-expiration';
 
 
@@ -60,7 +61,7 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
     clearTokenExpiration();
   }, []);
 
-  const setDriveToken = useCallback(async (newToken: string | null) => {
+  const setDriveToken = useCallback(async (newToken: string | null) => {\n    if (newToken && user) {\n      await logAuth(user.uid, 'login');\n    }
     setDriveTokenState(newToken);
     if (newToken) {
       const encrypted = await encryptToken(newToken);

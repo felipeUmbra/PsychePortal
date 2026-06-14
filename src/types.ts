@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -60,4 +60,24 @@ export interface Psychologist {
   specialization: string[];
   bio: string;
   avatarUrl?: string;
+}
+
+// Audit Trail Types
+export type AuditAction = 'view' | 'create' | 'update' | 'delete' | 'export' | 'login' | 'logout';
+export type AuditEntity = 'session' | 'patient' | 'attachment' | 'psychologist';
+
+export interface AuditLog {
+  id: string;
+  actorId: string;
+  action: AuditAction;
+  entity: AuditEntity;
+  entityId: string;
+  timestamp: string; // ISO 8601
+  ipHint?: string;
+  userAgent?: string;
+  beforeHash?: string; // SHA-256 of entity state before change
+  afterHash?: string;  // SHA-256 of entity state after change
+  sessionId?: string;  // For session-scoped operations
+  prevHash?: string;   // Merkle chain: hash of previous audit log
+  hash?: string;       // This record's hash (prevHash + payload)
 }
