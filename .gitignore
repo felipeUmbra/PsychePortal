@@ -8,3 +8,4 @@ coverage/
 !.env.example
 Claude.md
 e2e.md
+.clinerules
