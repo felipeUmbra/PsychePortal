@@ -58,8 +58,8 @@ export default function App() {
           </Suspense>
         </ErrorBoundary>
       </Router>
-    </GoogleAuthProvider>
       <EncryptionSetupModalWrapper />
+    </GoogleAuthProvider>
   );
 }
 
