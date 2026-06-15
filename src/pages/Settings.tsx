@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { doc, getDoc, updateDoc, setDoc, collection, query, where, getDocs, setDriveToken as setMockToken, forceSync } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -174,23 +175,23 @@ export default function Settings() {
           const createdAt = new Date(p.createdAt || Date.now()).getTime();
           return createdAt >= startDate && createdAt <= endDate;
         }).map(p => ({
-          [t('patients.full_name', 'Nome')]: p.name,
-          [t('patients.email', 'E-mail')]: p.email,
-          [t('patients.phone', 'Telefone')]: p.phone,
-          [t('patients.dob', 'Nascimento')]: p.dateOfBirth,
-          [t('patients.gender', 'GÃªnero')]: p.gender,
-          [t('common.date', 'Data de Cadastro')]: p.createdAt
+          [t('patients.full_name')]: p.name,
+          [t('patients.email')]: p.email,
+          [t('patients.phone')]: p.phone,
+          [t('patients.dob')]: p.dateOfBirth,
+          [t('patients.gender', 'Gênero')]: p.gender,
+          [t('common.date')]: p.createdAt
         }));
       } else if (exportOption === 'patient_info') {
         exportData = allPatients.map(p => ({
-          [t('patients.full_name', 'Nome')]: p.name,
-          [t('patients.email', 'E-mail')]: p.email,
-          [t('patients.phone', 'Telefone')]: p.phone,
-          [t('patients.dob', 'Nascimento')]: p.dateOfBirth,
-          [t('patients.gender', 'GÃªnero')]: p.gender,
-          [t('patients.address', 'EndereÃ§o')]: `${p.address?.street || ''}, ${p.address?.city || ''}`,
-          [t('patients.financial_plan', 'Plano Financeiro')]: p.financialPlan,
-          [t('patients.education', 'Escolaridade')]: p.education
+          [t('patients.full_name')]: p.name,
+          [t('patients.email')]: p.email,
+          [t('patients.phone')]: p.phone,
+          [t('patients.dob')]: p.dateOfBirth,
+          [t('patients.gender', 'Gênero')]: p.gender,
+          [t('patients.address', 'Endereço')]: `${p.address?.street || ''}, ${p.address?.city || ''}`,
+          [t('patients.financial_plan')]: p.financialPlan,
+          [t('patients.education')]: p.education
         }));
       } else if (exportOption === 'patient_info_sessions') {
         const qSessions = query(collection(db, 'sessions'), where('psychologistId', '==', user.uid));
@@ -208,9 +209,9 @@ export default function Settings() {
             const formattedDate = !isNaN(sDate.getTime()) ? format(sDate, 'yyyy-MM-dd HH:mm') : t('common.na');
             exportData.push({
               [t('patients.full_name', 'Paciente')]: p.name,
-              [t('patients.email', 'E-mail')]: p.email,
-              [t('common.date', 'Data da SessÃ£o')]: formattedDate,
-              [t('common.status', 'Status da SessÃ£o')]: t(`session_status.${s.status}`, s.status),
+              [t('patients.email')]: p.email,
+              [t('common.date', 'Data da Sessão')]: formattedDate,
+              [t('common.status', 'Status da Sessão')]: t(`session_status.${s.status}`, s.status),
               [t('sessions.type', 'Tipo')]: t(`session_types.${s.type}`, s.type),
               [t('sessions.payment_status', 'Status Financeiro')]: s.paymentStatus
             });
@@ -219,7 +220,7 @@ export default function Settings() {
       }
 
       if (exportData.length === 0) {
-        alert(t('settings.no_export_data', 'Nenhum dado encontrado para as opÃ§Ãµes selecionadas.'));
+        alert(t('settings.no_export_data', 'Nenhum dado encontrado para as opções selecionadas.'));
         setIsExporting(false);
         return;
       }
@@ -440,7 +441,7 @@ export default function Settings() {
             </div>
 
             <div>
-               <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.export_options', 'OpÃ§Ãµes de ExportaÃ§Ã£o')}</label>
+               <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.export_options', 'Opções de Exportação')}</label>
                <select 
                  className="input-field text-[14px]"
                  value={exportOption}
@@ -474,15 +475,15 @@ export default function Settings() {
             <div>
               <h3 className="font-bold text-text-main text-[14px]">{t('audit.subtitle')}</h3>
               <p className="text-text-muted text-[13px] mt-1">
-                {t('audit.integrity.description', 'View the tamper-evident audit trail for all clinical record access and modifications.')}
+                {t('audit.integrity_description')}
               </p>
             </div>
-            <a
-              href="/app/audit"
+            <Link
+              to="/app/audit"
               className="btn-secondary text-[12px] h-9 inline-flex items-center gap-2"
             >
               {t('audit.title')}
-            </a>
+            </Link>
           </div>
         </section>
 
@@ -524,3 +525,18 @@ export default function Settings() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

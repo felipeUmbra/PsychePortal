@@ -27,7 +27,8 @@
         "hour": "hora",
         "hours": "horas",
         "confirm_delete_patient": "Tem certeza que deseja excluir \"{{patientName}}\"?",
-        "uploading": "Enviando..."
+        "uploading": "Enviando...",
+        "back": "Voltar"
     },
     "login": {
         "title": "Seu espaço profissional para gestão em psicologia clínica.",
@@ -363,7 +364,10 @@
         "google_calendar_desc": "Mantenha seus horários organizados automaticamente. Qualquer consulta criada ou alterada no portal atualiza sua agenda do Google em tempo real, evitando conflitos.",
         "security_badge": "Sincronização Direta e Segura",
         "footer_terms": "Termos de Serviço",
-        "footer_privacy": "Política de Privacidade"
+        "footer_privacy": "Política de Privacidade",
+        "google_compliance_title": "Seguro e Conforme",
+        "google_compliance_desc": "Seus dados estao protegidos com seguranca e padroes de conformidade de nivel empresarial.",
+        "footer_copyright": "© {{year}} Portal Psis. Todos os direitos reservados."
     },
     "audit": {
         "title": "Rastro de Auditoria",
