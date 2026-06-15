@@ -55,7 +55,8 @@
         "add_patients": "Adicionar Pacientes",
         "show_patients": "Ver Pacientes",
         "entire_calendar": "Calendário Completo",
-        "sessions_by_day": "Sessões por Dia"
+        "sessions_by_day": "Sessões por Dia",
+        "audit_log": "Log de Auditoria"
     },
     "layout": {
         "workspace": "Espaço de Trabalho",
