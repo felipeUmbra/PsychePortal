@@ -11,6 +11,9 @@ import {
   CheckCircle2,
   CalendarDays,
   Loader2
+  Lock,
+  Shield,
+  AlertTriangle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
@@ -230,7 +233,12 @@ export default function Settings() {
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);\n\n      // Log export audit event\n      const entity = exportOption.includes('session') ? 'session' : 'patient';\n      const entityIds = exportOption.includes('session') ? allPatients.flatMap(p => p.sessions?.map((s: any) => s.id) || []) : allPatients.map(p => p.id);\n      await logExport(user.uid, entity, entityIds, exportOption);
+      document.body.removeChild(link);
+
+      // Log export audit event
+      const entity = exportOption.includes('session') ? 'session' : 'patient';
+      const entityIds = exportOption.includes('session') ? allPatients.flatMap(p => p.sessions?.map((s: any) => s.id) || []) : allPatients.map(p => p.id);
+      await logExport(user.uid, entity, entityIds, exportOption);
 
     } catch (error) {
       console.error('Export failed', error);

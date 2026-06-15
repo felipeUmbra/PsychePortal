@@ -7,6 +7,8 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { handleFirestoreError, OperationType } from '../lib/error-handler';
 import { Session } from '../types';
 import { useGoogleAuth } from '../context/GoogleAuthContext';
+import { useEncryption } from './useEncryption';
+import { useEncryption } from './useEncryption';
 
 export function useSessions(patientId?: string) {
   const [user] = useAuthState(auth);
@@ -14,6 +16,7 @@ export function useSessions(patientId?: string) {
   const [loading, setLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const { driveToken, calendarToken } = useGoogleAuth();
+  const { isUnlocked, encrypt, decrypt } = useEncryption();
   const { t } = useTranslation();
 
   // Sync context token with mock module variable
@@ -37,7 +40,22 @@ export function useSessions(patientId?: string) {
     );
 
     const unsubscribe = onSnapshot(q, (snapshot: any) => {
-      setSessions(snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as Session)));
+      const loaded = snapshot.docs.map((doc: any) => {
+        const s: Session = { id: doc.id, ...doc.data() };
+        if (isUnlocked && s.notes) {
+          try {
+            const payload = JSON.parse(s.notes);
+            if (payload.version && payload.ciphertext) {
+              decrypt(payload).then((pt) => {
+                setSessions((prev) => prev.map((x) => (x.id === s.id ? { ...x, notes: pt } : x)));
+              }).catch(() => {});
+              s.notes = '';
+            }
+          } catch { /* legacy plaintext */ }
+        }
+        return s;
+      });
+      setSessions(loaded);
       setLoading(false);
     }, (error: any) => {
       handleFirestoreError(error, OperationType.LIST, 'sessions');
@@ -50,8 +68,13 @@ export function useSessions(patientId?: string) {
   const addSession = async (sessionData: Omit<Session, 'id' | 'psychologistId' | 'patientId' | 'createdAt'>) => {
     if (!user || !patientId) throw new Error('Unauthenticated or missing patient ID');
     try {
+      const dataToWrite = { ...sessionData };
+      if (isUnlocked && dataToWrite.notes) {
+        const enc = await encrypt(dataToWrite.notes);
+        dataToWrite.notes = JSON.stringify(enc);
+      }
       const docRef = await addDoc(collection(db, 'sessions'), {
-        ...sessionData,
+        ...dataToWrite,
         patientId,
         psychologistId: user.uid,
         createdAt: new Date().toISOString()
@@ -69,7 +92,12 @@ export function useSessions(patientId?: string) {
       const session = sessions.find(s => s.id === sessionId);
       const googleEventId = updates.googleEventId || session?.googleEventId;
 
-      await updateDoc(doc(db, 'sessions', sessionId), updates);
+      const updatesToWrite = { ...updates };
+      if (isUnlocked && updatesToWrite.notes) {
+        const enc = await encrypt(updatesToWrite.notes);
+        updatesToWrite.notes = JSON.stringify(enc);
+      }
+      await updateDoc(doc(db, 'sessions', sessionId), updatesToWrite);
 
       // Sincronização com Google Calendar se a data mudou e existe um evento vinculado
       if (googleEventId && updates.date && calendarToken) {

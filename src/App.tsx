@@ -7,6 +7,9 @@ import Login from './pages/Login';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 import { GoogleAuthProvider } from './context/GoogleAuthContext';
+import { useState } from 'react';
+import { useEncryption } from './hooks/useEncryption';
+import { EncryptionSetupModal } from './components/EncryptionSetupModal';
 
 // Lazy load all page components for code splitting
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -56,5 +59,28 @@ export default function App() {
         </ErrorBoundary>
       </Router>
     </GoogleAuthProvider>
+      <EncryptionSetupModalWrapper />
   );
+}
+
+function EncryptionSetupModalWrapper() {
+  const { needsSetup, setup } = useEncryption();
+  const [dismissed, setDismissed] = useState(false);
+  const [showSetup, setShowSetup] = useState(false);
+
+  if (needsSetup && !dismissed) {
+    return (
+      <EncryptionSetupModal
+        isOpen={true}
+        onClose={() => setDismissed(true)}
+        onComplete={async (passphrase) => {
+          await setup(passphrase);
+          setShowSetup(false);
+        }}
+        onSkip={() => setDismissed(true)}
+      />
+    );
+  }
+
+  return null;
 }

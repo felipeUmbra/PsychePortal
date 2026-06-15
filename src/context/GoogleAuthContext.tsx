@@ -61,7 +61,10 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
     clearTokenExpiration();
   }, []);
 
-  const setDriveToken = useCallback(async (newToken: string | null) => {\n    if (newToken && user) {\n      await logAuth(user.uid, 'login');\n    }
+  const setDriveToken = useCallback(async (newToken: string | null) => {
+    if (newToken && user) {
+      await logAuth(user.uid, 'login');
+    }
     setDriveTokenState(newToken);
     if (newToken) {
       const encrypted = await encryptToken(newToken);

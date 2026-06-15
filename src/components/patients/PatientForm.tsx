@@ -1,7 +1,9 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
+import { Lock } from 'lucide-react';
 import { Patient } from '../../types';
+import { useEncryption } from '../../hooks/useEncryption';
 
 interface PatientFormProps {
   isOpen: boolean;
@@ -71,6 +73,7 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
     }
   }, [isOpen, onClose]);
   
+  const { isUnlocked } = useEncryption();
   const [formData, setFormData] = useState({
     name: '',
     email: '',

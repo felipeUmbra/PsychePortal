@@ -66,7 +66,10 @@ export default function PatientDetail() {
     }
   };
 
-  const toggleSessionNotes = (sessionId: string) => {\n    if (user) {\n      logView(user.uid, 'session', sessionId);\n    }
+  const toggleSessionNotes = (sessionId: string) => {
+    if (user) {
+      logView(user.uid, 'session', sessionId);
+    }
     setExpandedSessions(prev =>
       prev.includes(sessionId) ? prev.filter(id => id !== sessionId) : [...prev, sessionId]
     );
@@ -80,7 +83,14 @@ export default function PatientDetail() {
     );
   }
 
-  if (!patient) return null;\n\n  // Log patient view\n  useEffect(() => {\n    if (user && patient) {\n      logView(user.uid, 'patient', patient.id);\n    }\n  }, [user, patient]);
+  if (!patient) return null;
+
+  // Log patient view
+  useEffect(() => {
+    if (user && patient) {
+      logView(user.uid, 'patient', patient.id);
+    }
+  }, [user, patient]);
 
   const upcomingSessions = sessions.filter(s => {
     const d = getSessionDate(s);

@@ -1,8 +1,9 @@
 import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useEncryption } from '../../hooks/useEncryption';
 import { motion } from 'motion/react';
 import RichTextEditor from '../RichTextEditor';
-import { Paperclip, X, Loader2 } from 'lucide-react';
+import { Paperclip, X, Loader2, Lock } from 'lucide-react';
 
 interface SessionFormProps {
   initialData?: any;
@@ -24,6 +25,7 @@ export function SessionForm({
   submitLabel
 }: SessionFormProps) {
   const { t } = useTranslation();
+  const { isUnlocked } = useEncryption();
   const [formData, setFormData] = useState({
     date: '',
     notes: '',
@@ -139,6 +141,7 @@ export function SessionForm({
         <div>
           <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">
             {t('patient_detail.observations')}
+            {isUnlocked && <Lock className="w-3 h-3 inline ml-1 text-success-custom" />}
           </label>
           <RichTextEditor
             value={formData.notes}
