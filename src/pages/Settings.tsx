@@ -3,11 +3,11 @@ import { Link } from "react-router-dom";
 import { doc, getDoc, updateDoc, setDoc, collection, query, where, getDocs, setDriveToken as setMockToken, forceSync } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { 
-  User, 
-  Mail, 
-  Award, 
-  BookOpen, 
+import {
+  User,
+  Mail,
+  Award,
+  BookOpen,
   Save,
   CheckCircle2,
   CalendarDays,
@@ -32,15 +32,15 @@ export default function Settings() {
   const [profile, setProfile] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  
+
   const [exportStartDate, setExportStartDate] = useState('');
   const [exportEndDate, setExportEndDate] = useState('');
   const [exportOption, setExportOption] = useState('all_patients_period');
   const [isExporting, setIsExporting] = useState(false);
-  
+
   const [isConnectingCalendar, setIsConnectingCalendar] = useState(false);
   const [isReauthorizingDrive, setIsReauthorizingDrive] = useState(false);
-  
+
   const googleCalendarToken = calendarToken;
 
   const handleConnectCalendar = async () => {
@@ -75,7 +75,7 @@ export default function Settings() {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'consent' });
       googleScopes.forEach(scope => provider.addScope(scope));
-      
+
       const result = await signInWithPopup(auth, provider);
       const credential = GoogleAuthProvider.credentialFromResult(result);
       if (credential?.accessToken) {
@@ -200,9 +200,9 @@ export default function Settings() {
 
         allPatients.forEach(p => {
           const patientSessions = allSessions.filter(s => {
-             const sDateObj = s.date?.toDate ? s.date.toDate() : new Date(s.date);
-             const sTime = sDateObj.getTime();
-             return s.patientId === p.id && sTime >= startDate && sTime <= endDate;
+            const sDateObj = s.date?.toDate ? s.date.toDate() : new Date(s.date);
+            const sTime = sDateObj.getTime();
+            return s.patientId === p.id && sTime >= startDate && sTime <= endDate;
           });
           patientSessions.forEach(s => {
             const sDate = s.date?.toDate ? s.date.toDate() : new Date(s.date);
@@ -276,26 +276,26 @@ export default function Settings() {
             <User className="w-5 h-5 text-primary-custom" />
             {t('settings.profile_section')}
           </h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-6">
               <div>
                 <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.full_name')}</label>
-                <input 
-                  type="text" 
-                  className="input-field text-[14px]" 
+                <input
+                  type="text"
+                  className="input-field text-[14px]"
                   value={profile.name}
-                  onChange={(e) => setProfile({...profile, name: e.target.value})}
+                  onChange={(e) => setProfile({ ...profile, name: e.target.value })}
                 />
               </div>
               <div>
                 <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.email')}</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted w-4 h-4" />
-                  <input 
+                  <input
                     disabled
-                    type="email" 
-                    className="input-field pl-10 bg-bg cursor-not-allowed text-[14px]" 
+                    type="email"
+                    className="input-field pl-10 bg-bg cursor-not-allowed text-[14px]"
                     value={profile.email}
                   />
                 </div>
@@ -321,28 +321,28 @@ export default function Settings() {
             <Award className="w-5 h-5 text-primary-custom" />
             {t('settings.expertise_section')}
           </h2>
-          
+
           <div className="space-y-6">
             <div>
               <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.specializations')}</label>
               <div className="relative">
                 <BookOpen className="absolute left-3 top-3 text-text-muted w-4 h-4" />
-                <textarea 
-                  className="input-field pl-10 h-24 resize-none text-[14px] leading-relaxed" 
+                <textarea
+                  className="input-field pl-10 h-24 resize-none text-[14px] leading-relaxed"
                   placeholder={t('settings.specializations_placeholder')}
                   value={Array.isArray(profile.specialization) ? profile.specialization.join(', ') : ''}
-                  onChange={(e) => setProfile({...profile, specialization: e.target.value.split(',').map(s => s.trim())})}
+                  onChange={(e) => setProfile({ ...profile, specialization: e.target.value.split(',').map(s => s.trim()) })}
                 />
               </div>
             </div>
 
             <div>
               <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.bio')}</label>
-              <textarea 
-                className="input-field h-40 resize-none text-[14px] leading-relaxed" 
+              <textarea
+                className="input-field h-40 resize-none text-[14px] leading-relaxed"
                 placeholder={t('settings.bio_placeholder')}
                 value={profile.bio}
-                onChange={(e) => setProfile({...profile, bio: e.target.value})}
+                onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
               />
             </div>
           </div>
@@ -353,10 +353,10 @@ export default function Settings() {
             <CalendarDays className="w-5 h-5 text-primary-custom" />
             {t('settings.integrations')}
           </h2>
-          
+
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-surface border border-border-custom rounded-xl gap-4">
             <div>
-              <h3 className="font-bold text-text-main text-[14px]">Google Calendar</h3>
+              <h3 className="font-bold text-text-main text-[14px]">{t('settings.google_calendar')}</h3>
               <p className="text-text-muted text-[13px] mt-1">
                 {t('settings.calendar_sync_desc')}
               </p>
@@ -368,7 +368,7 @@ export default function Settings() {
                   {t('settings.connected')}
                 </span>
               ) : (
-                <button 
+                <button
                   type="button"
                   onClick={handleConnectCalendar}
                   disabled={isConnectingCalendar}
@@ -379,7 +379,7 @@ export default function Settings() {
               )}
             </div>
           </div>
-          
+
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-surface border border-border-custom rounded-xl mt-4 gap-4">
             <div>
               <h3 className="font-bold text-text-main text-[14px]">{t('settings.drive_title')}</h3>
@@ -388,25 +388,25 @@ export default function Settings() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
-               <button 
-                  type="button"
-                  onClick={async () => {
-                    setProfile(null);
+              <button
+                type="button"
+                onClick={async () => {
+                  setProfile(null);
                   await forceSync();
                   await fetchProfile();
-                  }}
-                  className="btn-secondary text-[12px] h-9"
-               >
-                 {t('settings.force_reload')}
-               </button>
-                <button 
-                  type="button"
-                  onClick={handleReauthorizeDrive}
-                  disabled={isReauthorizingDrive}
-                  className="btn-primary text-[12px] h-9 min-w-[120px] flex items-center justify-center"
-                >
-                  {isReauthorizingDrive ? <Loader2 className="w-4 h-4 animate-spin" /> : t('settings.reauthorize_drive')}
-                </button>
+                }}
+                className="btn-secondary text-[12px] h-9"
+              >
+                {t('settings.force_reload')}
+              </button>
+              <button
+                type="button"
+                onClick={handleReauthorizeDrive}
+                disabled={isReauthorizingDrive}
+                className="btn-primary text-[12px] h-9 min-w-[120px] flex items-center justify-center"
+              >
+                {isReauthorizingDrive ? <Loader2 className="w-4 h-4 animate-spin" /> : t('settings.reauthorize_drive')}
+              </button>
             </div>
 
           </div>
@@ -422,7 +422,7 @@ export default function Settings() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.start_date')}</label>
-                <input 
+                <input
                   type="date"
                   className="input-field text-[14px]"
                   value={exportStartDate}
@@ -431,7 +431,7 @@ export default function Settings() {
               </div>
               <div>
                 <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.end_date')}</label>
-                <input 
+                <input
                   type="date"
                   className="input-field text-[14px]"
                   value={exportEndDate}
@@ -441,59 +441,60 @@ export default function Settings() {
             </div>
 
             <div>
-               <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.export_options', 'Opções de Exportação')}</label>
-               <select 
-                 className="input-field text-[14px]"
-                 value={exportOption}
-                 onChange={(e) => setExportOption(e.target.value)}
-               >
-                 <option value="all_patients_period">{t('settings.export_all_patients_period')}</option>
-                 <option value="patient_info">{t('settings.export_patient_info')}</option>
-                 <option value="patient_info_sessions">{t('settings.export_patient_info_session')}</option>
-               </select>
+              <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.export_options', 'Opções de Exportação')}</label>
+              <select
+                className="input-field text-[14px]"
+                value={exportOption}
+                onChange={(e) => setExportOption(e.target.value)}
+              >
+                <option value="all_patients_period">{t('settings.export_all_patients_period')}</option>
+                <option value="patient_info">{t('settings.export_patient_info')}</option>
+                <option value="patient_info_sessions">{t('settings.export_patient_info_session')}</option>
+              </select>
             </div>
 
             <div className="flex justify-end pt-2">
-               <button 
-                 type="button" 
-                 onClick={handleExportData}
-                 disabled={isExporting}
-                 className="btn-secondary flex items-center gap-2 text-[14px]"
-               >
-                 {isExporting ? <div className="w-4 h-4 border-2 border-primary-custom/30 border-t-primary-custom rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
-                 {t('settings.export_button', 'Export CSV')}
-               </button>
+              <button
+                type="button"
+                onClick={handleExportData}
+                disabled={isExporting}
+                className="btn-secondary flex items-center gap-2 text-[14px]"
+              >
+                {isExporting ? <div className="w-4 h-4 border-2 border-primary-custom/30 border-t-primary-custom rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
+                {t('settings.export_button', 'Export CSV')}
+              </button>
             </div>
           </div>
-                <section className="card">
-          <h2 className="text-[16px] font-bold text-text-main mb-8 flex items-center gap-2 border-b border-border-custom pb-4">
-            <Shield className="w-5 h-5 text-primary-custom" />
-            {t('audit.title')}
-          </h2>
-
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-surface border border-border-custom rounded-xl gap-4">
-            <div>
-              <h3 className="font-bold text-text-main text-[14px]">{t('audit.subtitle')}</h3>
-              <p className="text-text-muted text-[13px] mt-1">
-                {t('audit.integrity_description')}
-              </p>
-            </div>
-            <Link
-              to="/app/audit"
-              className="btn-secondary text-[12px] h-9 inline-flex items-center gap-2"
-            >
+          <br />
+          <section className="card">
+            <h2 className="text-[16px] font-bold text-text-main mb-8 flex items-center gap-2 border-b border-border-custom pb-4">
+              <Shield className="w-5 h-5 text-primary-custom" />
               {t('audit.title')}
-            </Link>
-          </div>
-        </section>
+            </h2>
 
-</section>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-surface border border-border-custom rounded-xl gap-4">
+              <div>
+                <h3 className="font-bold text-text-main text-[14px]">{t('audit.subtitle')}</h3>
+                <p className="text-text-muted text-[13px] mt-1">
+                  {t('audit.integrity_description')}
+                </p>
+              </div>
+              <Link
+                to="/app/audit"
+                className="btn-secondary text-[12px] h-9 inline-flex items-center gap-2"
+              >
+                {t('audit.title')}
+              </Link>
+            </div>
+          </section>
+
+        </section>
 
         <div className="flex items-center justify-between pt-4">
           <div className="flex items-center gap-2">
             <AnimatePresence>
               {showSuccess && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0 }}
@@ -505,9 +506,9 @@ export default function Settings() {
               )}
             </AnimatePresence>
           </div>
-          
-          <button 
-            type="submit" 
+
+          <button
+            type="submit"
             disabled={isSaving}
             className="btn-primary flex items-center gap-2 min-w-[160px] justify-center text-[14px]"
           >

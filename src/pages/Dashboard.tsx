@@ -1,7 +1,7 @@
-import { 
-  Users, 
-  Calendar as CalendarIcon, 
-  Clock, 
+import {
+  Users,
+  Calendar as CalendarIcon,
+  Clock,
   TrendingUp,
   ChevronRight,
   Plus,
@@ -21,19 +21,19 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 export default function Dashboard() {
   const [user] = useAuthState(auth);
   const { t, i18n } = useTranslation();
-  
+
   const { stats, todaySessions, recentSessions, loading: dashboardLoading } = useDashboard();
   const { patients, loading: patientsLoading } = usePatients();
 
   const loading = dashboardLoading || patientsLoading;
-  
+
   const patientMap = Object.fromEntries(patients.map(p => [p.id, p]));
 
   const statCards = [
-    { label: t('dashboard.total_patients'), value: stats.patients, icon: Users, color: 'bg-primary-custom', link: '/app/patients' },
-    { label: t('dashboard.total_sessions'), value: stats.sessions, icon: History, color: 'bg-primary-custom', link: '/app/sessions' },
-    { label: t('dashboard.upcoming_appts'), value: stats.scheduled, icon: CalendarIcon, color: 'bg-success-custom', link: '/app/calendar/daily' },
-    { label: t('dashboard.growth'), value: stats.growth, icon: TrendingUp, color: 'bg-amber-500', link: '/app/finance' },
+    { id: 'total_patients', label: t('dashboard.total_patients'), value: stats.patients, icon: Users, color: 'bg-primary-custom', link: '/app/patients' },
+    { id: 'total_sessions', label: t('dashboard.total_sessions'), value: stats.sessions, icon: History, color: 'bg-primary-custom', link: '/app/sessions' },
+    { id: 'upcoming_appts', label: t('dashboard.upcoming_appts'), value: stats.scheduled, icon: CalendarIcon, color: 'bg-success-custom', link: '/app/calendar/daily' },
+    { id: 'growth', label: t('dashboard.growth'), value: stats.growth, icon: TrendingUp, color: 'bg-amber-500', link: '/app/finance' },
   ];
 
   const dateLocale = i18n.language.startsWith('pt') ? ptBR : enUS;
@@ -67,7 +67,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((stat, i) => (
-          <Link key={stat.label} to={stat.link} className="block h-full" aria-label={`${t('common.view', 'View')} ${stat.label}`}>
+          <Link key={stat.id} to={stat.link} className="block h-full" aria-label={`${t('common.view', 'View')} ${stat.label}`}>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -93,7 +93,7 @@ export default function Dashboard() {
               <h2 className="text-[16px] font-bold text-text-main">{t('dashboard.today_schedule')}</h2>
               <span className="text-[12px] font-semibold text-text-muted uppercase tracking-wider">{format(new Date(), i18n.language.startsWith('pt') ? "EEEE, d 'de' MMMM" : 'EEEE, MMMM do', { locale: dateLocale })}</span>
             </div>
-            
+
             <div className="space-y-4">
               {todaySessions.filter(s => s.status !== 'cancelled').length > 0 ? (
                 todaySessions.filter(s => s.status !== 'cancelled').map((session) => {
