@@ -35,6 +35,12 @@ export default function PatientDetail() {
   const [expandedSessions, setExpandedSessions] = useState<string[]>([]);
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+// Log patient view
+  useEffect(() => {
+    if (user && patient) {
+      logView(user.uid, 'patient', patient.id);
+    }
+  }, [user, patient]);
 
   const getSessionDate = (s: any) => s?.date ? ((s.date as any).toDate ? (s.date as any).toDate() : new Date(s.date)) : new Date(NaN);
 
@@ -85,13 +91,7 @@ export default function PatientDetail() {
 
   if (!patient) return null;
 
-  // Log patient view
-  useEffect(() => {
-    if (user && patient) {
-      logView(user.uid, 'patient', patient.id);
-    }
-  }, [user, patient]);
-
+  
   const upcomingSessions = sessions.filter(s => {
     const d = getSessionDate(s);
     return s.status === 'scheduled' && !isNaN(d.getTime()) && !isPast(d);
