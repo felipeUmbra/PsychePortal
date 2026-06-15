@@ -464,7 +464,29 @@ export default function Settings() {
                </button>
             </div>
           </div>
+                <section className="card">
+          <h2 className="text-[16px] font-bold text-text-main mb-8 flex items-center gap-2 border-b border-border-custom pb-4">
+            <Shield className="w-5 h-5 text-primary-custom" />
+            {t('audit.title')}
+          </h2>
+
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-surface border border-border-custom rounded-xl gap-4">
+            <div>
+              <h3 className="font-bold text-text-main text-[14px]">{t('audit.subtitle')}</h3>
+              <p className="text-text-muted text-[13px] mt-1">
+                {t('audit.integrity.description', 'View the tamper-evident audit trail for all clinical record access and modifications.')}
+              </p>
+            </div>
+            <a
+              href="/app/audit"
+              className="btn-secondary text-[12px] h-9 inline-flex items-center gap-2"
+            >
+              {t('audit.title')}
+            </a>
+          </div>
         </section>
+
+</section>
 
         <div className="flex items-center justify-between pt-4">
           <div className="flex items-center gap-2">
