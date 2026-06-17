@@ -29,7 +29,9 @@
         "hours": "hours",
         "na": "N/A",
         "uploading": "Uploading...",
-        "back": "Back"
+        "back": "Back",
+        "all": "All",
+        "options": "Options"
     },
     "login": {
         "title": "Your professional workspace for clinical psychology management.",
@@ -166,15 +168,32 @@
         "add_new": "Add Patient",
         "full_name": "Full Name",
         "email": "Email",
-        "phone": "Phone"
+        "phone": "Phone",
+        "subtitle": "Manage and view your patient records.",
+        "search_placeholder": "Search patients by name or email...",
+        "filters": "Filters",
+        "financial": {
+            "title": "Financial Plan",
+            "plans": {
+                "per_session": "Per Session",
+                "monthly": "Monthly",
+                "health_insurance": "Health Insurance",
+                "exempt": "Exempt"
+            }
+        },
+        "patient_since": "Patient since {{date}}",
+        "dob": "Date of Birth",
+        "view_profile": "View Profile",
+        "edit_profile": "Edit Patient",
+        "add_modal_title": "Add New Patient"
     },
     "patient_detail": {
-        "id": "ID do Paciente",
-        "edit_profile": "Editar Perfil",
-        "log_session": "Registrar Sessão",
-        "no_sessions": "Nenhuma sessão registrada ainda.",
-        "session_history": "Histórico de Sessões",
-        "log_new_title": "Registrar Nova Sessão de Terapia",
+        "id": "Patient ID",
+        "edit_profile": "Edit Profile",
+        "log_session": "Log Session",
+        "no_sessions": "No sessions recorded yet.",
+        "session_history": "Session History",
+        "log_new_title": "Log New Therapy Session",
         "session_type": "Tipo de Sessão",
         "observations": "Observações Clínicas e Notas",
         "observations_placeholder": "Documente observações clínicas, intervenções e resposta do paciente...",
@@ -182,10 +201,10 @@
         "no_records": "Nenhum registro de sessão",
         "no_records_hint": "Registre sua primeira sessão com {{name}} para acompanhar o progresso.",
         "types": {
-            "individual": "Terapia Individual",
-            "group": "Sessão em Grupo",
-            "family": "Terapia Familiar",
-            "couple": "Aconselhamento de Casal"
+            "individual": "Individual Therapy",
+            "group": "Group Session",
+            "family": "Family Therapy",
+            "couple": "Couple Counseling"
         },
         "markdown_supported": "Suporta formatação Markdown",
         "status": "Status",
@@ -279,7 +298,12 @@
         "reauthorize_drive": "Re-authorize Drive",
         "reauth_success": "Drive re-authorization completed!",
         "reauth_error": "Failed to re-authorize Drive.",
-        "calendar_error": "Failed to connect to Google Calendar."
+        "calendar_error": "Failed to connect to Google Calendar.",
+        "consent_config_section": "Consent Configuration",
+        "consent_text_label": "Default Consent Text",
+        "consent_text_placeholder": "Enter the consent text that patients will see...",
+        "consent_version_label": "Consent Version",
+        "consent_config_hint": "This text will be presented to patients before their first session record is saved."
     },
     "terms_page": {
         "title": "Termos de Serviço",
@@ -309,7 +333,12 @@
         "data_sharing_title": "3. Compartilhamento de Dados e Divulgação a Terceiros",
         "data_sharing_text": "Como não armazenamos seus dados em nossos servidores, não temos dados para compartilhar, vender ou divulgar. Toda a comunicação com as APIs do Google ocorre diretamente do seu navegador para os servidores do Google. Nenhum terceiro tem acesso às suas informações de prontuários ou agenda.",
         "limited_use_title": "4. Conformidade com a Política de Uso Limitado da API do Google",
-        "limited_use_text": "O uso e a transferência de informações recebidas de APIs do Google pelo Portal Psis para qualquer outro aplicativo estarão em conformidade com a Política de Dados do Usuário dos Serviços de API do Google, incluindo os requisitos de Uso Limitado."
+        "limited_use_text": "O uso e a transferência de informações recebidas de APIs do Google pelo Portal Psis para qualquer outro aplicativo estarão em conformidade com a Política de Dados do Usuário dos Serviços de API do Google, incluindo os requisitos de Uso Limitado.",
+        "consent_title": "5. Consent Management",
+        "consent_text": "Before any clinical session record is stored, the patient must provide informed consent through an electronic signature. This signature, along with a timestamp and the signed consent text, is stored immutably. Patients may revoke their consent at any time from their patient profile. Upon revocation, an audit trail entry is created and the psychologist is notified. No new session records can be created for a patient without an active consent.",
+        "dpo_title": "6. Data Controller Contact (DPO)",
+        "dpo_text": "The Data Protection Officer (DPO) for this deployment is: [To be filled in by the deploying psychologist]. For privacy inquiries, contact: [dpo@example.com — placeholder].",
+        "encryption_details": "Encryption & Security: All clinical notes are encrypted using AES-256-GCM before storage. Data in transit is protected by TLS 1.3. Consent records are stored in a tamper-evident audit chain. Session data is retained for the duration of the therapeutic relationship and deleted upon patient request or after the retention period defined by applicable regulations."
     },
     "encryption": {
         "enabled": "Criptografia Ativada",
@@ -344,5 +373,28 @@
         "common.back": "Voltar",
         "common.loading": "Carregando...",
         "common.cancel": "Cancelar"
+    },
+    "consent": {
+        "title": "Informed Consent",
+        "subtitle": "Electronic consent for clinical data handling",
+        "text_label": "Consent Text",
+        "version_label": "Version",
+        "signature_label": "Full Name",
+        "signature_placeholder": "Type your full name to sign",
+        "accept_title": "Accept Consent",
+        "accept_button": "I Accept",
+        "accept_error": "Failed to record consent.",
+        "revoke_button": "Revoke Consent",
+        "revoke_section": "Revoke Consent",
+        "revoke_warning": "Revoking consent will prevent any new session records from being saved. Existing records will be preserved.",
+        "revoke_error": "Failed to revoke consent.",
+        "revoke_confirm_title": "Revoke Consent?",
+        "revoke_confirm_message": "Revoking consent will prevent any new session records from being saved. This action cannot be undone.",
+        "active_title": "Consent Active",
+        "inactive_title": "No Active Consent",
+        "accepted_on": "Accepted on",
+        "revoked_on": "Revoked on",
+        "no_consent": "No consent on file. Session records cannot be saved until consent is accepted.",
+        "required_before_session": "Active consent is required before saving a session record. Please have the patient accept the consent form first."
     }
 }

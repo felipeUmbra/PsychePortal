@@ -28,7 +28,9 @@
         "hours": "horas",
         "confirm_delete_patient": "Tem certeza que deseja excluir \"{{patientName}}\"?",
         "uploading": "Enviando...",
-        "back": "Voltar"
+        "back": "Voltar",
+        "all": "Todos",
+        "options": "Opções"
     },
     "login": {
         "title": "Seu espaço profissional para gestão em psicologia clínica.",
@@ -179,16 +181,14 @@
         },
         "financial": {
             "title": "Plano Financeiro",
-            "plan": "Plano financeiro",
             "plans": {
                 "per_session": "Por Sessão",
                 "monthly": "Por mês",
                 "health_insurance": "Plano de Saúde",
                 "exempt": "Isento"
-            },
-            "session_value": "Valor da Sessão",
-            "monthly_value": "Valor da Mensalidade"
-        }
+            }
+        },
+        "edit_profile": "Editar Paciente"
     },
     "patient_detail": {
         "id": "ID do Paciente",
@@ -310,7 +310,12 @@
         "reauthorize_drive": "Re-autorizar Drive",
         "reauth_success": "Re-autorização do Drive concluída!",
         "reauth_error": "Falha na re-autorização do Drive.",
-        "calendar_error": "Falha ao conectar ao Google Calendar."
+        "calendar_error": "Falha ao conectar ao Google Calendar.",
+        "consent_config_section": "Configuração de Consentimento",
+        "consent_text_label": "Texto de Consentimento Padrão",
+        "consent_text_placeholder": "Insira o texto de consentimento que os pacientes verão...",
+        "consent_version_label": "Versão do Consentimento",
+        "consent_config_hint": "Este texto será apresentado aos pacientes antes que o primeiro registro de sessão seja salvo."
     },
     "terms_page": {
         "title": "Termos de Serviço",
@@ -340,7 +345,12 @@
         "data_sharing_title": "3. Compartilhamento de Dados e Divulgação a Terceiros",
         "data_sharing_text": "Como não armazenamos seus dados em nossos servidores, não temos dados para compartilhar, vender ou divulgar. Toda a comunicação com as APIs do Google ocorre diretamente do seu navegador para os servidores do Google. Nenhum terceiro tem acesso às suas informações de prontuários ou agenda.",
         "limited_use_title": "4. Conformidade com a Política de Uso Limitado da API do Google",
-        "limited_use_text": "O uso e a transferência de informações recebidas de APIs do Google pelo Portal Psis para qualquer outro aplicativo estarão em conformidade com a Política de Dados do Usuário dos Serviços de API do Google, incluindo os requisitos de Uso Limitado."
+        "limited_use_text": "O uso e a transferência de informações recebidas de APIs do Google pelo Portal Psis para qualquer outro aplicativo estarão em conformidade com a Política de Dados do Usuário dos Serviços de API do Google, incluindo os requisitos de Uso Limitado.",
+        "consent_title": "5. Gerenciamento de Consentimento",
+        "consent_text": "Antes que qualquer registro de sessão clínica seja armazenado, o paciente deve fornecer consentimento informado por meio de uma assinatura eletrônica. Essa assinatura, juntamente com um carimbo de data/hora e o texto do consentimento assinado, é armazenada de forma imutável. Os pacientes podem revogar seu consentimento a qualquer momento no perfil do paciente. Após a revogação, uma entrada no rastro de auditoria é criada e o psicólogo é notificado. Nenhum novo registro de sessão pode ser criado para um paciente sem um consentimento ativo.",
+        "dpo_title": "6. Contato do Controlador de Dados (DPO)",
+        "dpo_text": "O Oficial de Proteção de Dados (DPO) para esta implantação é: [A ser preenchido pelo psicólogo implantador]. Para dúvidas sobre privacidade, entre em contato: [dpo@example.com — placeholder].",
+        "encryption_details": "Criptografia e Segurança: Todas as notas clínicas são criptografadas usando AES-256-GCM antes do armazenamento. Dados em trânsito são protegidos por TLS 1.3. Registros de consentimento são armazenados em uma cadeia de auditoria inviolável. Dados de sessão são retidos durante a duração da relação terapêutica e excluídos a pedido do paciente ou após o período de retenção definido pelos regulamentos aplicáveis."
     },
     "landing_page": {
         "hero_title": "Seu espaço de psicologia clínica, simples e seguro.",
@@ -371,19 +381,19 @@
     },
     "audit": {
         "title": "Rastro de Auditoria",
-        "subtitle": "Log � prova de adultera��o de todos os acessos e modifica��es de registros cl�nicos.",
+        "subtitle": "Log à prova de adulteração de todos os acessos e modificações de registros clínicos.",
         "filters": {
             "entity": "Entidade",
-            "action": "A��o",
+            "action": "Ação",
             "date_from": "De",
-            "date_to": "At�",
+            "date_to": "Até",
             "search": "Buscar ID da Entidade",
             "all_entities": "Todas as Entidades",
-            "all_actions": "Todas as A��es"
+            "all_actions": "Todas as Ações"
         },
         "table": {
             "timestamp": "Data/Hora",
-            "action": "A��o",
+            "action": "Ação",
             "entity": "Entidade",
             "entity_id": "ID da Entidade",
             "before_hash": "Hash Anterior",
@@ -400,10 +410,10 @@
             "logout": "Logout"
         },
         "entities": {
-            "session": "Sess�o",
+            "session": "Sessão",
             "patient": "Paciente",
             "attachment": "Anexo",
-            "psychologist": "Psic�logo"
+            "psychologist": "Psicólogo"
         },
         "integrity": {
             "verified": "Cadeia Verificada",
@@ -413,42 +423,66 @@
         "no_records": "Nenhum registro de auditoria encontrado.",
         "pagination": {
             "previous": "Anterior",
-            "next": "Pr�ximo",
-            "page": "P�gina {{current}}"
-        }
+            "next": "Próximo",
+            "page": "Página {{current}}"
+        },
+        "integrity_description": "Visualize o rastro de auditoria inviolável para todos os acessos e modificações de registros clínicos."
     },
     "encryption": {
         "enabled": "Criptografia Ativada",
         "compliant": "Conforme CFP 09/2024",
         "locked": "Criptografia Bloqueada",
         "enter_passphrase": "Insira a senha para ver as notas",
-        "not_setup": "Criptografia NÃ£o Configurada",
-        "not_compliant": "Notas NÃ£o estÃ£o criptografadas em repouso - nÃ£o conforme CFP 09/2024",
+        "not_setup": "Criptografia Não Configurada",
+        "not_compliant": "Notas não estão criptografadas em repouso - não conforme CFP 09/2024",
         "setup_button": "Configurar Criptografia",
         "unlock": "Desbloquear",
         "lock": "Bloquear",
         "setup_title": "Configurar Criptografia",
-        "setup_desc": "Suas notas de sessÃ£o e pacientes serÃ£o criptografadas com AES-256-GCM antes de serem armazenadas.",
+        "setup_desc": "Suas notas de sessão e pacientes serão criptografadas com AES-256-GCM antes de serem armazenadas.",
         "passphrase_title": "Criar Senha",
         "passphrase_desc": "Escolha uma senha forte com pelo menos 12 caracteres.",
         "passphrase_label": "Senha",
         "confirm_label": "Confirmar Senha",
         "continue_button": "Continuar",
-        "recovery_title": "Salvar Frase de RecuperaÃ§Ã£o",
-        "recovery_desc": "Anote ou copie esta frase. Ã a Ãºnica forma de recuperar suas notas se vocÃª esquecer a senha.",
-        "saved_checkbox": "Salvei minha frase de recuperaÃ§Ã£o em um lugar seguro.",
-        "finish_button": "Concluir ConfiguraÃ§Ã£o",
+        "recovery_title": "Salvar Frase de Recuperação",
+        "recovery_desc": "Anote ou copie esta frase. É a única forma de recuperar suas notas se você esquecer a senha.",
+        "saved_checkbox": "Salvei minha frase de recuperação em um lugar seguro.",
+        "finish_button": "Concluir Configuração",
         "go_back_setup": "Voltar e configurar criptografia",
         "skip_button": "Pular por enquanto",
         "skip_confirm": "Pular mesmo assim",
         "skip_warning_title": "Pular Criptografia?",
-        "skip_warning_msg": "Notas nÃ£o serÃ£o criptografadas em repouso - nÃ£o conforme CFP 09/2024",
-        "loss_warning_title": "Importante: RecuperaÃ§Ã£o de Senha",
-        "loss_warning": "Se vocÃª perder sua senha, suas notas nÃ£o podem ser descriptografadas.",
+        "skip_warning_msg": "Notas não serão criptografadas em repouso - não conforme CFP 09/2024",
+        "loss_warning_title": "Importante: Recuperação de Senha",
+        "loss_warning": "Se você perder sua senha, suas notas não podem ser descriptografadas.",
         "passphrase_too_short": "Senha deve ter pelo menos 12 caracteres.",
-        "passphrase_mismatch": "As senhas nÃ£o coincidem.",
+        "passphrase_mismatch": "As senhas não coincidem.",
         "common.back": "Voltar",
         "common.loading": "Carregando...",
         "common.cancel": "Cancelar"
+    },
+    "consent": {
+        "title": "Consentimento Informado",
+        "subtitle": "Consentimento eletrônico para tratamento de dados clínicos",
+        "text_label": "Texto do Consentimento",
+        "version_label": "Versão",
+        "signature_label": "Nome Completo",
+        "signature_placeholder": "Digite seu nome completo para assinar",
+        "accept_title": "Aceitar Consentimento",
+        "accept_button": "Eu Aceito",
+        "accept_error": "Falha ao registrar consentimento.",
+        "revoke_button": "Revogar Consentimento",
+        "revoke_section": "Revogar Consentimento",
+        "revoke_warning": "Revogar o consentimento impedirá que novos registros de sessão sejam salvos. Registros existentes serão preservados.",
+        "revoke_error": "Falha ao revogar consentimento.",
+        "revoke_confirm_title": "Revogar Consentimento?",
+        "revoke_confirm_message": "Revogar o consentimento impedirá que novos registros de sessão sejam salvos. Esta ação não pode ser desfeita.",
+        "active_title": "Consentimento Ativo",
+        "inactive_title": "Nenhum Consentimento Ativo",
+        "accepted_on": "Aceito em",
+        "revoked_on": "Revogado em",
+        "no_consent": "Nenhum consentimento registrado. Registros de sessão não podem ser salvos até que o consentimento seja aceito.",
+        "required_before_session": "Consentimento ativo é obrigatório antes de salvar um registro de sessão. Solicite ao paciente que aceite o formulário de consentimento primeiro."
     }
 }

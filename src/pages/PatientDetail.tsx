@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, FileText, Plus, Clock, Edit3, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Calendar, FileText, Plus, Clock, Edit3, Trash2, X, ClipboardCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format, isPast } from 'date-fns';
 import { ptBR, enUS } from 'date-fns/locale';
@@ -16,6 +16,8 @@ import { useSessions } from '../hooks/useSessions';
 import { auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { logView } from '../lib/audit';
+import { PatientConsent } from '../components/patients/PatientConsent';
+import { usePatientConsent } from '../hooks/usePatientConsent';
 
 export default function PatientDetail() {
   const { id } = useParams();
@@ -35,6 +37,9 @@ export default function PatientDetail() {
   const [expandedSessions, setExpandedSessions] = useState<string[]>([]);
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<'sessions' | 'consent'>('sessions');
+
+  const { consents, hasActiveConsent, acceptConsent, revokeConsent } = usePatientConsent(id);
 // Log patient view
   useEffect(() => {
     if (user && patient) {
@@ -50,14 +55,30 @@ export default function PatientDetail() {
   };
 
   const handleAddSessionSubmit = async (data: any) => {
-    await addSession(data);
-    setIsAddingSession(false);
+    try {
+      await addSession(data);
+      setIsAddingSession(false);
+    } catch (err: any) {
+      if (err.message === 'CONSENT_REQUIRED') {
+        alert(t('consent.required_before_session'));
+      } else {
+        console.error('Failed to add session:', err);
+      }
+    }
   };
 
   const handleUpdateSessionSubmit = async (data: any, sessionId: string) => {
-    await updateSession(sessionId, data);
-    setEditingSessionId(null);
-    setRegisteringSessionId(null);
+    try {
+      await updateSession(sessionId, data);
+      setEditingSessionId(null);
+      setRegisteringSessionId(null);
+    } catch (err: any) {
+      if (err.message === 'CONSENT_REQUIRED') {
+        alert(t('consent.required_before_session'));
+      } else {
+        console.error('Failed to update session:', err);
+      }
+    }
   };
 
   const handleDeleteSession = async () => {
@@ -160,6 +181,42 @@ export default function PatientDetail() {
         title={t('patient_detail.edit_profile')}
       />
 
+      <div className="flex gap-1 border-b border-border-custom mb-6">
+        <button
+          onClick={() => setActiveTab('sessions')}
+          className={`px-4 py-2 text-[13px] font-bold border-b-2 transition-colors ${
+            activeTab === 'sessions' ? 'border-primary-custom text-primary-custom' : 'border-transparent text-text-muted hover:text-text-main'
+          }`}
+        >
+          {t('patient_detail.session_history', 'Session History')}
+        </button>
+        <button
+          onClick={() => setActiveTab('consent')}
+          className={`px-4 py-2 text-[13px] font-bold border-b-2 transition-colors flex items-center gap-2 ${
+            activeTab === 'consent' ? 'border-primary-custom text-primary-custom' : 'border-transparent text-text-muted hover:text-text-main'
+          }`}
+        >
+          <ClipboardCheck className="w-4 h-4" />
+          {t('consent.title', 'Consent')}
+        </button>
+      </div>
+
+      {activeTab === 'consent' ? (
+        <PatientConsent
+          consentText={consents && consents.length > 0 ? consents[0].text : t('consent.default_text', 'Please configure consent text in Settings.')}
+          consentVersion={consents && consents.length > 0 ? consents[0].version : '1.0'}
+          currentConsent={consents && consents.length > 0 ? consents[0] : undefined}
+          hasActiveConsent={hasActiveConsent}
+          onAccept={async (data) => {
+            await acceptConsent(data);
+            return Promise.resolve();
+          }}
+          onRevoke={async () => {
+            await revokeConsent();
+            return Promise.resolve();
+          }}
+        />
+      ) : (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="space-y-8">
           <PatientInfoCard patient={patient} />
@@ -365,6 +422,7 @@ export default function PatientDetail() {
           </div>
         </div>
       </div>
+      )}
 
       <AnimatePresence>
         {showDeleteModal && (

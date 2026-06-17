@@ -63,8 +63,8 @@ export interface Psychologist {
 }
 
 // Audit Trail Types
-export type AuditAction = 'view' | 'create' | 'update' | 'delete' | 'export' | 'login' | 'logout';
-export type AuditEntity = 'session' | 'patient' | 'attachment' | 'psychologist';
+export type AuditAction = 'view' | 'create' | 'update' | 'delete' | 'export' | 'login' | 'logout' | 'consent_accept' | 'consent_revoke';
+export type AuditEntity = 'session' | 'patient' | 'attachment' | 'psychologist' | 'consent';
 
 export interface AuditLog {
   id: string;
@@ -80,4 +80,16 @@ export interface AuditLog {
   sessionId?: string;  // For session-scoped operations
   prevHash?: string;   // Merkle chain: hash of previous audit log
   hash?: string;       // This record's hash (prevHash + payload)
+}
+
+export interface PatientConsent {
+  id: string;
+  patientId: string;
+  version: string;        // e.g. "1.0"
+  text: string;           // the full consent text shown
+  acceptedAt: string;     // ISO 8601
+  acceptedFrom: string;   // "patient" | "guardian"
+  ipHint?: string;        // truncated IP or placeholder
+  signature: string;      // free-text name of signatory
+  revokedAt?: string;      // ISO 8601, present only when revoked
 }

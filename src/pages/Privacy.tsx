@@ -84,6 +84,34 @@ export default function Privacy() {
                 {t('privacy_page.limited_use_text')}
               </p>
             </div>
+
+
+            <div className="space-y-3">
+              <h2 className="text-text-main font-bold text-lg">
+                {t('privacy_page.consent_title')}
+              </h2>
+              <p>
+                {t('privacy_page.consent_text')}
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <h2 className="text-text-main font-bold text-lg">
+                {t('privacy_page.dpo_title')}
+              </h2>
+              <p>
+                {t('privacy_page.dpo_text')}
+              </p>
+            </div>
+
+            <div className="bg-primary-custom/5 border border-primary-custom/10 p-6 rounded-xl">
+              <h2 className="text-text-main font-bold text-base mb-2">
+                {t('privacy_page.encryption_details')}
+              </h2>
+              <p className="text-sm text-text-muted">
+                {t('privacy_page.encryption_details')}
+              </p>
+            </div>
           </div>
         </motion.div>
       </div>

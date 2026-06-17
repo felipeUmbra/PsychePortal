@@ -14,7 +14,8 @@ import {
   Loader2,
   Lock,
   Shield,
-  AlertTriangle
+  AlertTriangle,
+  FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
@@ -40,6 +41,9 @@ export default function Settings() {
 
   const [isConnectingCalendar, setIsConnectingCalendar] = useState(false);
   const [isReauthorizingDrive, setIsReauthorizingDrive] = useState(false);
+
+  const [consentText, setConsentText] = useState('');
+  const [consentVersion, setConsentVersion] = useState('1.0');
 
   const googleCalendarToken = calendarToken;
 
@@ -113,6 +117,8 @@ export default function Settings() {
           specialization: [],
           bio: '',
           avatarUrl: user.photoURL || '',
+          consentText: '',
+          consentVersion: '1.0',
           createdAt: new Date().toISOString()
         };
         await setDoc(docRef, newProfile);
@@ -127,7 +133,9 @@ export default function Settings() {
         email: user.email,
         specialization: [],
         bio: '',
-        avatarUrl: user.photoURL || ''
+        avatarUrl: user.photoURL || '',
+        consentText: '',
+        consentVersion: '1.0'
       });
       handleFirestoreError(error, OperationType.GET, `psychologists/${user.uid}`);
     }
@@ -138,6 +146,13 @@ export default function Settings() {
     fetchProfile();
   }, [user]);
 
+  useEffect(() => {
+    if (profile) {
+      setConsentText(profile.consentText || '');
+      setConsentVersion(profile.consentVersion || '1.0');
+    }
+  }, [profile]);
+
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
     if (!user || !profile) return;
@@ -146,6 +161,8 @@ export default function Settings() {
     try {
       await updateDoc(doc(db, 'psychologists', user.uid), {
         ...profile,
+        consentText,
+        consentVersion,
         updatedAt: new Date().toISOString()
       });
       setShowSuccess(true);
@@ -409,6 +426,37 @@ export default function Settings() {
               </button>
             </div>
 
+          </div>
+        </section>
+
+
+        <section className="card">
+          <h2 className="text-[16px] font-bold text-text-main mb-8 flex items-center gap-2 border-b border-border-custom pb-4">
+            <FileText className="w-5 h-5 text-primary-custom" />
+            {t('settings.consent_config_section')}
+          </h2>
+
+          <div className="space-y-6">
+            <div>
+              <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.consent_text_label')}</label>
+              <textarea
+                className="input-field h-40 resize-none text-[14px] leading-relaxed"
+                placeholder={t('settings.consent_text_placeholder')}
+                value={consentText}
+                onChange={(e) => setConsentText(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.consent_version_label')}</label>
+              <input
+                type="text"
+                className="input-field text-[14px] w-32"
+                value={consentVersion}
+                onChange={(e) => setConsentVersion(e.target.value)}
+                maxLength={10}
+              />
+            </div>
+            <p className="text-[11px] text-text-muted font-medium">{t('settings.consent_config_hint')}</p>
           </div>
         </section>
 

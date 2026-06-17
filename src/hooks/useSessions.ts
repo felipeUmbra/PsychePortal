@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { collection, query, where, orderBy, onSnapshot, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, addDoc, doc, updateDoc, deleteDoc, getDocs } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, getStorage, deleteObject, setDriveToken as setMockToken } from '../lib/firestore-mock'; // Import from mock
 import { db, auth } from '../firebase'; // Remove 'storage' import
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { handleFirestoreError, OperationType } from '../lib/error-handler';
-import { Session } from '../types';
+import { Session, PatientConsent } from '../types';
 import { useGoogleAuth } from '../context/GoogleAuthContext';
-import { useEncryption } from './useEncryption';
 import { useEncryption } from './useEncryption';
 
 export function useSessions(patientId?: string) {
@@ -65,8 +64,29 @@ export function useSessions(patientId?: string) {
     return () => unsubscribe();
   }, [patientId, user]);
 
+  const checkConsent = async (pid: string): Promise<boolean> => {
+    if (!user) return false;
+    try {
+      const q = query(
+        collection(db, 'patient_consents'),
+        where('patientId', '==', pid),
+        orderBy('acceptedAt', 'desc')
+      );
+      const snapshot = await getDocs(q);
+      const list: PatientConsent[] = snapshot.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+      return list.some(c => !c.revokedAt);
+    } catch (error) {
+      console.error('Failed to check consent:', error);
+      return false;
+    }
+  };
+
   const addSession = async (sessionData: Omit<Session, 'id' | 'psychologistId' | 'patientId' | 'createdAt'>) => {
     if (!user || !patientId) throw new Error('Unauthenticated or missing patient ID');
+    const hasConsent = await checkConsent(patientId);
+    if (!hasConsent) {
+      throw new Error('CONSENT_REQUIRED');
+    }
     try {
       const dataToWrite = { ...sessionData };
       if (isUnlocked && dataToWrite.notes) {
@@ -88,6 +108,12 @@ export function useSessions(patientId?: string) {
 
   const updateSession = async (sessionId: string, updates: Partial<Session>) => {
     if (!user) throw new Error('Unauthenticated');
+    if (patientId) {
+      const hasConsent = await checkConsent(patientId);
+      if (!hasConsent) {
+        throw new Error('CONSENT_REQUIRED');
+      }
+    }
     try {
       const session = sessions.find(s => s.id === sessionId);
       const googleEventId = updates.googleEventId || session?.googleEventId;
@@ -211,6 +237,7 @@ export function useSessions(patientId?: string) {
     deleteSession,
     uploadFile,
     deleteFile,
-    isUploading
+    isUploading,
+    checkConsent
   };
 }
