@@ -8,9 +8,11 @@ import './i18n';
 if (import.meta.env.PROD || import.meta.env.DEV) {
   // Dynamically import to avoid errors if virtual module isn't available
   import('virtual:pwa-register').then(({ registerSW }) => {
-    registerSW({ immediate: true }).catch(() => {
+    try {
+      registerSW({ immediate: true });
+    } catch {
       // Silently fail if SW isn't available (e.g., in dev mode with disabled SW)
-    });
+    }
   }).catch(() => {
     // Module not available in current environment
   });

@@ -53,6 +53,16 @@ export interface Session {
   createdAt?: any;
 }
 
+export interface PsychologistAttestation {
+  crpValid: boolean;
+  patientsInformed: boolean;
+  recoveryCodeSafe: boolean;
+  cfpAware: boolean;
+  retentionPolicy: boolean;
+  dsrAware: boolean;
+  updatedAt: string;
+}
+
 export interface Psychologist {
   id: string;
   name: string;
@@ -60,6 +70,12 @@ export interface Psychologist {
   specialization: string[];
   bio: string;
   avatarUrl?: string;
+  consentText?: string;
+  consentVersion?: string;
+  retentionPolicy?: string;
+  attestation?: PsychologistAttestation;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // Audit Trail Types

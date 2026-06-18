@@ -15,7 +15,9 @@ import {
   Lock,
   Shield,
   AlertTriangle,
-  FileText
+  FileText,
+  HardDrive,
+  Database
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
@@ -429,6 +431,54 @@ export default function Settings() {
           </div>
         </section>
 
+        {/* Backup & Compliance Panel */}
+        <section className="card">
+          <h2 className="text-[16px] font-bold text-text-main mb-8 flex items-center gap-2 border-b border-border-custom pb-4">
+            <HardDrive className="w-5 h-5 text-primary-custom" />
+            {t('compliance.backup_section', 'Backup & Redundancy')}
+          </h2>
+          <div className="space-y-6">
+            <div>
+              <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">
+                {t('compliance.secondary_account', 'Secondary Account (Geographic Redundancy)')}
+              </label>
+              <input type="password" className="input-field text-[14px]" placeholder={t('compliance.secondary_token_placeholder', 'Read-only access token...')} />
+              <p className="text-[11px] text-text-muted mt-2 font-medium">
+                Optional: paste a read-only Google Drive access token for a secondary account. Token is stored in session only.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!user || !driveToken) return;
+                try {
+                  const { triggerFullBackup } = await import('../lib/backup');
+                  const result = await triggerFullBackup(driveToken, user.uid);
+                  alert(t('compliance.backup_success', 'Backup completed') + ' - ' + result.snapshotsKept + ' snapshots stored');
+                } catch (err: any) {
+                  alert(err.message || 'Backup failed');
+                }
+              }}
+              disabled={!driveToken}
+              className="btn-primary flex items-center justify-center gap-2 w-full text-[14px] disabled:opacity-50"
+            >
+              <HardDrive className="w-4 h-4" />
+              {t('compliance.force_backup', 'Force Full Backup')}
+            </button>
+          </div>
+          <div className="mt-6 pt-6 border-t border-border-custom">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-surface border border-border-custom rounded-xl gap-4">
+              <div>
+                <h3 className="font-bold text-text-main text-[14px]">{t('compliance.title', 'Compliance')}</h3>
+                <p className="text-text-muted text-[13px] mt-1">View compliance status, self-attestation, and generate reports.</p>
+              </div>
+              <Link to="/app/compliance" className="btn-secondary text-[12px] h-9 inline-flex items-center gap-2">
+                <Shield className="w-4 h-4" />
+                {t('compliance.title', 'Compliance')}
+              </Link>
+            </div>
+          </div>
+        </section>
 
         <section className="card">
           <h2 className="text-[16px] font-bold text-text-main mb-8 flex items-center gap-2 border-b border-border-custom pb-4">

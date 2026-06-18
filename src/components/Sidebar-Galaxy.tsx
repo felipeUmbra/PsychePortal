@@ -7,7 +7,8 @@ import {
   Settings,
   LogOut,
   Languages,
-  DollarSign
+  DollarSign,
+  Shield
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { auth } from '../firebase';

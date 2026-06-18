@@ -23,7 +23,7 @@ export async function getLastAuditHash(): Promise<string> {
         limit(1)
       );
       const snapshot = await getDocs(q);
-      if (!snapshot.empty) {
+      if (snapshot.size > 0) {
         const lastLog = snapshot.docs[0].data() as AuditLog;
         lastHashCache = lastLog.hash || '';
         return lastHashCache;

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, doc, getDocs } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, doc, getDocs, limit } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { PatientConsent } from '../types';
@@ -48,9 +48,17 @@ export function usePatientConsent(patientId?: string) {
   }) => {
     if (!user || !patientId) throw new Error('Unauthenticated or missing patient ID');
     try {
+      let psychologistId: string | undefined;
+      try {
+        const patientSnap = await getDocs(query(collection(db, 'patients'), where('__name__', '==', patientId), limit(1)));
+        if (patientSnap.docs.length > 0) {
+          psychologistId = patientSnap.docs[0].data().psychologistId;
+        }
+      } catch { /* ignore */ }
       const docRef = await addDoc(collection(db, 'patient_consents'), {
         ...data,
         patientId,
+        psychologistId,
         ipHint: 'client-side'
       });
 

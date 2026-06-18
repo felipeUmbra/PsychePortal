@@ -59,7 +59,8 @@
         "show_patients": "Ver Pacientes",
         "entire_calendar": "Calendário Completo",
         "sessions_by_day": "Sessões por Dia",
-        "audit_log": "Log de Auditoria"
+        "audit_log": "Log de Auditoria",
+        "compliance": "Conformidade"
     },
     "layout": {
         "workspace": "Espaço de Trabalho",
@@ -484,5 +485,40 @@
         "revoked_on": "Revogado em",
         "no_consent": "Nenhum consentimento registrado. Registros de sessão não podem ser salvos até que o consentimento seja aceito.",
         "required_before_session": "Consentimento ativo é obrigatório antes de salvar um registro de sessão. Solicite ao paciente que aceite o formulário de consentimento primeiro."
+    },
+    "compliance": {
+        "title": "Conformidade",
+        "subtitle": "Painel de status de conformidade e auto-atestado",
+        "status_panel": "Status de Conformidade",
+        "attestation_panel": "Auto-Atestado do Profissional",
+        "encryption_status": "Criptografia em Repouso",
+        "audit_status": "Rastro de Auditoria",
+        "retention_status": "Política de Retenção",
+        "consent_status": "Consentimento do Paciente",
+        "headers_status": "Cabeçalhos de Segurança",
+        "backup_status": "Backup no Google Drive",
+        "compliant": "Conforme",
+        "non_compliant": "Não Conforme",
+        "attestation_crp": "Possuo registro ativo no CRP",
+        "attestation_patients": "Informei meus pacientes sobre o tratamento de dados",
+        "attestation_recovery": "Guardei minha frase de recuperação em local seguro",
+        "attestation_cfp": "Li e compreendo a resolução CFP 09/2024",
+        "attestation_retention": "Tenho uma política de retenção documentada",
+        "attestation_dsr": "Sei como tratar uma solicitação de titular de dados",
+        "save_attestation": "Salvar Atestado",
+        "export_report": "Exportar Relatório de Conformidade",
+        "export_audit_csv": "Exportar Log de Auditoria (CSV)",
+        "report_generated_at": "Gerado em",
+        "backup_section": "Backup e Redundância",
+        "force_backup": "Forçar Backup Completo",
+        "backup_success": "Backup concluído com sucesso",
+        "backup_history": "Histórico de Backups",
+        "secondary_account": "Conta Secundária (Redundância Geográfica)",
+        "secondary_token_placeholder": "Token de acesso somente leitura...",
+        "dsr_section": "Solicitação de Titular de Dados",
+        "dsr_patient_select": "Selecione o Paciente",
+        "dsr_generate": "Gerar Pacote de Dados Assinado",
+        "dsr_warning": "Isso exportará todos os dados deste paciente incluindo notas clínicas descriptografadas. Manuseie com cuidado.",
+        "snapshots_stored": "snapshots armazenados"
     }
 }

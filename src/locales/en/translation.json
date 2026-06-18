@@ -60,7 +60,8 @@
         "show_patients": "Show Patients",
         "entire_calendar": "Entire Calendar",
         "sessions_by_day": "Sessions by day",
-        "audit_log": "Audit Log"
+        "audit_log": "Audit Log",
+        "compliance": "Compliance"
     },
     "audit": {
         "title": "Audit Trail",
@@ -396,5 +397,40 @@
         "revoked_on": "Revoked on",
         "no_consent": "No consent on file. Session records cannot be saved until consent is accepted.",
         "required_before_session": "Active consent is required before saving a session record. Please have the patient accept the consent form first."
+    },
+    "compliance": {
+        "title": "Compliance",
+        "subtitle": "Compliance status panel and self-attestation",
+        "status_panel": "Compliance Status",
+        "attestation_panel": "Professional Self-Attestation",
+        "encryption_status": "Encryption at Rest",
+        "audit_status": "Audit Trail",
+        "retention_status": "Retention Policy",
+        "consent_status": "Patient Consent",
+        "headers_status": "Security Headers",
+        "backup_status": "Google Drive Backup",
+        "compliant": "Compliant",
+        "non_compliant": "Non-Compliant",
+        "attestation_crp": "I have a valid CRP registration",
+        "attestation_patients": "I have informed my patients about data processing",
+        "attestation_recovery": "I keep a copy of my encryption recovery code in a safe place",
+        "attestation_cfp": "I have read and understand the CFP 09/2024 resolution",
+        "attestation_retention": "I have a data retention policy documented",
+        "attestation_dsr": "I know how to handle a data subject request",
+        "save_attestation": "Save Attestation",
+        "export_report": "Export Compliance Report",
+        "export_audit_csv": "Export Audit Log (CSV)",
+        "report_generated_at": "Generated at",
+        "backup_section": "Backup & Redundancy",
+        "force_backup": "Force Full Backup",
+        "backup_success": "Backup completed successfully",
+        "backup_history": "Backup History",
+        "secondary_account": "Secondary Account (Geographic Redundancy)",
+        "secondary_token_placeholder": "Read-only access token...",
+        "dsr_section": "Data Subject Request",
+        "dsr_patient_select": "Select Patient",
+        "dsr_generate": "Generate Signed Data Bundle",
+        "dsr_warning": "This will export all data for this patient including decrypted clinical notes. Handle with care.",
+        "snapshots_stored": "snapshots stored"
     }
 }

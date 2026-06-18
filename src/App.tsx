@@ -21,6 +21,7 @@ const Sessions = lazy(() => import('./pages/Sessions'));
 const Finance = lazy(() => import('./pages/Finance'));
 const Settings = lazy(() => import("./pages/Settings"));
 const AuditLog = lazy(() => import("./pages/AuditLog"));
+const Compliance = lazy(() => import("./pages/Compliance"));
 
 // Loading fallback component
 function LoadingFallback() {
@@ -52,6 +53,7 @@ export default function App() {
                 <Route path="finance" element={<Finance />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="audit" element={<AuditLog />} />
+                <Route path="compliance" element={<Compliance />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
