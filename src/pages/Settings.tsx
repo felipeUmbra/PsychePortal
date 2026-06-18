@@ -44,6 +44,8 @@ export default function Settings() {
   const [isConnectingCalendar, setIsConnectingCalendar] = useState(false);
   const [isReauthorizingDrive, setIsReauthorizingDrive] = useState(false);
 
+  const [secondaryToken, setSecondaryToken] = useState('');
+
   const [consentText, setConsentText] = useState('');
   const [consentVersion, setConsentVersion] = useState('1.0');
 
@@ -442,7 +444,7 @@ export default function Settings() {
               <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">
                 {t('compliance.secondary_account', 'Secondary Account (Geographic Redundancy)')}
               </label>
-              <input type="password" className="input-field text-[14px]" placeholder={t('compliance.secondary_token_placeholder', 'Read-only access token...')} />
+              <input type="password" className="input-field text-[14px]" placeholder={t('compliance.secondary_token_placeholder', 'Read-only access token...')} value={secondaryToken} onChange={(e) => setSecondaryToken(e.target.value)} />
               <p className="text-[11px] text-text-muted mt-2 font-medium">
                 Optional: paste a read-only Google Drive access token for a secondary account. Token is stored in session only.
               </p>
@@ -453,7 +455,7 @@ export default function Settings() {
                 if (!user || !driveToken) return;
                 try {
                   const { triggerFullBackup } = await import('../lib/backup');
-                  const result = await triggerFullBackup(driveToken, user.uid);
+                  const result = await triggerFullBackup(driveToken, user.uid, secondaryToken || undefined);
                   alert(t('compliance.backup_success', 'Backup completed') + ' - ' + result.snapshotsKept + ' snapshots stored');
                 } catch (err: any) {
                   alert(err.message || 'Backup failed');
