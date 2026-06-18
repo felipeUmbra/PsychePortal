@@ -303,7 +303,7 @@ export default function Compliance() {
           <div>
             <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('compliance.secondary_account', 'Secondary Account (Geographic Redundancy)')}</label>
             <input type="password" className="input-field text-[14px]" placeholder={t('compliance.secondary_token_placeholder', 'Read-only access token...')} value={secondaryToken} onChange={(e) => setSecondaryToken(e.target.value)} />
-            <p className="text-[11px] text-text-muted mt-2 font-medium">Optional: paste a read-only Google Drive access token for a secondary account. Token is stored in session only.</p>
+            <p className="text-[11px] text-text-muted mt-2 font-medium">{t('compliance.secondary_account_hint')}</p>
           </div>
           <button onClick={handleForceBackup} disabled={backupLoading || !driveToken} className="btn-primary flex items-center justify-center gap-2 w-full text-[14px] disabled:opacity-50">
             {backupLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <HardDrive className="w-4 h-4" />}

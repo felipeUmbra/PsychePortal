@@ -514,6 +514,7 @@
         "backup_success": "Backup concluído com sucesso",
         "backup_history": "Histórico de Backups",
         "secondary_account": "Conta Secundária (Redundância Geográfica)",
+        "secondary_account_hint": "Opcional: cole um token de acesso somente leitura do Google Drive para uma conta secundária. O token é armazenado apenas na sessão.",
         "secondary_token_placeholder": "Token de acesso somente leitura...",
         "dsr_section": "Solicitação de Titular de Dados",
         "dsr_patient_select": "Selecione o Paciente",

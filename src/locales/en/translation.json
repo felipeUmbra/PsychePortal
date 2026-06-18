@@ -113,8 +113,16 @@
         }
     },
     "sessions": {
+        "title": "Therapy Sessions",
+        "subtitle": "History of all sessions and clinical notes.",
         "type": "Type",
-        "payment_status": "Payment Status"
+        "payment_status": "Payment Status",
+        "view_patient": "View Patient",
+        "search_placeholder": "Search by patient name or notes...",
+        "no_sessions": "No sessions found",
+        "no_sessions_hint": "Try adjusting your search or filters.",
+        "delete_confirm_title": "Delete Session",
+        "delete_confirm_message": "Are you sure you want to delete this session? This action cannot be undone."
     },
     "landing_page": {
         "google_compliance_title": "Secure & Compliant",
@@ -129,11 +137,28 @@
     },
     "finance": {
         "title": "Financial",
-        "subtitle": "Manage payments",
+        "subtitle": "Manage and track session payments.",
         "total_expected": "Total Expected",
+        "expected_sessions": "Expected (Sessions)",
+        "expected_monthly": "Expected (Monthly)",
         "total_paid": "Total Paid",
+        "pending_payments": "Pending Payments",
         "mark_paid": "Mark as Paid",
-        "mark_pending": "Mark as Pending"
+        "mark_pending": "Mark as Pending",
+        "patient_summary": "Patient Summary",
+        "no_data_period": "No data for the selected period",
+        "period": {
+            "all": "All",
+            "day": "Day",
+            "week": "Week",
+            "month": "Month",
+            "year": "Year"
+        },
+        "status": {
+            "paid": "Paid",
+            "pending": "Pending"
+        },
+        "no_records": "No financial records found."
     },
     "session_status": {
         "scheduled": "Scheduled",
@@ -426,6 +451,7 @@
         "backup_success": "Backup completed successfully",
         "backup_history": "Backup History",
         "secondary_account": "Secondary Account (Geographic Redundancy)",
+        "secondary_account_hint": "Optional: paste a read-only Google Drive access token for a secondary account. Token is stored in session only.",
         "secondary_token_placeholder": "Read-only access token...",
         "dsr_section": "Data Subject Request",
         "dsr_patient_select": "Select Patient",
