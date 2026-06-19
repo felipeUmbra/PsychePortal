@@ -13,7 +13,8 @@ import { SessionForm } from '../components/sessions/SessionForm';
 import { PatientInfoCard } from '../components/patients/PatientInfoCard';
 import { usePatient } from '../hooks/usePatients';
 import { useSessions } from '../hooks/useSessions';
-import { auth } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { db, auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { logView } from '../lib/audit';
 import { PatientConsent } from '../components/patients/PatientConsent';
@@ -38,6 +39,7 @@ export default function PatientDetail() {
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'sessions' | 'consent'>('sessions');
+  const [psychologistConsentText, setPsychologistConsentText] = useState<string | null>(null);
 
   const { consents, hasActiveConsent, acceptConsent, revokeConsent } = usePatientConsent(id);
 // Log patient view
@@ -46,6 +48,24 @@ export default function PatientDetail() {
       logView(user.uid, 'patient', patient.id);
     }
   }, [user, patient]);
+
+  // Fetch psychologist profile for consentText
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      try {
+        const snap = await getDoc(doc(db, 'psychologists', user.uid));
+        if (snap.exists()) {
+          const data = snap.data() as any;
+          if (data.consentText && data.consentText.trim().length > 0) {
+            setPsychologistConsentText(data.consentText);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch psychologist profile:', err);
+      }
+    })();
+  }, [user]);
 
   const getSessionDate = (s: any) => s?.date ? ((s.date as any).toDate ? (s.date as any).toDate() : new Date(s.date)) : new Date(NaN);
 
@@ -203,7 +223,7 @@ export default function PatientDetail() {
 
       {activeTab === 'consent' ? (
         <PatientConsent
-          consentText={consents && consents.length > 0 ? consents[0].text : t('consent.default_text', 'Please configure consent text in Settings.')}
+          consentText={psychologistConsentText || (consents && consents.length > 0 ? consents[0].text : t('consent.default_text', 'Please configure consent text in Settings.'))}
           consentVersion={consents && consents.length > 0 ? consents[0].version : '1.0'}
           currentConsent={consents && consents.length > 0 ? consents[0] : undefined}
           hasActiveConsent={hasActiveConsent}
