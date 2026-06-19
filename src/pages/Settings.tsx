@@ -1,4 +1,4 @@
-import { useState, useEffect, FormEvent } from "react";
+﻿import { useState, useEffect, FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { doc, getDoc, updateDoc, setDoc, collection, query, where, getDocs, setDriveToken as setMockToken, forceSync } from 'firebase/firestore';
 import { db, auth } from '../firebase';
@@ -49,6 +49,7 @@ export default function Settings() {
 
   const [consentText, setConsentText] = useState('');
   const [consentVersion, setConsentVersion] = useState('1.0');
+  const [autoLockMinutes, setAutoLockMinutes] = useState<number | null>(null);
 
   const googleCalendarToken = calendarToken;
 
@@ -155,6 +156,7 @@ export default function Settings() {
     if (profile) {
       setConsentText(profile.consentText || '');
       setConsentVersion(profile.consentVersion || '1.0');
+      setAutoLockMinutes(profile.autoLockMinutes ?? null);
     }
   }, [profile]);
 
@@ -168,6 +170,7 @@ export default function Settings() {
         ...profile,
         consentText,
         consentVersion,
+        autoLockMinutes: autoLockMinutes ?? null,
         updatedAt: new Date().toISOString()
       });
       setShowSuccess(true);
@@ -479,6 +482,36 @@ export default function Settings() {
               </button>
             </div>
 
+          </div>
+        </section>
+
+        {/* Security Section */}
+        <section className="card">
+          <h2 className="text-[16px] font-bold text-text-main mb-8 flex items-center gap-2 border-b border-border-custom pb-4">
+            <Shield className="w-5 h-5 text-primary-custom" />
+            {t('settings.security_section')}
+          </h2>
+
+          <div className="space-y-6">
+            <div>
+              <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.auto_lock_label')}</label>
+              <select
+                className="input-field text-[14px]"
+                value={autoLockMinutes ?? ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setAutoLockMinutes(val === '' ? null : Number(val));
+                }}
+              >
+                <option value="">{t('settings.auto_lock_never')}</option>
+                <option value="5">{t('settings.auto_lock_5min')}</option>
+                <option value="10">{t('settings.auto_lock_10min')}</option>
+                <option value="15">{t('settings.auto_lock_15min')}</option>
+                <option value="30">{t('settings.auto_lock_30min')}</option>
+                <option value="60">{t('settings.auto_lock_60min')}</option>
+              </select>
+              <p className="text-[11px] text-text-muted mt-2 font-medium">{t('settings.auto_lock_helper')}</p>
+            </div>
           </div>
         </section>
 

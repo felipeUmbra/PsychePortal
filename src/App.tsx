@@ -10,6 +10,7 @@ import { GoogleAuthProvider } from './context/GoogleAuthContext';
 import { useState } from 'react';
 import { useEncryption } from './hooks/useEncryption';
 import { EncryptionSetupModal } from './components/EncryptionSetupModal';
+import { SessionTimeoutToast } from './components/SessionTimeoutToast';
 
 // Lazy load all page components for code splitting
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -61,6 +62,7 @@ export default function App() {
         </ErrorBoundary>
       </Router>
       <EncryptionSetupModalWrapper />
+      <SessionTimeoutToast />
     </GoogleAuthProvider>
   );
 }

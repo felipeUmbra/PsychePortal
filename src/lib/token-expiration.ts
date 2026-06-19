@@ -48,3 +48,23 @@ export function clearTokenExpiration() {
         // Ignore storage errors
     }
 }
+
+// Inactivity timer for auto-lock
+let inactivityTimerId: ReturnType<typeof setTimeout> | null = null;
+
+export function startInactivityTimer(callback: () => void, timeoutMinutes: number): void {
+    if (timeoutMinutes <= 0) return;
+    resetInactivityTimer();
+    inactivityTimerId = setTimeout(callback, timeoutMinutes * 60 * 1000);
+}
+
+export function resetInactivityTimer(): void {
+    if (inactivityTimerId !== null) {
+        clearTimeout(inactivityTimerId);
+        inactivityTimerId = null;
+    }
+}
+
+export function clearInactivityTimer(): void {
+    resetInactivityTimer();
+}

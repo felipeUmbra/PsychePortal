@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Outlet, Navigate, useNavigate, Link } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { auth } from '../firebase';
@@ -6,6 +6,9 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { useGoogleAuth } from '../context/GoogleAuthContext';
 import { useTranslation } from 'react-i18next';
 import { LogOut, AlertTriangle, ExternalLink, X, Menu } from 'lucide-react';
+import { startInactivityTimer, resetInactivityTimer, clearInactivityTimer } from '../lib/token-expiration';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 export default function Layout() {
   const [user, loading] = useAuthState(auth);
@@ -37,6 +40,54 @@ export default function Layout() {
       window.removeEventListener('google-auth-success', handleAuthSuccess);
     };
   }, []);
+
+  // Inactivity auto-lock: monitor user activity and lock encryption after timeout
+  useEffect(() => {
+    if (!user) return;
+
+    let autoLockMinutes: number | null = null;
+
+    // Read autoLockMinutes from psychologist profile
+    (async () => {
+      try {
+        const docRef = doc(db, 'psychologists', user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          autoLockMinutes = docSnap.data().autoLockMinutes ?? null;
+          if (autoLockMinutes && autoLockMinutes > 0) {
+            startInactivityTimer(() => {
+              window.dispatchEvent(new CustomEvent('session-timeout'));
+            }, autoLockMinutes);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to read auto-lock setting:', err);
+      }
+    })();
+
+    const ACTIVITY_EVENTS = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+
+    const handleActivity = () => {
+      resetInactivityTimer();
+      if (autoLockMinutes && autoLockMinutes > 0) {
+        startInactivityTimer(() => {
+          window.dispatchEvent(new CustomEvent('session-timeout'));
+        }, autoLockMinutes);
+      }
+    };
+
+    const eventOptions = { passive: true };
+    ACTIVITY_EVENTS.forEach(event => {
+      document.addEventListener(event, handleActivity, eventOptions);
+    });
+
+    return () => {
+      clearInactivityTimer();
+      ACTIVITY_EVENTS.forEach(event => {
+        document.removeEventListener(event, handleActivity);
+      });
+    };
+  }, [user]);
 
   const handleLogout = async () => {
     clearTokens();

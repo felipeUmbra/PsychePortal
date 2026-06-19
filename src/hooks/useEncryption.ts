@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -120,6 +120,17 @@ export function useEncryption(): UseEncryptionReturn {
     cachedMasterKey = null;
     setIsUnlocked(false);
   }, []);
+
+  // Listen for session-timeout event (dispatched by Layout on inactivity)
+  useEffect(() => {
+    const handleSessionTimeout = () => {
+      lock();
+    };
+    window.addEventListener('session-timeout', handleSessionTimeout);
+    return () => {
+      window.removeEventListener('session-timeout', handleSessionTimeout);
+    };
+  }, [lock]);
 
   const encrypt = useCallback(async (plaintext: string): Promise<EncryptedPayload> => {
     if (!cachedMasterKey) throw new Error('Encryption key not unlocked');

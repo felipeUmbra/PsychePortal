@@ -1,4 +1,4 @@
-{
+﻿{
     "common": {
         "save": "Salvar",
         "cancel": "Cancelar",
@@ -320,7 +320,18 @@
         "crp_number": "Número de Registro do CRP",
         "crp_number_placeholder": "ex: 06/123456",
         "crp_region": "Região do CRP (Estado)",
-        "crp_region_placeholder": "Selecione um estado..."
+        "crp_region_placeholder": "Selecione um estado...",
+        "security_section": "Segurança",
+        "auto_lock_label": "Bloqueio automático por inatividade",
+        "auto_lock_never": "Nunca",
+        "auto_lock_5min": "5 minutos",
+        "auto_lock_10min": "10 minutos",
+        "auto_lock_15min": "15 minutos",
+        "auto_lock_30min": "30 minutos",
+        "auto_lock_60min": "60 minutos",
+        "auto_lock_helper": "A sessão será bloqueada automaticamente após o período de inatividade especificado.",
+        "session_timeout_toast_title": "Sessão Bloqueada",
+        "session_timeout_toast_message": "Sua sessão foi bloqueada por inatividade. Insira sua senha para continuar."
     },
     "terms_page": {
         "title": "Termos de Serviço",

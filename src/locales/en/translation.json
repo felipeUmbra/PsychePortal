@@ -1,4 +1,4 @@
-{
+﻿{
     "common": {
         "save": "Save",
         "cancel": "Cancel",
@@ -333,7 +333,18 @@
         "crp_number": "CRP Registration Number",
         "crp_number_placeholder": "e.g., 06/123456",
         "crp_region": "CRP Region (State)",
-        "crp_region_placeholder": "Select a state..."
+        "crp_region_placeholder": "Select a state...",
+        "security_section": "Security",
+        "auto_lock_label": "Auto-lock after inactivity",
+        "auto_lock_never": "Never",
+        "auto_lock_5min": "5 minutes",
+        "auto_lock_10min": "10 minutes",
+        "auto_lock_15min": "15 minutes",
+        "auto_lock_30min": "30 minutes",
+        "auto_lock_60min": "60 minutes",
+        "auto_lock_helper": "The session will be automatically locked after the specified period of inactivity.",
+        "session_timeout_toast_title": "Session Locked",
+        "session_timeout_toast_message": "Your session was locked due to inactivity. Please enter your passphrase to continue."
     },
     "terms_page": {
         "title": "Termos de Serviço",
