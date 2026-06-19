@@ -329,7 +329,11 @@
         "consent_text_label": "Default Consent Text",
         "consent_text_placeholder": "Enter the consent text that patients will see...",
         "consent_version_label": "Consent Version",
-        "consent_config_hint": "This text will be presented to patients before their first session record is saved."
+        "consent_config_hint": "This text will be presented to patients before their first session record is saved.",
+        "crp_number": "CRP Registration Number",
+        "crp_number_placeholder": "e.g., 06/123456",
+        "crp_region": "CRP Region (State)",
+        "crp_region_placeholder": "Select a state..."
     },
     "terms_page": {
         "title": "Termos de Serviço",
@@ -457,6 +461,8 @@
         "dsr_patient_select": "Select Patient",
         "dsr_generate": "Generate Signed Data Bundle",
         "dsr_warning": "This will export all data for this patient including decrypted clinical notes. Handle with care.",
-        "snapshots_stored": "snapshots stored"
+        "snapshots_stored": "snapshots stored",
+        "crp_display": "CRP {number} — {region}",
+        "crp_missing_warning": "CRP number not provided. Please add it in Settings."
     }
 }

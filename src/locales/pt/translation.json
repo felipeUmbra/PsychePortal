@@ -316,7 +316,11 @@
         "consent_text_label": "Texto de Consentimento Padrão",
         "consent_text_placeholder": "Insira o texto de consentimento que os pacientes verão...",
         "consent_version_label": "Versão do Consentimento",
-        "consent_config_hint": "Este texto será apresentado aos pacientes antes que o primeiro registro de sessão seja salvo."
+        "consent_config_hint": "Este texto será apresentado aos pacientes antes que o primeiro registro de sessão seja salvo.",
+        "crp_number": "Número de Registro do CRP",
+        "crp_number_placeholder": "ex: 06/123456",
+        "crp_region": "Região do CRP (Estado)",
+        "crp_region_placeholder": "Selecione um estado..."
     },
     "terms_page": {
         "title": "Termos de Serviço",
@@ -520,6 +524,8 @@
         "dsr_patient_select": "Selecione o Paciente",
         "dsr_generate": "Gerar Pacote de Dados Assinado",
         "dsr_warning": "Isso exportará todos os dados deste paciente incluindo notas clínicas descriptografadas. Manuseie com cuidado.",
-        "snapshots_stored": "snapshots armazenados"
+        "snapshots_stored": "snapshots armazenados",
+        "crp_display": "CRP {number} — {region}",
+        "crp_missing_warning": "Número do CRP não informado. Adicione nas Configurações."
     }
 }

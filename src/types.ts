@@ -73,6 +73,8 @@ export interface Psychologist {
   consentText?: string;
   consentVersion?: string;
   retentionPolicy?: string;
+  crpNumber?: string;
+  crpRegion?: string;
   attestation?: PsychologistAttestation;
   createdAt?: string;
   updatedAt?: string;

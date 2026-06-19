@@ -322,6 +322,53 @@ export default function Settings() {
                 </div>
                 <p className="text-[11px] text-text-muted mt-2 font-medium">{t('settings.email_hint')}</p>
               </div>
+              <div>
+                <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.crp_number')}</label>
+                <input
+                  type="text"
+                  className="input-field text-[14px]"
+                  placeholder={t('settings.crp_number_placeholder')}
+                  value={profile.crpNumber || ''}
+                  onChange={(e) => setProfile({ ...profile, crpNumber: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.crp_region')}</label>
+                <select
+                  className="input-field text-[14px]"
+                  value={profile.crpRegion || ''}
+                  onChange={(e) => setProfile({ ...profile, crpRegion: e.target.value })}
+                >
+                  <option value="">{t('settings.crp_region_placeholder')}</option>
+                  <option value="AC">AC</option>
+                  <option value="AL">AL</option>
+                  <option value="AP">AP</option>
+                  <option value="AM">AM</option>
+                  <option value="BA">BA</option>
+                  <option value="CE">CE</option>
+                  <option value="DF">DF</option>
+                  <option value="ES">ES</option>
+                  <option value="GO">GO</option>
+                  <option value="MA">MA</option>
+                  <option value="MT">MT</option>
+                  <option value="MS">MS</option>
+                  <option value="MG">MG</option>
+                  <option value="PA">PA</option>
+                  <option value="PB">PB</option>
+                  <option value="PR">PR</option>
+                  <option value="PE">PE</option>
+                  <option value="PI">PI</option>
+                  <option value="RJ">RJ</option>
+                  <option value="RN">RN</option>
+                  <option value="RS">RS</option>
+                  <option value="RO">RO</option>
+                  <option value="RR">RR</option>
+                  <option value="SC">SC</option>
+                  <option value="SP">SP</option>
+                  <option value="SE">SE</option>
+                  <option value="TO">TO</option>
+                </select>
+              </div>
             </div>
 
             <div className="flex flex-col items-center justify-center p-8 bg-bg rounded-2xl border border-dashed border-border-custom">

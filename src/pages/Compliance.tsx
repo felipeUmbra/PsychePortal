@@ -244,12 +244,39 @@ export default function Compliance() {
             ['cfpAware', t('compliance.attestation_cfp', 'I have read and understand the CFP 09/2024 resolution')],
             ['retentionPolicy', t('compliance.attestation_retention', 'I have a data retention policy documented')],
             ['dsrAware', t('compliance.attestation_dsr', 'I know how to handle a data subject request')],
-          ] as [keyof PsychologistAttestation, string][]).map(([key, label]) => (
-            <label key={key} className="flex items-center gap-3 cursor-pointer group">
-              <input type="checkbox" checked={!!attestation[key]} onChange={(e) => setAttestation(prev => ({ ...prev, [key]: e.target.checked }))} className="w-4 h-4 rounded border-border-custom text-primary-custom focus:ring-primary-custom/20" />
-              <span className="text-[14px] text-text-main group-hover:text-primary-custom transition-colors">{label}</span>
-            </label>
-          ))}
+          ] as [keyof PsychologistAttestation, string][]).map(([key, label]) => {
+            if (key === 'crpValid') {
+              const crpDisplay = profile?.crpNumber
+                ? t('compliance.crp_display', { number: profile.crpNumber, region: profile.crpRegion || '' })
+                : null;
+              const crpMissingWarning = !profile?.crpNumber && attestation.crpValid;
+              return (
+                <div key={key} className="space-y-2">
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input type="checkbox" checked={!!attestation[key]} onChange={(e) => setAttestation(prev => ({ ...prev, [key]: e.target.checked }))} className="w-4 h-4 rounded border-border-custom text-primary-custom focus:ring-primary-custom/20" />
+                    <span className="text-[14px] text-text-main group-hover:text-primary-custom transition-colors">{label}</span>
+                    {crpDisplay && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary-custom/10 text-primary-custom rounded text-[12px] font-semibold">
+                        {crpDisplay}
+                      </span>
+                    )}
+                  </label>
+                  {crpMissingWarning && (
+                    <div className="flex items-center gap-2 ml-7 text-amber-600">
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                      <span className="text-[12px] font-medium">{t('compliance.crp_missing_warning', 'CRP number not provided. Please add it in Settings.')}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            return (
+              <label key={key} className="flex items-center gap-3 cursor-pointer group">
+                <input type="checkbox" checked={!!attestation[key]} onChange={(e) => setAttestation(prev => ({ ...prev, [key]: e.target.checked }))} className="w-4 h-4 rounded border-border-custom text-primary-custom focus:ring-primary-custom/20" />
+                <span className="text-[14px] text-text-main group-hover:text-primary-custom transition-colors">{label}</span>
+              </label>
+            );
+          })}
         </div>
         <div className="flex items-center justify-between mt-6 pt-4 border-t border-border-custom">
           <AnimatePresence>
