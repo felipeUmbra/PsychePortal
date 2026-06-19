@@ -574,5 +574,15 @@
         "button_label": "Excluir Todos os Dados do Paciente",
         "dsr_button_label": "Excluir Todos os Dados do Paciente",
         "dsr_delete_warning": "Isso excluirá permanentemente todos os dados deste paciente. Esta ação não pode ser desfeita."
+    },
+    "note_version": {
+        "view_history": "Ver Histórico de Versões",
+        "title": "Histórico de Versões das Notas",
+        "version": "Versão",
+        "created_at": "Criado Em",
+        "no_versions": "Nenhum histórico de versões disponível.",
+        "unlock_required": "Desbloqueie a criptografia para ver o conteúdo da versão.",
+        "close": "Fechar",
+        "loading": "Carregando versões..."
     }
 }

@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, FileText, Plus, Clock, Edit3, Trash2, X, ClipboardCheck, AlertTriangle, Loader2 } from 'lucide-react';
+import { ArrowLeft, Calendar, FileText, Plus, Clock, Edit3, Trash2, X, ClipboardCheck, AlertTriangle, Loader2, History, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format, isPast } from 'date-fns';
 import { ptBR, enUS } from 'date-fns/locale';
@@ -20,6 +20,8 @@ import { logView, logEditCompleted } from '../lib/audit';
 import { deleteAllPatientData } from '../lib/data-deletion';
 import { PatientConsent } from '../components/patients/PatientConsent';
 import { usePatientConsent } from '../hooks/usePatientConsent';
+import { useEncryption } from '../hooks/useEncryption';
+import { getNoteVersions, type NoteVersion } from '../lib/note-versioning';
 
 export default function PatientDetail() {
   const { id } = useParams();
@@ -46,6 +48,15 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
   const [deleteAllConfirmName, setDeleteAllConfirmName] = useState('');
   const [deleteAllLoading, setDeleteAllLoading] = useState(false);
+
+  // Version history state
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [selectedSessionForHistory, setSelectedSessionForHistory] = useState<any>(null);
+  const [noteVersions, setNoteVersions] = useState<NoteVersion[]>([]);
+  const [versionsLoading, setVersionsLoading] = useState(false);
+  const [selectedVersion, setSelectedVersion] = useState<NoteVersion | null>(null);
+  const [decryptedVersionNotes, setDecryptedVersionNotes] = useState<string | null>(null);
+  const { isUnlocked, decrypt } = useEncryption();
 
   const { consents, hasActiveConsent, acceptConsent, revokeConsent } = usePatientConsent(id);
 // Log patient view
@@ -150,6 +161,41 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
       setDeleteAllLoading(false);
       setShowDeleteAllModal(false);
       setDeleteAllConfirmName('');
+    }
+  };
+
+  const handleViewHistory = async (session: any) => {
+    if (!user) return;
+    setSelectedSessionForHistory(session);
+    setShowVersionHistory(true);
+    setNoteVersions([]);
+    setSelectedVersion(null);
+    setDecryptedVersionNotes(null);
+    setVersionsLoading(true);
+    try {
+      const versions = await getNoteVersions(session.id, user.uid);
+      setNoteVersions(versions);
+    } catch (err) {
+      console.error('Failed to load note versions:', err);
+    } finally {
+      setVersionsLoading(false);
+    }
+  };
+
+  const handleSelectVersion = async (version: NoteVersion) => {
+    setSelectedVersion(version);
+    setDecryptedVersionNotes(null);
+    if (!isUnlocked) return;
+    try {
+      const payload = JSON.parse(version.notes);
+      if (payload.version && payload.ciphertext) {
+        const pt = await decrypt(payload);
+        setDecryptedVersionNotes(pt);
+      } else {
+        setDecryptedVersionNotes(version.notes);
+      }
+    } catch {
+      setDecryptedVersionNotes(version.notes);
     }
   };
 
@@ -411,6 +457,15 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
+                              {session.notes && (
+                                <button
+                                  onClick={() => handleViewHistory(session)}
+                                  className="p-1.5 text-text-muted hover:text-primary-custom hover:bg-bg rounded-md transition-colors"
+                                  title={t('note_version.view_history', 'View Version History')}
+                                >
+                                  <History className="w-4 h-4" />
+                                </button>
+                              )}
                             </>
                           )}
                         </div>
@@ -636,6 +691,129 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
                 >
                   {deleteAllLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                   {t('data_deletion.delete_permanently', 'Delete Permanently')}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showVersionHistory && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                setShowVersionHistory(false);
+                setSelectedSessionForHistory(null);
+                setNoteVersions([]);
+                setSelectedVersion(null);
+                setDecryptedVersionNotes(null);
+              }}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl p-6 max-h-[80vh] overflow-y-auto"
+            >
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-slate-900">
+                    {t('note_version.title', 'Note Version History')}
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setShowVersionHistory(false);
+                      setSelectedSessionForHistory(null);
+                      setNoteVersions([]);
+                      setSelectedVersion(null);
+                      setDecryptedVersionNotes(null);
+                    }}
+                    className="p-1.5 text-text-muted hover:text-text-main hover:bg-surface rounded-md transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {versionsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary-custom" />
+                  <span className="ml-2 text-text-muted text-[14px]">{t('note_version.loading', 'Loading versions...')}</span>
+                </div>
+              ) : noteVersions.length === 0 ? (
+                <div className="text-center py-8">
+                  <History className="w-10 h-10 text-border-custom mx-auto mb-3" />
+                  <p className="text-text-muted text-[14px]">{t('note_version.no_versions', 'No version history available.')}</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {noteVersions.map((version) => (
+                    <button
+                      key={version.id}
+                      onClick={() => handleSelectVersion(version)}
+                      className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                        selectedVersion?.id === version.id
+                          ? 'border-primary-custom bg-primary-custom/5'
+                          : 'border-border-custom hover:border-primary-custom/30 hover:bg-surface'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-[13px] font-bold text-text-main">
+                          {t('note_version.version', 'Version')} {version.version}
+                        </span>
+                        <span className="text-[11px] text-text-muted">
+                          {format(new Date(version.createdAt), 'MMM d, yyyy HH:mm', { locale: dateLocale })}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {selectedVersion && (
+                <div className="mt-4 pt-4 border-t border-border-custom">
+                  <h3 className="text-[13px] font-bold text-text-main mb-2">
+                    {t('note_version.version', 'Version')} {selectedVersion.version} — {t('note_version.created_at', 'Created At')}: {format(new Date(selectedVersion.createdAt), 'MMMM d, yyyy HH:mm', { locale: dateLocale })}
+                  </h3>
+                  {isUnlocked ? (
+                    decryptedVersionNotes !== null ? (
+                      <div className="bg-surface rounded-lg p-4 border border-border-custom">
+                        <RichTextRenderer
+                          content={decryptedVersionNotes}
+                          className="!bg-transparent"
+                          style={{ fontSize: '13px' }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 className="w-5 h-5 animate-spin text-primary-custom" />
+                      </div>
+                    )
+                  ) : (
+                    <div className="bg-surface rounded-lg p-4 border border-border-custom text-center">
+                      <Lock className="w-5 h-5 text-text-muted mx-auto mb-2" />
+                      <p className="text-text-muted text-[13px]">{t('note_version.unlock_required', 'Unlock encryption to view version content.')}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex justify-end mt-4 pt-4 border-t border-border-custom">
+                <button
+                  onClick={() => {
+                    setShowVersionHistory(false);
+                    setSelectedSessionForHistory(null);
+                    setNoteVersions([]);
+                    setSelectedVersion(null);
+                    setDecryptedVersionNotes(null);
+                  }}
+                  className="btn-secondary"
+                >
+                  {t('note_version.close', 'Close')}
                 </button>
               </div>
             </motion.div>

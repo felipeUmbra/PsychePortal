@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { collection, query, where, orderBy, onSnapshot, addDoc, doc, updateDoc, deleteDoc, getDocs } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, addDoc, doc, updateDoc, deleteDoc, getDocs, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, getStorage, deleteObject, setDriveToken as setMockToken } from '../lib/firestore-mock'; // Import from mock
 import { db, auth } from '../firebase'; // Remove 'storage' import
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -8,6 +8,7 @@ import { handleFirestoreError, OperationType } from '../lib/error-handler';
 import { Session, PatientConsent } from '../types';
 import { useGoogleAuth } from '../context/GoogleAuthContext';
 import { useEncryption } from './useEncryption';
+import { saveNextNoteVersion } from '../lib/note-versioning';
 
 export function useSessions(patientId?: string) {
   const [user] = useAuthState(auth);
@@ -118,6 +119,21 @@ export function useSessions(patientId?: string) {
       const session = sessions.find(s => s.id === sessionId);
       const googleEventId = updates.googleEventId || session?.googleEventId;
 
+      // --- Note versioning: snapshot current notes before overwriting ---
+      const isNotesChanged = 'notes' in updates && updates.notes !== undefined;
+      if (isNotesChanged && isUnlocked) {
+        try {
+          const currentDoc = await getDoc(doc(db, 'sessions', sessionId));
+          const currentEncryptedNotes = currentDoc.data()?.notes || '';
+          if (currentEncryptedNotes) {
+            await saveNextNoteVersion(sessionId, user.uid, currentEncryptedNotes);
+          }
+        } catch (versionErr) {
+          // Version save failure should not block the session update
+          console.error('Failed to save note version:', versionErr);
+        }
+      }
+      // --- End note versioning ---
       const updatesToWrite = { ...updates };
       if (isUnlocked && updatesToWrite.notes) {
         const enc = await encrypt(updatesToWrite.notes);

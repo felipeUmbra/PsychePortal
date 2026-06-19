@@ -555,5 +555,15 @@
         "button_label": "Delete All Patient Data",
         "dsr_button_label": "Delete All Patient Data",
         "dsr_delete_warning": "This will permanently delete all data for this patient. This action cannot be undone."
+    },
+    "note_version": {
+        "view_history": "View Version History",
+        "title": "Note Version History",
+        "version": "Version",
+        "created_at": "Created At",
+        "no_versions": "No version history available.",
+        "unlock_required": "Unlock encryption to view version content.",
+        "close": "Close",
+        "loading": "Loading versions..."
     }
 }
