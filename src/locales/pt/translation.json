@@ -553,5 +553,26 @@
         "export_log_exported_at": "Exportado Em",
         "export_log_export_type": "Tipo de Exportação",
         "export_log_record_count": "Quantidade de Registros"
+    },
+    "data_deletion": {
+        "title": "Excluir Todos os Dados do Paciente",
+        "warning_title": "Excluir Todos os Dados do Paciente?",
+        "warning_message": "Isso excluirá permanentemente o registro do paciente, todas as sessões, todos os consentimentos e todos os arquivos anexos do Google Drive. Esta ação não pode ser desfeita.",
+        "confirm_title": "Confirmar Exclusão",
+        "confirm_description": "Para confirmar, digite o nome completo do paciente abaixo:",
+        "confirm_placeholder": "Digite o nome do paciente para confirmar",
+        "cancel": "Cancelar",
+        "continue": "Continuar",
+        "delete_permanently": "Excluir Permanentemente",
+        "deletion_success": "Exclusão de Dados Concluída",
+        "result_patient_deleted": "Registro do paciente excluído",
+        "result_sessions_deleted": "Sessões excluídas",
+        "result_consents_deleted": "Consentimentos excluídos",
+        "result_attachments_deleted": "Anexos excluídos",
+        "result_executed_at": "Executado em",
+        "error_failed": "Falha na exclusão. Tente novamente.",
+        "button_label": "Excluir Todos os Dados do Paciente",
+        "dsr_button_label": "Excluir Todos os Dados do Paciente",
+        "dsr_delete_warning": "Isso excluirá permanentemente todos os dados deste paciente. Esta ação não pode ser desfeita."
     }
 }

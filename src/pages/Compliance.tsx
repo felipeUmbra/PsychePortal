@@ -11,13 +11,14 @@ import { useTranslation } from 'react-i18next';
 import {
   Shield, CheckCircle2, XCircle, FileText, Download, Save,
   Loader2, AlertTriangle, Lock, Database, Cookie, HardDrive,
-  Scale, ClipboardCheck
+  Scale, ClipboardCheck, Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useEncryption } from '../hooks/useEncryption';
 import { useGoogleAuth } from '../context/GoogleAuthContext';
 import { triggerFullBackup } from '../lib/backup';
 import { generateDataBundle, downloadBundleAsFile } from '../lib/data-export';
+import { deleteAllPatientData, DeletionResult } from '../lib/data-deletion';
 import { PsychologistAttestation } from '../types';
 import Papa from 'papaparse';
 import { format } from 'date-fns';
@@ -46,6 +47,12 @@ export default function Compliance() {
   const [selectedPatient, setSelectedPatient] = useState('');
   const [dsrLoading, setDsrLoading] = useState(false);
   const [dsrError, setDsrError] = useState<string | null>(null);
+  const [dsrDeleteLoading, setDsrDeleteLoading] = useState(false);
+  const [dsrDeleteResult, setDsrDeleteResult] = useState<DeletionResult | null>(null);
+  const [dsrDeleteError, setDsrDeleteError] = useState<string | null>(null);
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+  const [deleteConfirmStep, setDeleteConfirmStep] = useState(1);
+  const [deleteConfirmName, setDeleteConfirmName] = useState('');
 
   useEffect(() => {
     if (!user) return;
@@ -198,6 +205,35 @@ export default function Compliance() {
     } catch (err: any) { setDsrError(err.message || 'Failed to generate data bundle'); }
     finally { setDsrLoading(false); }
   }, [user, selectedPatient, patients]);
+
+  const handleDeleteAllData = useCallback(async () => {
+    if (!user || !selectedPatient) return;
+    setDsrDeleteLoading(true);
+    setDsrDeleteError(null);
+    setDsrDeleteResult(null);
+    try {
+      const result = await deleteAllPatientData(selectedPatient, user.uid);
+      setDsrDeleteResult(result);
+    } catch (err: any) {
+      setDsrDeleteError(err.message || t('data_deletion.error_failed', 'Deletion failed. Please try again.'));
+    } finally {
+      setDsrDeleteLoading(false);
+      setShowDeleteConfirmModal(false);
+      setDeleteConfirmStep(1);
+      setDeleteConfirmName('');
+    }
+  }, [user, selectedPatient, t]);
+
+  const handleOpenDeleteModal = () => {
+    if (!selectedPatient) return;
+    setDeleteConfirmStep(1);
+    setDeleteConfirmName('');
+    setShowDeleteConfirmModal(true);
+  };
+
+  const handleConfirmStep1 = () => {
+    setDeleteConfirmStep(2);
+  };
 
   if (!user) return null;
 
@@ -371,8 +407,118 @@ export default function Compliance() {
             {dsrLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
             {t('compliance.dsr_generate', 'Generate Signed Data Bundle')}
           </button>
+
+          <div className="pt-4 mt-4 border-t border-border-custom">
+            <div className="p-4 bg-red-50 border border-red-200 rounded-xl mb-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                <p className="text-[13px] text-red-800 font-medium">{t('data_deletion.dsr_delete_warning', 'This will permanently delete all data for this patient. This action cannot be undone.')}</p>
+              </div>
+            </div>
+            {dsrDeleteError && <p className="text-[13px] text-red-600 font-medium mb-3">{dsrDeleteError}</p>}
+            {dsrDeleteResult && (
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl mb-4 space-y-1">
+                <p className="text-[14px] font-bold text-text-main">{t('data_deletion.deletion_success', 'Data Deletion Complete')}</p>
+                <p className="text-[12px] text-text-muted">{t('data_deletion.result_patient_deleted', 'Patient record deleted')}: {dsrDeleteResult.patientDeleted ? 'Yes' : 'No'}</p>
+                <p className="text-[12px] text-text-muted">{t('data_deletion.result_sessions_deleted', 'Sessions deleted')}: {dsrDeleteResult.sessionsDeleted}</p>
+                <p className="text-[12px] text-text-muted">{t('data_deletion.result_consents_deleted', 'Consents deleted')}: {dsrDeleteResult.consentsDeleted}</p>
+                <p className="text-[12px] text-text-muted">{t('data_deletion.result_attachments_deleted', 'Attachments deleted')}: {dsrDeleteResult.attachmentsDeleted}</p>
+                <p className="text-[12px] text-text-muted">{t('data_deletion.result_executed_at', 'Executed at')}: {new Date(dsrDeleteResult.executedAt).toLocaleString()}</p>
+              </div>
+            )}
+            <button onClick={handleOpenDeleteModal} disabled={dsrDeleteLoading || !selectedPatient} className="btn-secondary w-full flex items-center justify-center gap-2 text-[14px] text-red-600 hover:bg-red-50 hover:border-red-300 disabled:opacity-50">
+              {dsrDeleteLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+              {t('data_deletion.dsr_button_label', 'Delete All Patient Data')}
+            </button>
+          </div>
         </div>
       </section>
+
+      <AnimatePresence>
+        {showDeleteConfirmModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => { setShowDeleteConfirmModal(false); setDeleteConfirmStep(1); setDeleteConfirmName(''); }}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6"
+            >
+              {deleteConfirmStep === 1 ? (
+                <>
+                  <div className="mb-6">
+                    <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <AlertTriangle className="w-6 h-6 text-red-600" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-900 text-center mb-2">
+                      {t('data_deletion.warning_title', 'Delete All Patient Data?')}
+                    </h2>
+                    <p className="text-text-muted text-[14px] text-center">
+                      {t('data_deletion.warning_message', 'This will permanently delete the patient record, all sessions, all consents, and all attached files from Google Drive. This action cannot be undone.')}
+                    </p>
+                  </div>
+                  <div className="flex gap-3 justify-end">
+                    <button
+                      onClick={() => { setShowDeleteConfirmModal(false); setDeleteConfirmStep(1); setDeleteConfirmName(''); }}
+                      className="btn-secondary"
+                    >
+                      {t('data_deletion.cancel', 'Cancel')}
+                    </button>
+                    <button
+                      onClick={handleConfirmStep1}
+                      className="btn-primary bg-red-600 hover:bg-red-700 border-red-600 hover:border-red-700"
+                    >
+                      {t('data_deletion.continue', 'Continue')}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="mb-6">
+                    <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Trash2 className="w-6 h-6 text-red-600" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-900 text-center mb-2">
+                      {t('data_deletion.confirm_title', 'Confirm Deletion')}
+                    </h2>
+                    <p className="text-text-muted text-[13px] text-center mb-4">
+                      {t('data_deletion.confirm_description', "To confirm, type the patient's full name below:")}
+                    </p>
+                    <input
+                      type="text"
+                      className="input-field text-[14px]"
+                      placeholder={t('data_deletion.confirm_placeholder', 'Type patient name to confirm')}
+                      value={deleteConfirmName}
+                      onChange={(e) => setDeleteConfirmName(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex gap-3 justify-end">
+                    <button
+                      onClick={() => { setShowDeleteConfirmModal(false); setDeleteConfirmStep(1); setDeleteConfirmName(''); }}
+                      className="btn-secondary"
+                    >
+                      {t('data_deletion.cancel', 'Cancel')}
+                    </button>
+                    <button
+                      onClick={handleDeleteAllData}
+                      disabled={deleteConfirmName !== (patients.find(p => p.id === selectedPatient)?.name || '')}
+                      className="btn-primary bg-red-600 hover:bg-red-700 border-red-600 hover:border-red-700 disabled:opacity-50"
+                    >
+                      {t('data_deletion.delete_permanently', 'Delete Permanently')}
+                    </button>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

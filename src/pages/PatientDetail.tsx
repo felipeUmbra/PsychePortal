@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, FileText, Plus, Clock, Edit3, Trash2, X, ClipboardCheck, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Calendar, FileText, Plus, Clock, Edit3, Trash2, X, ClipboardCheck, AlertTriangle, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format, isPast } from 'date-fns';
 import { ptBR, enUS } from 'date-fns/locale';
@@ -17,6 +17,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { logView, logEditCompleted } from '../lib/audit';
+import { deleteAllPatientData } from '../lib/data-deletion';
 import { PatientConsent } from '../components/patients/PatientConsent';
 import { usePatientConsent } from '../hooks/usePatientConsent';
 
@@ -42,6 +43,9 @@ const [showEditWarningModal, setShowEditWarningModal] = useState(false);
 const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'sessions' | 'consent'>('sessions');
   const [psychologistConsentText, setPsychologistConsentText] = useState<string | null>(null);
+  const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
+  const [deleteAllConfirmName, setDeleteAllConfirmName] = useState('');
+  const [deleteAllLoading, setDeleteAllLoading] = useState(false);
 
   const { consents, hasActiveConsent, acceptConsent, revokeConsent } = usePatientConsent(id);
 // Log patient view
@@ -133,6 +137,22 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
     );
   };
 
+  const handleDeleteAllPatientData = async () => {
+    if (!user || !patient) return;
+    setDeleteAllLoading(true);
+    try {
+      await deleteAllPatientData(patient.id, user.uid);
+      navigate('/app/patients');
+    } catch (err: any) {
+      console.error('Failed to delete all patient data:', err);
+      alert(t('data_deletion.error_failed', 'Deletion failed. Please try again.'));
+    } finally {
+      setDeleteAllLoading(false);
+      setShowDeleteAllModal(false);
+      setDeleteAllConfirmName('');
+    }
+  };
+
   if (patientLoading || sessionsLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -189,6 +209,14 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
           >
             <Plus className="w-4 h-4" />
             {t('patient_detail.log_session')}
+          </button>
+          <button
+            onClick={() => { setDeleteAllConfirmName(''); setShowDeleteAllModal(true); }}
+            disabled={deleteAllLoading}
+            className="text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-2 rounded-lg text-[13px] sm:text-[14px] font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
+          >
+            <Trash2 className="w-4 h-4" />
+            {t('data_deletion.button_label', 'Delete All Patient Data')}
           </button>
         </div>
       </header>
@@ -553,6 +581,61 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
                   className="btn-primary bg-red-600 hover:bg-red-700 border-red-600 hover:border-red-700"
                 >
                   {t('common.delete', 'Delete')}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showDeleteAllModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => { setShowDeleteAllModal(false); setDeleteAllConfirmName(''); }}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6"
+            >
+              <div className="mb-6">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <AlertTriangle className="w-6 h-6 text-red-600" />
+                </div>
+                <h2 className="text-xl font-bold text-slate-900 text-center mb-2">
+                  {t('data_deletion.warning_title', 'Delete All Patient Data?')}
+                </h2>
+                <p className="text-text-muted text-[13px] text-center mb-4">
+                  {t('data_deletion.confirm_description', "To confirm, type the patient's full name below:")}
+                </p>
+                <input
+                  type="text"
+                  className="input-field text-[14px]"
+                  placeholder={t('data_deletion.confirm_placeholder', 'Type patient name to confirm')}
+                  value={deleteAllConfirmName}
+                  onChange={(e) => setDeleteAllConfirmName(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => { setShowDeleteAllModal(false); setDeleteAllConfirmName(''); }}
+                  className="btn-secondary"
+                >
+                  {t('data_deletion.cancel', 'Cancel')}
+                </button>
+                <button
+                  onClick={handleDeleteAllPatientData}
+                  disabled={deleteAllConfirmName !== patient?.name || deleteAllLoading}
+                  className="btn-primary bg-red-600 hover:bg-red-700 border-red-600 hover:border-red-700 disabled:opacity-50"
+                >
+                  {deleteAllLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  {t('data_deletion.delete_permanently', 'Delete Permanently')}
                 </button>
               </div>
             </motion.div>

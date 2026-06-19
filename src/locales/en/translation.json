@@ -534,5 +534,26 @@
         "export_log_exported_at": "Exported At",
         "export_log_export_type": "Export Type",
         "export_log_record_count": "Record Count"
+    },
+    "data_deletion": {
+        "title": "Delete All Patient Data",
+        "warning_title": "Delete All Patient Data?",
+        "warning_message": "This will permanently delete the patient record, all sessions, all consents, and all attached files from Google Drive. This action cannot be undone.",
+        "confirm_title": "Confirm Deletion",
+        "confirm_description": "To confirm, type the patient's full name below:",
+        "confirm_placeholder": "Type patient name to confirm",
+        "cancel": "Cancel",
+        "continue": "Continue",
+        "delete_permanently": "Delete Permanently",
+        "deletion_success": "Data Deletion Complete",
+        "result_patient_deleted": "Patient record deleted",
+        "result_sessions_deleted": "Sessions deleted",
+        "result_consents_deleted": "Consents deleted",
+        "result_attachments_deleted": "Attachments deleted",
+        "result_executed_at": "Executed at",
+        "error_failed": "Deletion failed. Please try again.",
+        "button_label": "Delete All Patient Data",
+        "dsr_button_label": "Delete All Patient Data",
+        "dsr_delete_warning": "This will permanently delete all data for this patient. This action cannot be undone."
     }
 }
