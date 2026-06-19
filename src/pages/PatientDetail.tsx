@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, FileText, Plus, Clock, Edit3, Trash2, X, ClipboardCheck } from 'lucide-react';
+import { ArrowLeft, Calendar, FileText, Plus, Clock, Edit3, Trash2, X, ClipboardCheck, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format, isPast } from 'date-fns';
 import { ptBR, enUS } from 'date-fns/locale';
@@ -16,7 +16,7 @@ import { useSessions } from '../hooks/useSessions';
 import { doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { logView } from '../lib/audit';
+import { logView, logEditCompleted } from '../lib/audit';
 import { PatientConsent } from '../components/patients/PatientConsent';
 import { usePatientConsent } from '../hooks/usePatientConsent';
 
@@ -38,6 +38,8 @@ export default function PatientDetail() {
   const [expandedSessions, setExpandedSessions] = useState<string[]>([]);
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+const [showEditWarningModal, setShowEditWarningModal] = useState(false);
+const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'sessions' | 'consent'>('sessions');
   const [psychologistConsentText, setPsychologistConsentText] = useState<string | null>(null);
 
@@ -110,6 +112,15 @@ export default function PatientDetail() {
       setDeletingSessionId(null);
     } catch (error) {
       console.error('Failed to delete session:', error);
+    }
+  };
+
+  const handleEditSessionClick = async (session: any) => {
+    if (session.status === 'completed') {
+      setPendingEditSessionId(session.id);
+      setShowEditWarningModal(true);
+    } else {
+      setEditingSessionId(session.id);
     }
   };
 
@@ -356,7 +367,7 @@ export default function PatientDetail() {
                           ) : (
                             <>
                               <button
-                                onClick={() => setEditingSessionId(session.id)}
+                                onClick={() => handleEditSessionClick(session)}
                                 className="p-1.5 text-text-muted hover:text-primary-custom hover:bg-bg rounded-md transition-colors"
                                 title={t('session_action.edit_session')}
                               >
@@ -444,7 +455,66 @@ export default function PatientDetail() {
       </div>
       )}
 
-      <AnimatePresence>
+            <AnimatePresence>
+        {showEditWarningModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                setShowEditWarningModal(false);
+                setPendingEditSessionId(null);
+              }}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6"
+            >
+              <div className="mb-6">
+                <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <AlertTriangle className="w-6 h-6 text-amber-600" />
+                </div>
+                <h2 className="text-xl font-bold text-slate-900 text-center mb-2">
+                  {t('sessions.edit_completed_warning_title')}
+                </h2>
+                <p className="text-text-muted text-[14px] text-center">
+                  {t('sessions.edit_completed_warning_message')}
+                </p>
+              </div>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => {
+                    setShowEditWarningModal(false);
+                    setPendingEditSessionId(null);
+                  }}
+                  className="btn-secondary"
+                >
+                  {t('common.cancel', 'Cancel')}
+                </button>
+                <button
+                  onClick={async () => {
+                    if (user && pendingEditSessionId) {
+                      await logEditCompleted(user.uid, pendingEditSessionId, pendingEditSessionId);
+                    }
+                    setEditingSessionId(pendingEditSessionId);
+                    setShowEditWarningModal(false);
+                    setPendingEditSessionId(null);
+                  }}
+                  className="btn-primary"
+                >
+                  {t('sessions.edit_completed_warning_confirm')}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+<AnimatePresence>
         {showDeleteModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div

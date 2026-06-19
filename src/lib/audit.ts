@@ -184,6 +184,25 @@ export async function logDelete(
   });
 }
 
+
+/**
+ * Convenience function for logging edit attempts on completed sessions.
+ */
+export async function logEditCompleted(
+  actorId: string,
+  entityId: string,
+  sessionId?: string
+): Promise<void> {
+  await logEvent({
+    actorId,
+    action: 'update',
+    entity: 'session',
+    entityId,
+    sessionId,
+    afterData: { warning: 'edit_completed_session' },
+    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined
+  });
+}
 /**
  * Convenience function for logging export events.
  */

@@ -187,9 +187,17 @@
                 "monthly": "Por mês",
                 "health_insurance": "Plano de Saúde",
                 "exempt": "Isento"
-            }
+            },
+            "plan": "Plano de Pagamento",
+            "session_value": "Valor da Sessão",
+            "monthly_value": "Valor Mensal"
         },
-        "edit_profile": "Editar Paciente"
+        "edit_profile": "Editar Paciente",
+        "cpf": {
+            "label": "CPF",
+            "error_length": "CPF deve ter 11 dígitos",
+            "error_invalid": "CPF inválido"
+        }
     },
     "patient_detail": {
         "id": "ID do Paciente",
@@ -274,7 +282,10 @@
         "no_sessions": "Nenhuma sessão encontrada",
         "no_sessions_hint": "Tente ajustar sua pesquisa ou filtros.",
         "delete_confirm_title": "Excluir Sessão",
-        "delete_confirm_message": "Tem certeza que deseja excluir esta sessão? Esta ação não pode ser desfeita."
+        "delete_confirm_message": "Tem certeza que deseja excluir esta sessão? Esta ação não pode ser desfeita.",
+        "edit_completed_warning_title": "Editar Sessão Realizada?",
+        "edit_completed_warning_message": "Esta sessão está marcada como realizada. Editar notas clínicas após a conclusão é desencorajado pelo CFP 09/2024. Tem certeza de que deseja continuar?",
+        "edit_completed_warning_confirm": "Editar Mesmo Assim"
     },
     "settings": {
         "title": "Configurações da Conta",
