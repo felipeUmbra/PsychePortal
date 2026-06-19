@@ -3,6 +3,7 @@ import { db } from '../firebase';
 import { v4 as uuidv4 } from 'uuid';
 import { sha256, computeEntityHashAsync, computeRecordHash } from './crypto';
 import { AuditLog, AuditAction, AuditEntity } from '../types';
+import { getIpHint } from './ip-hint';
 
 let lastHashCache: string | null = null;
 let lastHashPromise: Promise<string> | null = null;
@@ -63,6 +64,11 @@ export async function logEvent(event: {
   userAgent?: string;
 }): Promise<void> {
   try {
+    // Fire IP hint capture non-blocking (don't await before writing audit log)
+    const ipHintPromise = getIpHint();
+    let capturedIpHint: string | undefined;
+    ipHintPromise.then(hint => { capturedIpHint = hint; });
+
     const prevHash = await getLastAuditHash();
     const beforeHash = event.beforeData ? await computeEntityHashAsync(event.beforeData) : undefined;
     const afterHash = event.afterData ? await computeEntityHashAsync(event.afterData) : undefined;
@@ -76,7 +82,7 @@ export async function logEvent(event: {
       sessionId: event.sessionId,
       beforeHash,
       afterHash,
-      ipHint: event.ipHint,
+      ipHint: event.ipHint ?? capturedIpHint,
       userAgent: event.userAgent,
       prevHash
     };
