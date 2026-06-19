@@ -525,6 +525,11 @@
         "dsr_warning": "Isso exportará todos os dados deste paciente incluindo notas clínicas descriptografadas. Manuseie com cuidado.",
         "snapshots_stored": "snapshots armazenados",
         "crp_display": "CRP {number} — {region}",
-        "crp_missing_warning": "Número do CRP não informado. Adicione nas Configurações."
+        "crp_missing_warning": "Número do CRP não informado. Adicione nas Configurações.",
+        "export_log_title": "Log de Exportação",
+        "export_log_subtitle": "Visualizar histórico de exportação de dados",
+        "export_log_exported_at": "Exportado Em",
+        "export_log_export_type": "Tipo de Exportação",
+        "export_log_record_count": "Quantidade de Registros"
     }
 }

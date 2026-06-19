@@ -27,6 +27,7 @@ import Papa from 'papaparse';
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { useGoogleAuth } from '../context/GoogleAuthContext';
 import { logExport } from '../lib/audit';
+import { logDataExport } from '../lib/export-log';
 
 export default function Settings() {
   const [user] = useAuthState(auth);
@@ -261,6 +262,7 @@ export default function Settings() {
       const entity = exportOption.includes('session') ? 'session' : 'patient';
       const entityIds = exportOption.includes('session') ? allPatients.flatMap(p => p.sessions?.map((s: any) => s.id) || []) : allPatients.map(p => p.id);
       await logExport(user.uid, entity, entityIds, exportOption);
+      await logDataExport(user.uid, 'all', exportOption, exportData.length);
 
     } catch (error) {
       console.error('Export failed', error);

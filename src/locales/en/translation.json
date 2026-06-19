@@ -462,6 +462,11 @@
         "dsr_warning": "This will export all data for this patient including decrypted clinical notes. Handle with care.",
         "snapshots_stored": "snapshots stored",
         "crp_display": "CRP {number} — {region}",
-        "crp_missing_warning": "CRP number not provided. Please add it in Settings."
+        "crp_missing_warning": "CRP number not provided. Please add it in Settings.",
+        "export_log_title": "Export Log",
+        "export_log_subtitle": "View data export history",
+        "export_log_exported_at": "Exported At",
+        "export_log_export_type": "Export Type",
+        "export_log_record_count": "Record Count"
     }
 }
