@@ -88,6 +88,9 @@ export function useSessions(patientId?: string) {
     if (!hasConsent) {
       throw new Error('CONSENT_REQUIRED');
     }
+    if (!isUnlocked) {
+      throw new Error('ENCRYPTION_REQUIRED');
+    }
     try {
       const dataToWrite = { ...sessionData };
       if (isUnlocked && dataToWrite.notes) {
@@ -114,6 +117,9 @@ export function useSessions(patientId?: string) {
       if (!hasConsent) {
         throw new Error('CONSENT_REQUIRED');
       }
+    }
+    if (!isUnlocked) {
+      throw new Error('ENCRYPTION_REQUIRED');
     }
     try {
       const session = sessions.find(s => s.id === sessionId);
@@ -212,10 +218,11 @@ export function useSessions(patientId?: string) {
 
     try {
       setIsUploading(true);
-      const storageRef = ref(getStorage(), `sessions/${sessionId}/${Date.now()}_${file.name}`); // Use getStorage() from mock
+      const storagePath = `patients/${user.uid}/${sessionId}/${Date.now()}_${file.name}`;
+      const storageRef = ref(getStorage(), storagePath);
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
-      return { name: file.name, url, size: file.size };
+      return { name: file.name, url, size: file.size, storagePath };
     } catch (error) {
       console.error('Upload failed:', error);
       throw error;
@@ -224,11 +231,10 @@ export function useSessions(patientId?: string) {
     }
   };
 
-  const deleteFile = async (url: string, sessionId: string) => {
+  const deleteFile = async (storagePath: string) => {
     if (!user) throw new Error('Unauthenticated');
     try {
-      const storageRef = { path: url.split('attachment:')[1] || url };
-      await deleteObject(storageRef);
+      await deleteObject({ path: storagePath });
     } catch (error) {
       console.error('File deletion failed:', error);
     }

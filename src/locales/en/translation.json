@@ -1,4 +1,4 @@
-﻿{
+{
     "common": {
         "save": "Save",
         "cancel": "Cancel",
@@ -482,7 +482,9 @@
         "passphrase_mismatch": "As senhas nÃ£o coincidem.",
         "common.back": "Voltar",
         "common.loading": "Carregando...",
-        "common.cancel": "Cancelar"
+        "common.cancel": "Cancelar",
+        "required_error": "Clinical note encryption is mandatory per CFP 09/2024. Please set up encryption before saving sessions.",
+        "setup_required": "Encryption setup is required"
     },
     "consent": {
         "title": "Informed Consent",
@@ -507,7 +509,8 @@
         "no_consent": "No consent on file. Session records cannot be saved until consent is accepted.",
         "required_before_session": "Active consent is required before saving a session record. Please have the patient accept the consent form first.",
         "banner_required": "Active consent is required before creating session records. Please have the patient accept the consent form in the Consent tab.",
-        "form_warning": "Ensure the patient has accepted the consent form before saving clinical notes."
+        "form_warning": "Ensure the patient has accepted the consent form before saving clinical notes.",
+        "blocking_banner": "Active consent is required. Please have the patient accept the consent form before saving clinical notes."
     },
     "compliance": {
         "title": "Compliance",
@@ -586,5 +589,8 @@
         "unlock_required": "Unlock encryption to view version content.",
         "close": "Close",
         "loading": "Loading versions..."
+    },
+    "session_form": {
+        "consent_required_tooltip": "Obtain patient consent before saving"
     }
 }

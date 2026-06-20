@@ -9,7 +9,7 @@ interface SessionFormProps {
   initialData?: any;
   onSubmit: (data: any) => Promise<void>;
   onCancel: () => void;
-  onUploadFile?: (file: File) => Promise<{ name: string; url: string; size: number }>;
+  onUploadFile?: (file: File) => Promise<{ name: string; url: string; size: number; storagePath: string }>;
   isUploading?: boolean;
   title: string;
   submitLabel: string;
@@ -33,7 +33,7 @@ export function SessionForm({
     notes: '',
     type: 'individual',
     status: 'completed',
-    attachments: [] as { name: string; url: string; size: number }[]
+    attachments: [] as { name: string; url: string; size: number; storagePath?: string }[]
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -101,9 +101,9 @@ export function SessionForm({
     >
       <h3 className="text-[16px] font-bold text-text-main mb-6">{title}</h3>
       {consentRequired && (
-        <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg mb-6">
-          <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-          <p className="text-[13px] text-amber-800 font-medium">{t('consent.form_warning')}</p>
+        <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-300 rounded-lg mb-6">
+          <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <p className="text-[13px] text-red-800 font-bold">{t('consent.blocking_banner')}</p>
         </div>
       )}
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -155,6 +155,7 @@ export function SessionForm({
             value={formData.notes}
             onChange={(val) => setFormData({...formData, notes: val})}
             height={300}
+            disabled={consentRequired}
           />
         </div>
 
@@ -184,7 +185,7 @@ export function SessionForm({
                   type="file" 
                   className="hidden" 
                   onChange={handleFileUpload}
-                  disabled={isUploading || isSubmitting}
+                  disabled={isUploading || isSubmitting || consentRequired}
                 />
               </label>
             </div>
@@ -196,14 +197,15 @@ export function SessionForm({
             type="button"
             onClick={onCancel}
             className="btn-secondary text-[13px]"
-            disabled={isUploading || isSubmitting}
+            disabled={isUploading || isSubmitting || consentRequired}
           >
             {t('common.cancel')}
           </button>
           <button 
             type="submit" 
             className="btn-primary text-[13px] flex items-center justify-center gap-2" 
-            disabled={isUploading || isSubmitting}
+            disabled={isUploading || isSubmitting || consentRequired}
+            title={consentRequired ? t('session_form.consent_required_tooltip') : undefined}
           >
             {isSubmitting && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
             {submitLabel}

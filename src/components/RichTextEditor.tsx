@@ -6,9 +6,10 @@ interface RichTextEditorProps {
   onChange: (val: string) => void;
   height?: number;
   className?: string;
+  disabled?: boolean;
 }
 
-export default function RichTextEditor({ value, onChange, height = 300, className = '' }: RichTextEditorProps) {
+export default function RichTextEditor({ value, onChange, height = 300, className = '', disabled = false }: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const [isFocused, setIsFocused] = useState(false);
 
@@ -20,10 +21,9 @@ export default function RichTextEditor({ value, onChange, height = 300, classNam
   }, [value]);
 
   const handleInput = () => {
-    if (editorRef.current) {
-      const html = editorRef.current.innerHTML;
-      onChange(html === '<p><br></p>' || html === '<br>' ? '' : html);
-    }
+    if (disabled || !editorRef.current) return;
+    const html = editorRef.current.innerHTML;
+    onChange(html === '<p><br></p>' || html === '<br>' ? '' : html);
   };
 
   const executeCommand = (command: string, value: string = '') => {
@@ -42,6 +42,7 @@ export default function RichTextEditor({ value, onChange, height = 300, classNam
   };
 
   const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    if (disabled) return;
     e.preventDefault();
     const html = e.clipboardData.getData('text/html');
     const text = e.clipboardData.getData('text/plain');
@@ -91,7 +92,7 @@ export default function RichTextEditor({ value, onChange, height = 300, classNam
         <button
           type="button"
           onClick={() => executeCommand('bold')}
-          className="p-1.5 hover:bg-slate-200 rounded text-text-main transition-colors"
+          className={`p-1.5 rounded text-text-main transition-colors ${disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-slate-200"}`}
           title="Bold"
         >
           <Bold className="w-4 h-4" />
@@ -99,7 +100,7 @@ export default function RichTextEditor({ value, onChange, height = 300, classNam
         <button
           type="button"
           onClick={() => executeCommand('italic')}
-          className="p-1.5 hover:bg-slate-200 rounded text-text-main transition-colors"
+          className={`p-1.5 rounded text-text-main transition-colors ${disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-slate-200"}`}
           title="Italic"
         >
           <Italic className="w-4 h-4" />
@@ -107,7 +108,7 @@ export default function RichTextEditor({ value, onChange, height = 300, classNam
         <button
           type="button"
           onClick={() => executeCommand('underline')}
-          className="p-1.5 hover:bg-slate-200 rounded text-text-main transition-colors"
+          className={`p-1.5 rounded text-text-main transition-colors ${disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-slate-200"}`}
           title="Underline"
         >
           <Underline className="w-4 h-4" />
@@ -118,7 +119,7 @@ export default function RichTextEditor({ value, onChange, height = 300, classNam
         <button
           type="button"
           onClick={() => executeCommand('formatBlock', '<h3>')}
-          className="p-1.5 hover:bg-slate-200 rounded text-text-main transition-colors"
+          className={`p-1.5 rounded text-text-main transition-colors ${disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-slate-200"}`}
           title="Heading"
         >
           <Heading className="w-4 h-4" />
@@ -129,7 +130,7 @@ export default function RichTextEditor({ value, onChange, height = 300, classNam
         <button
           type="button"
           onClick={() => executeCommand('insertUnorderedList')}
-          className="p-1.5 hover:bg-slate-200 rounded text-text-main transition-colors"
+          className={`p-1.5 rounded text-text-main transition-colors ${disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-slate-200"}`}
           title="Bullet List"
         >
           <List className="w-4 h-4" />
@@ -137,7 +138,7 @@ export default function RichTextEditor({ value, onChange, height = 300, classNam
         <button
           type="button"
           onClick={() => executeCommand('insertOrderedList')}
-          className="p-1.5 hover:bg-slate-200 rounded text-text-main transition-colors"
+          className={`p-1.5 rounded text-text-main transition-colors ${disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-slate-200"}`}
           title="Numbered List"
         >
           <ListOrdered className="w-4 h-4" />
@@ -148,7 +149,7 @@ export default function RichTextEditor({ value, onChange, height = 300, classNam
         <button
           type="button"
           onClick={addLink}
-          className="p-1.5 hover:bg-slate-200 rounded text-text-main transition-colors"
+          className={`p-1.5 rounded text-text-main transition-colors ${disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-slate-200"}`}
           title="Add Link"
         >
           <Link className="w-4 h-4" />
@@ -157,7 +158,7 @@ export default function RichTextEditor({ value, onChange, height = 300, classNam
         <button
           type="button"
           onClick={() => executeCommand('removeFormat')}
-          className="p-1.5 hover:bg-slate-200 rounded text-text-main transition-colors"
+          className={`p-1.5 rounded text-text-main transition-colors ${disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-slate-200"}`}
           title="Clear Formatting"
         >
           <Trash2 className="w-4 h-4" />
@@ -167,7 +168,7 @@ export default function RichTextEditor({ value, onChange, height = 300, classNam
       {/* Editor Content Area */}
       <div 
         ref={editorRef}
-        contentEditable
+        contentEditable={!disabled}
         onInput={handleInput}
         onPaste={handlePaste}
         onFocus={() => setIsFocused(true)}

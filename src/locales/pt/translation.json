@@ -1,4 +1,4 @@
-﻿{
+{
     "common": {
         "save": "Salvar",
         "cancel": "Cancelar",
@@ -501,7 +501,9 @@
         "passphrase_mismatch": "As senhas não coincidem.",
         "common.back": "Voltar",
         "common.loading": "Carregando...",
-        "common.cancel": "Cancelar"
+        "common.cancel": "Cancelar",
+        "required_error": "A criptografia de notas clínicas é obrigatória conforme CFP 09/2024. Configure a criptografia antes de salvar sessões.",
+        "setup_required": "A configuração da criptografia é obrigatória"
     },
     "consent": {
         "title": "Consentimento Informado",
@@ -526,7 +528,8 @@
         "no_consent": "Nenhum consentimento registrado. Registros de sessão não podem ser salvos até que o consentimento seja aceito.",
         "required_before_session": "Consentimento ativo é obrigatório antes de salvar um registro de sessão. Solicite ao paciente que aceite o formulário de consentimento primeiro.",
         "banner_required": "Consentimento ativo é obrigatório antes de criar registros de sessão. Solicite ao paciente que aceite o formulário de consentimento na aba Consentimento.",
-        "form_warning": "Certifique-se de que o paciente aceitou o formulário de consentimento antes de salvar notas clínicas."
+        "form_warning": "Certifique-se de que o paciente aceitou o formulário de consentimento antes de salvar notas clínicas.",
+        "blocking_banner": "Consentimento ativo é obrigatório. Solicite ao paciente que aceite o formulário de consentimento antes de salvar notas clínicas."
     },
     "compliance": {
         "title": "Conformidade",
@@ -605,5 +608,8 @@
         "unlock_required": "Desbloqueie a criptografia para ver o conteúdo da versão.",
         "close": "Fechar",
         "loading": "Carregando versões..."
+    },
+    "session_form": {
+        "consent_required_tooltip": "Obtenha o consentimento do paciente antes de salvar"
     }
 }

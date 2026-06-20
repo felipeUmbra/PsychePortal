@@ -48,7 +48,7 @@ export default function Sessions() {
     notes: '',
     type: 'individual',
     status: 'completed',
-    attachments: [] as { name: string; url: string; size: number }[]
+    attachments: [] as { name: string; url: string; size: number; storagePath?: string }[]
   });
 
   const toggleSessionNotes = (sessionId: string) => {
@@ -105,7 +105,8 @@ export default function Sessions() {
 
     try {
       setIsUploading(true);
-      const storageRef = ref(null, `sessions/${editingSessionId}/${file.name}`);
+      const storagePath = `patients/${user.uid}/${editingSessionId}/${Date.now()}_${file.name}`;
+      const storageRef = ref(null, storagePath);
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
 

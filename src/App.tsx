@@ -69,19 +69,18 @@ export default function App() {
 
 function EncryptionSetupModalWrapper() {
   const { needsSetup, setup } = useEncryption();
-  const [dismissed, setDismissed] = useState(false);
   const [showSetup, setShowSetup] = useState(false);
 
-  if (needsSetup && !dismissed) {
+  if (needsSetup) {
     return (
       <EncryptionSetupModal
         isOpen={true}
-        onClose={() => setDismissed(true)}
+        onClose={() => {}}
         onComplete={async (passphrase) => {
           await setup(passphrase);
           setShowSetup(false);
         }}
-        onSkip={() => setDismissed(true)}
+        isRequired={true}
       />
     );
   }

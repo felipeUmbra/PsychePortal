@@ -47,7 +47,7 @@ export interface Session {
   type: 'individual' | 'group' | 'family' | 'couple';
   status: 'scheduled' | 'completed' | 'cancelled' | 'no-show';
   notes?: string;
-  attachments?: { name: string; url: string; size: number }[];
+  attachments?: { name: string; url: string; size: number; storagePath?: string }[];
   googleEventId?: string;
   paymentStatus?: string;
   createdAt?: any;

@@ -44,12 +44,10 @@ export async function deleteAllPatientData(
     if (attachments && Array.isArray(attachments)) {
       for (const att of attachments) {
         try {
-          // Reconstruct the storage ref path used when uploading: sessions/{sessionId}/{timestamp}_{filename}
-          // The URL stored is a blob URL from getDownloadURL, so we match by searching Drive.
-          // deleteObject searches by filename + description containing the storage path.
-          // We use a ref with the path derived from the session ID and attachment name.
-          const storageRef = { path: `sessions/${session.id}/${att.name}` };
-          await deleteObject(storageRef);
+          // Use stored storagePath if available (new format), otherwise reconstruct from legacy pattern
+          const storagePath = (att as any).storagePath
+            || `patients/${psychologistId}/${session.id}/${att.name}`;
+          await deleteObject({ path: storagePath });
           result.attachmentsDeleted++;
         } catch (err) {
           console.error(`Failed to delete attachment ${att.name} from session ${session.id}:`, err);
