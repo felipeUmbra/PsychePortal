@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { doc, getDoc, updateDoc, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -19,6 +20,7 @@ import { useGoogleAuth } from '../context/GoogleAuthContext';
 import { triggerFullBackup } from '../lib/backup';
 import { generateDataBundle, downloadBundleAsFile } from '../lib/data-export';
 import { deleteAllPatientData, DeletionResult } from '../lib/data-deletion';
+import { enforceRetentionPolicy } from '../lib/retention';
 import { PsychologistAttestation } from '../types';
 import Papa from 'papaparse';
 import { format } from 'date-fns';
@@ -53,6 +55,8 @@ export default function Compliance() {
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const [deleteConfirmStep, setDeleteConfirmStep] = useState(1);
   const [deleteConfirmName, setDeleteConfirmName] = useState('');
+  const [retentionLoading, setRetentionLoading] = useState(false);
+  const [retentionRunSuccess, setRetentionRunSuccess] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -84,7 +88,7 @@ export default function Compliance() {
     { key: 'audit', icon: ClipboardCheck, label: t('compliance.audit_status', 'Audit Trail'), description: 'Tamper-evident Merkle-chained audit trail active', compliant: true },
     { key: 'backup', icon: HardDrive, label: t('compliance.backup_status', 'Google Drive Backup'), description: 'Google Drive backup connected and syncing', compliant: !!driveToken },
     { key: 'consent', icon: Cookie, label: t('compliance.consent_status', 'Patient Consent'), description: 'Informed consent workflow configured', compliant: !!(profile?.consentText && profile.consentText.trim().length > 0) },
-    { key: 'retention', icon: Database, label: t('compliance.retention_status', 'Retention Policy'), description: 'Data retention policy documented', compliant: !!(profile?.retentionPolicy && profile.retentionPolicy.trim().length > 0) },
+    { key: 'retention', icon: Database, label: t('compliance.retention_status', 'Retention Policy'), description: 'Data retention policy documented', compliant: !!(profile?.retentionPolicy && profile.retentionPolicy.trim().length > 0) || !!(profile?.retentionYears && profile.retentionYears > 0) },
     { key: 'headers', icon: Shield, label: t('compliance.headers_status', 'Security Headers'), description: 'CSP, HSTS, X-Frame-Options via Firebase Hosting', compliant: true },
   ];
   const compliantCount = complianceItems.filter(i => i.compliant).length;
@@ -117,6 +121,29 @@ export default function Compliance() {
     } catch (err: any) { setBackupResult(err.message || 'Backup failed'); }
     finally { setBackupLoading(false); }
   }, [user, driveToken, secondaryToken, t]);
+
+  const handleComplianceRunRetention = useCallback(async () => {
+    if (!user || retentionLoading) return;
+    setRetentionLoading(true);
+    setRetentionRunSuccess(false);
+    try {
+      const years = profile?.retentionYears || 5;
+      await enforceRetentionPolicy(user.uid, years);
+      setRetentionRunSuccess(true);
+      setTimeout(() => setRetentionRunSuccess(false), 4000);
+      // Refresh profile to get updated lastRetentionRun
+      const snap = await getDoc(doc(db, 'psychologists', user.uid));
+      if (snap.exists()) {
+        setProfile(snap.data());
+        if (snap.data().attestation) setAttestation(snap.data().attestation);
+      }
+    } catch (err: any) {
+      console.error('Retention enforcement failed:', err);
+      alert(err.message || 'Retention enforcement failed');
+    } finally {
+      setRetentionLoading(false);
+    }
+  }, [user, retentionLoading, profile]);
 
   const handleExportHTMLReport = useCallback(async () => {
     const now = new Date();
@@ -256,17 +283,56 @@ export default function Compliance() {
         </div>
         <div className="space-y-3">
           {complianceItems.map((item) => (
-            <div key={item.key} className="flex items-center gap-4 p-4 bg-bg rounded-xl border border-border-custom">
-              <div className={"w-10 h-10 rounded-lg flex items-center justify-center shrink-0 " + (item.compliant ? 'bg-success-custom/10' : 'bg-red-50')}>
-                {item.compliant ? <CheckCircle2 className="w-5 h-5 text-success-custom" /> : <XCircle className="w-5 h-5 text-red-500" />}
+            <div key={item.key} className="p-4 bg-bg rounded-xl border border-border-custom space-y-2">
+              <div className="flex items-center gap-4">
+                <div className={"w-10 h-10 rounded-lg flex items-center justify-center shrink-0 " + (item.compliant ? 'bg-success-custom/10' : 'bg-red-50')}>
+                  {item.compliant ? <CheckCircle2 className="w-5 h-5 text-success-custom" /> : <XCircle className="w-5 h-5 text-red-500" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-[14px] text-text-main">{item.label}</p>
+                  <p className="text-[12px] text-text-muted">{item.description}</p>
+                </div>
+                <span className={"status-badge " + (item.compliant ? 'bg-success-custom/10 text-success-custom' : 'bg-red-50 text-red-600')}>
+                  {item.compliant ? t('compliance.compliant', 'Compliant') : t('compliance.non_compliant', 'Non-Compliant')}
+                </span>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-[14px] text-text-main">{item.label}</p>
-                <p className="text-[12px] text-text-muted">{item.description}</p>
-              </div>
-              <span className={"status-badge " + (item.compliant ? 'bg-success-custom/10 text-success-custom' : 'bg-red-50 text-red-600')}>
-                {item.compliant ? t('compliance.compliant', 'Compliant') : t('compliance.non_compliant', 'Non-Compliant')}
-              </span>
+              {item.key === 'retention' && (
+                <div className="flex items-center justify-between pt-2 pl-14">
+                  <div className="flex items-center gap-3">
+                    {profile?.retentionYears ? (
+                      <span className="text-[12px] text-text-muted">
+                        {t('compliance.retention_configured', { years: profile.retentionYears })}
+                        {profile.lastRetentionRun && (
+                          <span className="ml-2">{t('compliance.retention_last_run_label', { date: format(new Date(profile.lastRetentionRun), 'yyyy-MM-dd HH:mm') })}</span>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="text-[12px] text-text-muted">{t('compliance.retention_not_configured')}</span>
+                    )}
+                    <Link to="/app/settings" className="text-[12px] font-bold text-primary-custom hover:underline">
+                      {t('compliance.configure_retention')}
+                    </Link>
+                  </div>
+                  <button
+                    onClick={handleComplianceRunRetention}
+                    disabled={retentionLoading}
+                    className="btn-secondary text-[11px] h-7 px-3 flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    {retentionLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Database className="w-3 h-3" />}
+                    {t('compliance.compliance_run_retention')}
+                  </button>
+                </div>
+              )}
+              {item.key === 'retention' && retentionRunSuccess && (
+                <div className="pl-14">
+                  <AnimatePresence>
+                    <motion.span initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 text-success-custom font-bold text-[12px]">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      {t('settings.retention_result_title')}
+                    </motion.span>
+                  </AnimatePresence>
+                </div>
+              )}
             </div>
           ))}
         </div>

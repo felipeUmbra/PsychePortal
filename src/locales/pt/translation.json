@@ -342,7 +342,21 @@
         "auto_lock_60min": "60 minutos",
         "auto_lock_helper": "A sessão será bloqueada automaticamente após o período de inatividade especificado.",
         "session_timeout_toast_title": "Sessão Bloqueada",
-        "session_timeout_toast_message": "Sua sessão foi bloqueada por inatividade. Insira sua senha para continuar."
+        "session_timeout_toast_message": "Sua sessão foi bloqueada por inatividade. Insira sua senha para continuar.",
+        "retention_section": "Retenção de Dados",
+        "retention_years_label": "Período de Retenção (anos)",
+        "retention_years_hint": "Sessões mais antigas que este período serão excluídas permanentemente.",
+        "retention_enabled_label": "Ativar aplicação automática de retenção",
+        "retention_warning": "Ativar a retenção automática excluirá permanentemente sessões mais antigas que o período especificado. Esta ação não pode ser desfeita.",
+        "retention_run_now": "Executar Retenção Agora",
+        "retention_running": "Executando política de retenção...",
+        "retention_last_run": "Última execução",
+        "retention_result_title": "Política de Retenção Concluída",
+        "retention_result_sessions": "Sessões excluídas",
+        "retention_result_consents": "Consentimentos órfãos removidos",
+        "retention_result_executed_at": "Executado em",
+        "retention_never_run": "Nunca",
+        "retention_invalid_years": "O período de retenção deve ser entre 1 e 20 anos"
     },
     "terms_page": {
         "title": "Termos de Serviço",
@@ -554,7 +568,12 @@
         "export_log_subtitle": "Visualizar histórico de exportação de dados",
         "export_log_exported_at": "Exportado Em",
         "export_log_export_type": "Tipo de Exportação",
-        "export_log_record_count": "Quantidade de Registros"
+        "export_log_record_count": "Quantidade de Registros",
+        "configure_retention": "Configurar em Configurações",
+        "retention_not_configured": "Não configurado",
+        "retention_configured": "Configurado: {years} anos",
+        "retention_last_run_label": "Última execução: {date}",
+        "compliance_run_retention": "Executar Retenção Agora"
     },
     "data_deletion": {
         "title": "Excluir Todos os Dados do Paciente",

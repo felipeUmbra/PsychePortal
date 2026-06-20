@@ -28,6 +28,7 @@ import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { useGoogleAuth } from '../context/GoogleAuthContext';
 import { logExport } from '../lib/audit';
 import { logDataExport } from '../lib/export-log';
+import { enforceRetentionPolicy, RetentionResult } from '../lib/retention';
 
 export default function Settings() {
   const [user] = useAuthState(auth);
@@ -50,6 +51,12 @@ export default function Settings() {
   const [consentText, setConsentText] = useState('');
   const [consentVersion, setConsentVersion] = useState('1.0');
   const [autoLockMinutes, setAutoLockMinutes] = useState<number | null>(null);
+
+  const [retentionYears, setRetentionYears] = useState<number>(5);
+  const [retentionEnabled, setRetentionEnabled] = useState<boolean>(false);
+  const [lastRetentionRun, setLastRetentionRun] = useState<string>('');
+  const [isRunningRetention, setIsRunningRetention] = useState(false);
+  const [retentionResult, setRetentionResult] = useState<RetentionResult | null>(null);
 
   const googleCalendarToken = calendarToken;
 
@@ -157,6 +164,9 @@ export default function Settings() {
       setConsentText(profile.consentText || '');
       setConsentVersion(profile.consentVersion || '1.0');
       setAutoLockMinutes(profile.autoLockMinutes ?? null);
+      setRetentionYears(profile.retentionYears ?? 5);
+      setRetentionEnabled(profile.retentionEnabled ?? false);
+      setLastRetentionRun(profile.lastRetentionRun || '');
     }
   }, [profile]);
 
@@ -171,6 +181,8 @@ export default function Settings() {
         consentText,
         consentVersion,
         autoLockMinutes: autoLockMinutes ?? null,
+        retentionYears,
+        retentionEnabled,
         updatedAt: new Date().toISOString()
       });
       setShowSuccess(true);
@@ -179,6 +191,26 @@ export default function Settings() {
       handleFirestoreError(error, OperationType.UPDATE, `psychologists/${user.uid}`);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleRunRetention = async () => {
+    if (!user || isRunningRetention) return;
+    if (retentionYears < 1 || retentionYears > 20) {
+      alert(t('settings.retention_invalid_years'));
+      return;
+    }
+    setIsRunningRetention(true);
+    setRetentionResult(null);
+    try {
+      const result = await enforceRetentionPolicy(user.uid, retentionYears);
+      setRetentionResult(result);
+      setLastRetentionRun(result.executedAt);
+    } catch (err: any) {
+      console.error('Retention enforcement failed:', err);
+      alert(err.message || 'Retention enforcement failed');
+    } finally {
+      setIsRunningRetention(false);
     }
   };
 
@@ -561,6 +593,75 @@ export default function Settings() {
                 {t('compliance.title', 'Compliance')}
               </Link>
             </div>
+          </div>
+        </section>
+
+        {/* Data Retention Section */}
+        <section className="card">
+          <h2 className="text-[16px] font-bold text-text-main mb-8 flex items-center gap-2 border-b border-border-custom pb-4">
+            <Database className="w-5 h-5 text-primary-custom" />
+            {t('settings.retention_section')}
+          </h2>
+
+          <div className="space-y-6">
+            <div>
+              <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.retention_years_label')}</label>
+              <input
+                type="number"
+                min={1}
+                max={20}
+                className="input-field text-[14px] w-24"
+                value={retentionYears}
+                onChange={(e) => setRetentionYears(Math.max(1, Math.min(20, Number(e.target.value) || 1)))}
+              />
+              <p className="text-[11px] text-text-muted mt-2 font-medium">{t('settings.retention_years_hint')}</p>
+            </div>
+
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={retentionEnabled}
+                onChange={(e) => setRetentionEnabled(e.target.checked)}
+                className="w-4 h-4 rounded border-border-custom text-primary-custom focus:ring-primary-custom/20"
+              />
+              <span className="text-[14px] text-text-main group-hover:text-primary-custom transition-colors">{t('settings.retention_enabled_label')}</span>
+            </label>
+
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-[13px] text-amber-800 font-medium">{t('settings.retention_warning')}</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <button
+                type="button"
+                onClick={handleRunRetention}
+                disabled={isRunningRetention}
+                className="btn-primary flex items-center justify-center gap-2 text-[14px] min-w-[180px] disabled:opacity-50"
+              >
+                {isRunningRetention ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+                {isRunningRetention ? t('settings.retention_running') : t('settings.retention_run_now')}
+              </button>
+              {lastRetentionRun && (
+                <p className="text-[12px] text-text-muted">
+                  {t('settings.retention_last_run')}: {format(new Date(lastRetentionRun), 'yyyy-MM-dd HH:mm')}
+                </p>
+              )}
+              {!lastRetentionRun && (
+                <p className="text-[12px] text-text-muted">{t('settings.retention_never_run')}</p>
+              )}
+            </div>
+
+            {retentionResult && (
+              <div className="p-4 bg-surface border border-border-custom rounded-xl space-y-2">
+                <p className="text-[14px] font-bold text-text-main">{t('settings.retention_result_title')}</p>
+                <p className="text-[12px] text-text-muted">{t('settings.retention_result_sessions')}: <span className="font-bold text-text-main">{retentionResult.sessionsDeleted}</span></p>
+                <p className="text-[12px] text-text-muted">{t('settings.retention_result_consents')}: <span className="font-bold text-text-main">{retentionResult.consentsAffected}</span></p>
+                <p className="text-[12px] text-text-muted">{t('settings.retention_result_executed_at')}: {format(new Date(retentionResult.executedAt), 'yyyy-MM-dd HH:mm:ss')}</p>
+              </div>
+            )}
           </div>
         </section>
 

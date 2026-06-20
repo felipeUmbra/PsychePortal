@@ -399,7 +399,21 @@
         "auto_lock_60min": "60 minutes",
         "auto_lock_helper": "The session will be automatically locked after the specified period of inactivity.",
         "session_timeout_toast_title": "Session Locked",
-        "session_timeout_toast_message": "Your session was locked due to inactivity. Please enter your passphrase to continue."
+        "session_timeout_toast_message": "Your session was locked due to inactivity. Please enter your passphrase to continue.",
+        "retention_section": "Data Retention",
+        "retention_years_label": "Retention Period (years)",
+        "retention_years_hint": "Sessions older than this period will be permanently deleted.",
+        "retention_enabled_label": "Enable automatic retention enforcement",
+        "retention_warning": "Enabling automatic retention will permanently delete sessions older than the specified period. This action cannot be undone.",
+        "retention_run_now": "Run Retention Now",
+        "retention_running": "Running retention enforcement...",
+        "retention_last_run": "Last run",
+        "retention_result_title": "Retention Enforcement Complete",
+        "retention_result_sessions": "Sessions deleted",
+        "retention_result_consents": "Orphaned consents removed",
+        "retention_result_executed_at": "Executed at",
+        "retention_never_run": "Never",
+        "retention_invalid_years": "Retention period must be between 1 and 20 years"
     },
     "terms_page": {
         "title": "Termos de Serviço",
@@ -535,7 +549,12 @@
         "export_log_subtitle": "View data export history",
         "export_log_exported_at": "Exported At",
         "export_log_export_type": "Export Type",
-        "export_log_record_count": "Record Count"
+        "export_log_record_count": "Record Count",
+        "configure_retention": "Configure in Settings",
+        "retention_not_configured": "Not configured",
+        "retention_configured": "Configured: {years} years",
+        "retention_last_run_label": "Last run: {date}",
+        "compliance_run_retention": "Run Retention Now"
     },
     "data_deletion": {
         "title": "Delete All Patient Data",
