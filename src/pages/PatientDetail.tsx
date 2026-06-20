@@ -250,10 +250,19 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
             {t('calendar.schedule_session', 'Schedule Appointment')}
           </button>
           <button
-            onClick={() => setIsAddingSession(true)}
-            className="btn-primary flex items-center gap-2 text-[13px] sm:text-[14px] flex-1 sm:flex-none justify-center"
+            onClick={() => {
+              if (!hasActiveConsent) {
+                setActiveTab('consent');
+                return;
+              }
+              setIsAddingSession(true);
+            }}
+            disabled={!hasActiveConsent}
+            className={`btn-primary flex items-center gap-2 text-[13px] sm:text-[14px] flex-1 sm:flex-none justify-center ${
+              !hasActiveConsent ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
-            <Plus className="w-4 h-4" />
+            {!hasActiveConsent ? <Lock className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
             {t('patient_detail.log_session')}
           </button>
           <button
@@ -321,7 +330,21 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
             return Promise.resolve();
           }}
         />
-      ) : (
+      ) : (<>
+      {!hasActiveConsent && (
+        <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg mb-6">
+          <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-[13px] text-amber-800 font-medium">{t('consent.banner_required')}</p>
+            <button
+              onClick={() => setActiveTab('consent')}
+              className="mt-2 text-[13px] font-bold text-amber-700 underline hover:text-amber-900 transition-colors"
+            >
+              {t('consent.title', 'Consent')}
+            </button>
+          </div>
+        </div>
+      )}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="space-y-8">
           <PatientInfoCard patient={patient} />
@@ -372,6 +395,7 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
                 onCancel={() => setIsAddingSession(false)}
                 onUploadFile={(file) => uploadFile(file, id!)}
                 isUploading={isUploading}
+                consentRequired={!hasActiveConsent}
               />
             </div>
           )}
@@ -405,6 +429,7 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
                           return uploadFile(file, session.id);
                         }}
                         isUploading={isUploading}
+                        consentRequired={!hasActiveConsent}
                       />
                     </div>
                   ) : (
@@ -536,7 +561,7 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
           </div>
         </div>
       </div>
-      )}
+      </>)}
 
             <AnimatePresence>
         {showEditWarningModal && (

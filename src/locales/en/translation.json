@@ -491,7 +491,9 @@
         "accepted_on": "Accepted on",
         "revoked_on": "Revoked on",
         "no_consent": "No consent on file. Session records cannot be saved until consent is accepted.",
-        "required_before_session": "Active consent is required before saving a session record. Please have the patient accept the consent form first."
+        "required_before_session": "Active consent is required before saving a session record. Please have the patient accept the consent form first.",
+        "banner_required": "Active consent is required before creating session records. Please have the patient accept the consent form in the Consent tab.",
+        "form_warning": "Ensure the patient has accepted the consent form before saving clinical notes."
     },
     "compliance": {
         "title": "Compliance",
