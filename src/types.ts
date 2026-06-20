@@ -79,6 +79,8 @@ export interface Psychologist {
   crpNumber?: string;
   crpRegion?: string;
   attestation?: PsychologistAttestation;
+  dpoName?: string;
+  dpoEmail?: string;
   createdAt?: string;
   updatedAt?: string;
 }

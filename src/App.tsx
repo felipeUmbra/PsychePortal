@@ -7,9 +7,7 @@ import Login from './pages/Login';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 import { GoogleAuthProvider } from './context/GoogleAuthContext';
-import { useState } from 'react';
-import { useEncryption } from './hooks/useEncryption';
-import { EncryptionSetupModal } from './components/EncryptionSetupModal';
+
 import { SessionTimeoutToast } from './components/SessionTimeoutToast';
 
 // Lazy load all page components for code splitting
@@ -61,29 +59,9 @@ export default function App() {
           </Suspense>
         </ErrorBoundary>
       </Router>
-      <EncryptionSetupModalWrapper />
       <SessionTimeoutToast />
     </GoogleAuthProvider>
   );
 }
 
-function EncryptionSetupModalWrapper() {
-  const { needsSetup, setup } = useEncryption();
-  const [showSetup, setShowSetup] = useState(false);
 
-  if (needsSetup) {
-    return (
-      <EncryptionSetupModal
-        isOpen={true}
-        onClose={() => {}}
-        onComplete={async (passphrase) => {
-          await setup(passphrase);
-          setShowSetup(false);
-        }}
-        isRequired={true}
-      />
-    );
-  }
-
-  return null;
-}

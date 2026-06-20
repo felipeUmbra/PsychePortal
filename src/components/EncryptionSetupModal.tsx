@@ -16,6 +16,8 @@ interface EncryptionSetupModalProps {
   onClose: () => void;
   onComplete: (passphrase: string) => Promise<void>;
   isRequired?: boolean;
+  mode?: 'setup' | 'change';
+  currentPassphrase?: string;
 }
 
 type Step = 'welcome' | 'passphrase' | 'recovery';
@@ -25,6 +27,8 @@ export function EncryptionSetupModal({
   onClose,
   onComplete,
   isRequired = false,
+  mode = 'setup',
+  currentPassphrase,
 }: EncryptionSetupModalProps) {
   const { t } = useTranslation();
   const [step, setStep] = useState<Step>('welcome');
@@ -148,13 +152,20 @@ export function EncryptionSetupModal({
                   <Shield className="w-8 h-8 text-primary-custom" />
                 </div>
                 <h2 className="text-2xl font-bold text-slate-900">
-                  {t('encryption.setup_title', 'Setup Note Encryption')}
+                  {mode === 'change'
+                    ? t('encryption.change_title', 'Change Encryption Passphrase')
+                    : t('encryption.setup_title', 'Setup Note Encryption')}
                 </h2>
                 <p className="text-slate-500 mt-2 text-[14px] leading-relaxed max-w-sm">
-                  {t(
-                    'encryption.setup_desc',
-                    'Your session and patient notes will be encrypted with AES-256-GCM before being stored. This protects your data even if the storage is compromised.',
-                  )}
+                  {mode === 'change'
+                    ? t(
+                        'encryption.change_desc',
+                        'Enter a new passphrase to replace the current one. Your existing encrypted notes will be re-encrypted with the new passphrase.',
+                      )
+                    : t(
+                        'encryption.setup_desc',
+                        'Your session and patient notes will be encrypted with AES-256-GCM before being stored. This protects your data even if the storage is compromised.',
+                      )}
                 </p>
               </div>
 
@@ -180,7 +191,9 @@ export function EncryptionSetupModal({
                   onClick={handleWelcomeNext}
                   className="w-full btn-primary py-3 text-[14px] font-bold"
                 >
-                  {t('encryption.setup_button', 'Setup Encryption')}
+                  {mode === 'change'
+                    ? t('encryption.change_button', 'Change Passphrase')
+                    : t('encryption.setup_button', 'Setup Encryption')}
                 </button>
               </div>
             </motion.div>

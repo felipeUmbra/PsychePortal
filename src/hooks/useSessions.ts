@@ -88,9 +88,6 @@ export function useSessions(patientId?: string) {
     if (!hasConsent) {
       throw new Error('CONSENT_REQUIRED');
     }
-    if (!isUnlocked) {
-      throw new Error('ENCRYPTION_REQUIRED');
-    }
     try {
       const dataToWrite = { ...sessionData };
       if (isUnlocked && dataToWrite.notes) {
@@ -117,9 +114,6 @@ export function useSessions(patientId?: string) {
       if (!hasConsent) {
         throw new Error('CONSENT_REQUIRED');
       }
-    }
-    if (!isUnlocked) {
-      throw new Error('ENCRYPTION_REQUIRED');
     }
     try {
       const session = sessions.find(s => s.id === sessionId);

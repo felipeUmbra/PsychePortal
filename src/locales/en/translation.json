@@ -125,7 +125,9 @@
         "delete_confirm_message": "Are you sure you want to delete this session? This action cannot be undone.",
         "edit_completed_warning_title": "Edit Completed Session?",
         "edit_completed_warning_message": "This session is marked as completed. Editing clinical notes after completion is discouraged by CFP 09/2024. Are you sure you want to proceed?",
-        "edit_completed_warning_confirm": "Edit Anyway"
+        "edit_completed_warning_confirm": "Edit Anyway",
+        "edit_justification_label": "Justification for edit (required)",
+        "edit_justification_placeholder": "Explain why this edit is necessary..."
     },
     "landing_page": {
         "google_compliance_title": "Secure & Compliant",
@@ -389,6 +391,9 @@
         "crp_number_placeholder": "e.g., 06/123456",
         "crp_region": "CRP Region (State)",
         "crp_region_placeholder": "Select a state...",
+        "dpo_section": "Data Protection Officer (DPO)",
+        "dpo_name_label": "Data Protection Officer (DPO) Name",
+        "dpo_email_label": "DPO Email",
         "security_section": "Security",
         "auto_lock_label": "Auto-lock after inactivity",
         "auto_lock_never": "Never",
@@ -447,7 +452,7 @@
         "consent_title": "5. Consent Management",
         "consent_text": "Before any clinical session record is stored, the patient must provide informed consent through an electronic signature. This signature, along with a timestamp and the signed consent text, is stored immutably. Patients may revoke their consent at any time from their patient profile. Upon revocation, an audit trail entry is created and the psychologist is notified. No new session records can be created for a patient without an active consent.",
         "dpo_title": "6. Data Controller Contact (DPO)",
-        "dpo_text": "The Data Protection Officer (DPO) for this deployment is: [To be filled in by the deploying psychologist]. For privacy inquiries, contact: [dpo@example.com — placeholder].",
+        "dpo_text": "The Data Protection Officer (DPO) for this deployment is: {{dpoName}}. For privacy inquiries, contact: {{dpoEmail}}.",
         "encryption_details": "Encryption & Security: All clinical notes are encrypted using AES-256-GCM before storage. Data in transit is protected by TLS 1.3. Consent records are stored in a tamper-evident audit chain. Session data is retained for the duration of the therapeutic relationship and deleted upon patient request or after the retention period defined by applicable regulations."
     },
     "encryption": {
@@ -484,7 +489,23 @@
         "common.loading": "Carregando...",
         "common.cancel": "Cancelar",
         "required_error": "Clinical note encryption is mandatory per CFP 09/2024. Please set up encryption before saving sessions.",
-        "setup_required": "Encryption setup is required"
+        "setup_required": "Encryption setup is required",
+        "change_title": "Change Encryption Passphrase",
+        "change_desc": "Enter a new passphrase to replace the current one. Your existing encrypted notes will be re-encrypted with the new passphrase.",
+        "change_button": "Change Passphrase",
+        "section_title": "Note Encryption",
+        "section_desc": "Encryption protects your clinical notes and patient data with AES-256-GCM. Notes are encrypted before storage and only decrypted when you are authenticated.",
+        "status_enabled": "Encryption Enabled",
+        "status_disabled": "Encryption Disabled",
+        "status_enabled_desc": "Your notes are protected with AES-256-GCM encryption.",
+        "status_disabled_desc": "Your notes are NOT encrypted. Enable encryption to protect your clinical data.",
+        "enable_button": "Enable Encryption",
+        "change_passphrase_button": "Change Passphrase",
+        "disable_button": "Disable Encryption",
+        "disable_confirm_title": "Disable Encryption?",
+        "disable_confirm_message": "Are you sure you want to disable encryption? Your existing notes will remain encrypted, but new notes will not be protected.",
+        "disable_confirm_button": "Disable",
+        "disable_error": "Failed to disable encryption."
     },
     "consent": {
         "title": "Informed Consent",

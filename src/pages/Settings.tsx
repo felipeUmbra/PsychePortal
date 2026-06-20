@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { doc, getDoc, updateDoc, setDoc, collection, query, where, getDocs, setDriveToken as setMockToken, forceSync } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc, collection, query, where, getDocs, setDriveToken as setMockToken, forceSync, deleteDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import {
@@ -17,7 +17,8 @@ import {
   AlertTriangle,
   FileText,
   HardDrive,
-  Database
+  Database,
+  KeyRound
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
@@ -29,6 +30,8 @@ import { useGoogleAuth } from '../context/GoogleAuthContext';
 import { logExport } from '../lib/audit';
 import { logDataExport } from '../lib/export-log';
 import { enforceRetentionPolicy, RetentionResult } from '../lib/retention';
+import { useEncryption } from '../hooks/useEncryption';
+import { EncryptionSetupModal } from '../components/EncryptionSetupModal';
 
 export default function Settings() {
   const [user] = useAuthState(auth);
@@ -59,6 +62,35 @@ export default function Settings() {
   const [retentionResult, setRetentionResult] = useState<RetentionResult | null>(null);
 
   const googleCalendarToken = calendarToken;
+
+  // Encryption state
+  const { isSetup: encryptionSetup, isUnlocked: encryptionUnlocked, needsSetup: encryptionNeedsSetup, setup: encryptionSetupFn, disable: encryptionDisable, isLoading: encryptionLoading } = useEncryption();
+  const [showEncryptionModal, setShowEncryptionModal] = useState(false);
+  const [encryptionModalMode, setEncryptionModalMode] = useState<'setup' | 'change'>('setup');
+  const [showDisableConfirm, setShowDisableConfirm] = useState(false);
+  const [isDisabling, setIsDisabling] = useState(false);
+
+  const handleOpenSetupModal = (mode: 'setup' | 'change') => {
+    setEncryptionModalMode(mode);
+    setShowEncryptionModal(true);
+  };
+
+  const handleDisableEncryption = async () => {
+    if (!showDisableConfirm) {
+      setShowDisableConfirm(true);
+      return;
+    }
+    setIsDisabling(true);
+    try {
+      await encryptionDisable();
+      setShowDisableConfirm(false);
+    } catch (err) {
+      console.error('Failed to disable encryption:', err);
+      alert(t('encryption.disable_error', 'Failed to disable encryption.'));
+    } finally {
+      setIsDisabling(false);
+    }
+  };
 
   const handleConnectCalendar = async () => {
     if (isConnectingCalendar) return;
@@ -406,6 +438,26 @@ export default function Settings() {
                   <option value="TO">TO</option>
                 </select>
               </div>
+              <div>
+                <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.dpo_name_label')}</label>
+                <input
+                  type="text"
+                  className="input-field text-[14px]"
+                  placeholder={t('settings.dpo_name_label')}
+                  value={profile.dpoName || ''}
+                  onChange={(e) => setProfile({ ...profile, dpoName: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.dpo_email_label')}</label>
+                <input
+                  type="email"
+                  className="input-field text-[14px]"
+                  placeholder="dpo@exemplo.com"
+                  value={profile.dpoEmail || ''}
+                  onChange={(e) => setProfile({ ...profile, dpoEmail: e.target.value })}
+                />
+              </div>
             </div>
 
             <div className="flex flex-col items-center justify-center p-8 bg-bg rounded-2xl border border-dashed border-border-custom">
@@ -543,6 +595,90 @@ export default function Settings() {
                 <option value="60">{t('settings.auto_lock_60min')}</option>
               </select>
               <p className="text-[11px] text-text-muted mt-2 font-medium">{t('settings.auto_lock_helper')}</p>
+            </div>
+          </div>
+        </section>
+
+        {/* Encryption Section */}
+        <section className="card">
+          <h2 className="text-[16px] font-bold text-text-main mb-8 flex items-center gap-2 border-b border-border-custom pb-4">
+            <KeyRound className="w-5 h-5 text-primary-custom" />
+            {t('encryption.section_title')}
+          </h2>
+
+          <div className="space-y-6">
+            <p className="text-[14px] text-text-muted">{t('encryption.section_desc')}</p>
+
+            {/* Status */}
+            <div className={`p-4 rounded-xl border ${encryptionSetup ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
+              <div className="flex items-center gap-3">
+                <div className={`w-3 h-3 rounded-full ${encryptionSetup ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                <span className={`font-bold text-[14px] ${encryptionSetup ? 'text-emerald-700' : 'text-amber-700'}`}>
+                  {encryptionSetup ? t('encryption.status_enabled') : t('encryption.status_disabled')}
+                </span>
+              </div>
+              <p className={`text-[13px] mt-1 ml-6 ${encryptionSetup ? 'text-emerald-600' : 'text-amber-600'}`}>
+                {encryptionSetup ? t('encryption.status_enabled_desc') : t('encryption.status_disabled_desc')}
+              </p>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex flex-wrap gap-3">
+              {!encryptionSetup && (
+                <button
+                  type="button"
+                  onClick={() => handleOpenSetupModal('setup')}
+                  className="btn-primary flex items-center gap-2 text-[14px]"
+                >
+                  <Lock className="w-4 h-4" />
+                  {t('encryption.enable_button')}
+                </button>
+              )}
+
+              {encryptionSetup && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenSetupModal('change')}
+                    className="btn-secondary flex items-center gap-2 text-[14px]"
+                  >
+                    <KeyRound className="w-4 h-4" />
+                    {t('encryption.change_passphrase_button')}
+                  </button>
+
+                  {!showDisableConfirm ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowDisableConfirm(true)}
+                      className="btn-secondary text-red-600 hover:bg-red-50 hover:border-red-200 flex items-center gap-2 text-[14px]"
+                    >
+                      <Lock className="w-4 h-4" />
+                      {t('encryption.disable_button')}
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl">
+                      <p className="text-[13px] text-red-700 font-medium">
+                        {t('encryption.disable_confirm_message')}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleDisableEncryption}
+                        disabled={isDisabling}
+                        className="btn-primary bg-red-600 hover:bg-red-700 border-red-600 text-[12px] h-8 px-3 flex items-center gap-1 disabled:opacity-50"
+                      >
+                        {isDisabling ? <Loader2 className="w-3 h-3 animate-spin" /> : t('encryption.disable_confirm_button')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowDisableConfirm(false)}
+                        className="btn-secondary text-[12px] h-8 px-3"
+                      >
+                        {t('common.cancel', 'Cancel')}
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </section>
@@ -806,6 +942,15 @@ export default function Settings() {
           </button>
         </div>
       </form>
+      <EncryptionSetupModal
+        isOpen={showEncryptionModal}
+        onClose={() => setShowEncryptionModal(false)}
+        onComplete={async (passphrase) => {
+          await encryptionSetupFn(passphrase);
+          setShowEncryptionModal(false);
+        }}
+        mode={encryptionModalMode}
+      />
     </div>
   );
 }

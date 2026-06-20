@@ -98,8 +98,6 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
     } catch (err: any) {
       if (err.message === 'CONSENT_REQUIRED') {
         alert(t('consent.required_before_session'));
-      } else if (err.message === 'ENCRYPTION_REQUIRED') {
-        alert(t('encryption.required_error'));
       } else {
         console.error('Failed to add session:', err);
       }
@@ -114,8 +112,6 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
     } catch (err: any) {
       if (err.message === 'CONSENT_REQUIRED') {
         alert(t('consent.required_before_session'));
-      } else if (err.message === 'ENCRYPTION_REQUIRED') {
-        alert(t('encryption.required_error'));
       } else {
         console.error('Failed to update session:', err);
       }

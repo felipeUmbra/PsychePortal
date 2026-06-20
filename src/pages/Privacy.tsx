@@ -1,11 +1,31 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { doc, getDoc } from 'firebase/firestore';
+import { db, auth } from '../firebase';
+import { useAuthState } from 'react-firebase-hooks/auth';
 
 export default function Privacy() {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const [user] = useAuthState(auth);
+  const [profile, setProfile] = useState<any>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      try {
+        const snap = await getDoc(doc(db, 'psychologists', user.uid));
+        if (snap.exists()) {
+          setProfile(snap.data());
+        }
+      } catch (err) {
+        console.error('Failed to load profile:', err);
+      }
+    })();
+  }, [user]);
 
   return (
     <div className="min-h-screen bg-bg py-12 px-4 sm:px-6 lg:px-8 font-sans">
@@ -100,7 +120,10 @@ export default function Privacy() {
                 {t('privacy_page.dpo_title')}
               </h2>
               <p>
-                {t('privacy_page.dpo_text')}
+                {t('privacy_page.dpo_text', {
+                  dpoName: profile?.dpoName || profile?.name || '[A ser preenchido pelo psicólogo implantador]',
+                  dpoEmail: profile?.dpoEmail || profile?.email || 'dpo@example.com — placeholder'
+                })}
               </p>
             </div>
 
