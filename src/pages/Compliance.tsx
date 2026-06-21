@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -84,12 +84,12 @@ export default function Compliance() {
   }, [user]);
 
   const complianceItems = [
-    { key: 'encryption', icon: Lock, label: t('compliance.encryption_status', 'Encryption at Rest'), description: 'AES-256-GCM encryption for clinical notes at rest', compliant: encryptionSetup },
-    { key: 'audit', icon: ClipboardCheck, label: t('compliance.audit_status', 'Audit Trail'), description: 'Tamper-evident Merkle-chained audit trail active', compliant: true },
-    { key: 'backup', icon: HardDrive, label: t('compliance.backup_status', 'Google Drive Backup'), description: 'Google Drive backup connected and syncing', compliant: !!driveToken },
-    { key: 'consent', icon: Cookie, label: t('compliance.consent_status', 'Patient Consent'), description: 'Informed consent workflow configured', compliant: !!(profile?.consentText && profile.consentText.trim().length > 0) },
-    { key: 'retention', icon: Database, label: t('compliance.retention_status', 'Retention Policy'), description: 'Data retention policy documented', compliant: !!(profile?.retentionPolicy && profile.retentionPolicy.trim().length > 0) || !!(profile?.retentionYears && profile.retentionYears > 0) },
-    { key: 'headers', icon: Shield, label: t('compliance.headers_status', 'Security Headers'), description: 'CSP, HSTS, X-Frame-Options via Firebase Hosting', compliant: true },
+    { key: 'encryption', icon: Lock, label: t('compliance.encryption_status', 'Encryption at Rest'), article: 'Art. 12', description: 'AES-256-GCM encryption for clinical notes at rest', compliant: encryptionSetup },
+    { key: 'audit', icon: ClipboardCheck, label: t('compliance.audit_status', 'Audit Trail'), article: 'Art. 14', description: 'Tamper-evident Merkle-chained audit trail active', compliant: true },
+    { key: 'backup', icon: HardDrive, label: t('compliance.backup_status', 'Google Drive Backup'), article: 'Art. 13', description: 'Google Drive backup connected and syncing', compliant: !!driveToken },
+    { key: 'consent', icon: Cookie, label: t('compliance.consent_status', 'Patient Consent'), article: 'Art. 8', description: 'Informed consent workflow configured', compliant: !!(profile?.consentText && profile.consentText.trim().length > 0) },
+    { key: 'retention', icon: Database, label: t('compliance.retention_status', 'Retention Policy'), article: 'Art. 15', description: 'Data retention policy documented', compliant: !!(profile?.retentionPolicy && profile.retentionPolicy.trim().length > 0) || !!(profile?.retentionYears && profile.retentionYears > 0) },
+    { key: 'headers', icon: Shield, label: t('compliance.headers_status', 'Security Headers'), article: 'Art. 12', description: 'CSP, HSTS, X-Frame-Options via Firebase Hosting', compliant: true },
   ];
   const compliantCount = complianceItems.filter(i => i.compliant).length;
   const allCompliant = compliantCount === complianceItems.length;
@@ -156,7 +156,7 @@ export default function Compliance() {
       dsrAware: t('compliance.attestation_dsr', 'I know how to handle a data subject request'),
     };
     const rows = complianceItems.map(item =>
-      '<tr><td>' + item.label + '</td><td class="' + (item.compliant ? 'pass' : 'fail') + '">' + (item.compliant ? 'OK ' + t('compliance.compliant', 'Compliant') : 'X ' + t('compliance.non_compliant', 'Non-Compliant')) + '</td><td>' + item.description + '</td></tr>'
+      '<tr><td>' + item.label + ' (' + item.article + ')</td><td class="' + (item.compliant ? 'pass' : 'fail') + '">' + (item.compliant ? 'OK ' + t('compliance.compliant', 'Compliant') : 'X ' + t('compliance.non_compliant', 'Non-Compliant')) + '</td><td>' + item.description + ' (' + item.article + ')</td></tr>'
     ).join('');
     const attRows = Object.entries(attestation).filter(([k]) => k !== 'updatedAt').map(([k, v]) =>
       '<tr><td>' + (attestationLabels[k] || k) + '</td><td class="' + (v ? 'pass' : 'fail') + '">' + (v ? 'OK Yes' : 'X No') + '</td></tr>'
@@ -289,7 +289,7 @@ export default function Compliance() {
                   {item.compliant ? <CheckCircle2 className="w-5 h-5 text-success-custom" /> : <XCircle className="w-5 h-5 text-red-500" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-[14px] text-text-main">{item.label}</p>
+                  <p className="font-bold text-[14px] text-text-main">{item.label} <span className="text-text-muted font-normal text-[12px] italic">({item.article})</span></p>
                   <p className="text-[12px] text-text-muted">{item.description}</p>
                 </div>
                 <span className={"status-badge " + (item.compliant ? 'bg-success-custom/10 text-success-custom' : 'bg-red-50 text-red-600')}>

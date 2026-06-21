@@ -9,6 +9,7 @@ import Privacy from './pages/Privacy';
 import { GoogleAuthProvider } from './context/GoogleAuthContext';
 
 import { SessionTimeoutToast } from './components/SessionTimeoutToast';
+import CookieConsentBanner from './components/CookieConsentBanner';
 
 // Lazy load all page components for code splitting
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -58,6 +59,7 @@ export default function App() {
             </Routes>
           </Suspense>
         </ErrorBoundary>
+        <CookieConsentBanner />
       </Router>
       <SessionTimeoutToast />
     </GoogleAuthProvider>

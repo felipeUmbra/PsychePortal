@@ -138,7 +138,9 @@
         "workspace": "Workspace",
         "psychologist": "Psychologist",
         "auth_missing_scopes": "Access denied",
-        "auth_expired": "Session expired"
+        "auth_expired": "Session expired",
+        "retention_reminder_title": "Retention policy pending",
+        "retention_reminder_message": "Data retention has not been run for over 30 days. Run now to maintain compliance."
     },
     "finance": {
         "title": "Financial",
@@ -613,5 +615,11 @@
     },
     "session_form": {
         "consent_required_tooltip": "Obtain patient consent before saving"
+    },
+    "cookies": {
+        "message": "This site uses cookies to improve your experience. By continuing, you agree to our Privacy Policy.",
+        "accept": "Accept",
+        "decline": "Decline",
+        "policy": "Privacy Policy"
     }
 }
