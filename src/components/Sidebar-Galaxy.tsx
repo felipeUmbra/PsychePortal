@@ -7,7 +7,8 @@ import {
   Settings,
   LogOut,
   Languages,
-  DollarSign
+  DollarSign,
+  Shield
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { auth } from '../firebase';
@@ -47,6 +48,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     { icon: History, label: t('sidebar.sessions'), path: '/app/sessions' },
     { icon: DollarSign, label: t('sidebar.finance'), path: '/app/finance' },
     { icon: Settings, label: t('sidebar.settings'), path: '/app/settings' },
+    { icon: Shield, label: t('sidebar.compliance'), path: '/app/compliance' }
   ];
 
   const handleLogout = async () => {

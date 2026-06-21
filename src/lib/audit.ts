@@ -3,6 +3,7 @@ import { db } from '../firebase';
 import { v4 as uuidv4 } from 'uuid';
 import { sha256, computeEntityHashAsync, computeRecordHash } from './crypto';
 import { AuditLog, AuditAction, AuditEntity } from '../types';
+import { getIpHint } from './ip-hint';
 
 let lastHashCache: string | null = null;
 let lastHashPromise: Promise<string> | null = null;
@@ -23,7 +24,7 @@ export async function getLastAuditHash(): Promise<string> {
         limit(1)
       );
       const snapshot = await getDocs(q);
-      if (!snapshot.empty) {
+      if (snapshot.size > 0) {
         const lastLog = snapshot.docs[0].data() as AuditLog;
         lastHashCache = lastLog.hash || '';
         return lastHashCache;
@@ -63,6 +64,11 @@ export async function logEvent(event: {
   userAgent?: string;
 }): Promise<void> {
   try {
+    // Fire IP hint capture non-blocking (don't await before writing audit log)
+    const ipHintPromise = getIpHint();
+    let capturedIpHint: string | undefined;
+    ipHintPromise.then(hint => { capturedIpHint = hint; });
+
     const prevHash = await getLastAuditHash();
     const beforeHash = event.beforeData ? await computeEntityHashAsync(event.beforeData) : undefined;
     const afterHash = event.afterData ? await computeEntityHashAsync(event.afterData) : undefined;
@@ -76,7 +82,7 @@ export async function logEvent(event: {
       sessionId: event.sessionId,
       beforeHash,
       afterHash,
-      ipHint: event.ipHint,
+      ipHint: event.ipHint ?? capturedIpHint,
       userAgent: event.userAgent,
       prevHash
     };
@@ -178,6 +184,85 @@ export async function logDelete(
   });
 }
 
+
+/**
+ * Convenience function for logging edit attempts on completed sessions.
+ */
+export async function logEditCompleted(
+  actorId: string,
+  entityId: string,
+  sessionId?: string,
+  justification?: string
+): Promise<void> {
+  await logEvent({
+    actorId,
+    action: 'update',
+    entity: 'session',
+    entityId,
+    sessionId,
+    afterData: { warning: 'edit_completed_session', justification: justification || undefined },
+    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined
+  });
+}
+
+/**
+ * Verifies the integrity of the Merkle chain for a given actor's audit logs.
+ * Returns whether the chain is valid, the first invalid record ID (if any), and total records checked.
+ */
+export async function verifyAuditChain(actorId: string): Promise<{ valid: boolean; firstInvalidId?: string; totalRecords: number }> {
+  try {
+    const q = query(
+      collection(db, 'audit_logs'),
+      where('actorId', '==', actorId),
+      orderBy('timestamp', 'asc')
+    );
+    const snapshot = await getDocs(q);
+    const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AuditLog));
+
+    if (logs.length === 0) {
+      return { valid: true, totalRecords: 0 };
+    }
+
+    let expectedPrevHash = '0'.repeat(64); // Genesis hash
+
+    for (let i = 0; i < logs.length; i++) {
+      const log = logs[i];
+
+      // Verify prevHash linkage
+      if (log.prevHash !== expectedPrevHash) {
+        return { valid: false, firstInvalidId: log.id, totalRecords: i + 1 };
+      }
+
+      // Recompute the hash from payload
+      const payloadData = {
+        actorId: log.actorId,
+        action: log.action,
+        entity: log.entity,
+        entityId: log.entityId,
+        timestamp: log.timestamp,
+        sessionId: log.sessionId,
+        beforeHash: log.beforeHash,
+        afterHash: log.afterHash,
+        ipHint: log.ipHint,
+        userAgent: log.userAgent,
+        prevHash: log.prevHash
+      };
+      const payload = JSON.stringify(payloadData);
+      const recomputedHash = await computeRecordHash(payload, log.prevHash || '');
+
+      if (recomputedHash !== log.hash) {
+        return { valid: false, firstInvalidId: log.id, totalRecords: i + 1 };
+      }
+
+      expectedPrevHash = log.hash || '';
+    }
+
+    return { valid: true, totalRecords: logs.length };
+  } catch (error) {
+    console.error('Failed to verify audit chain:', error);
+    return { valid: false, firstInvalidId: undefined, totalRecords: 0 };
+  }
+}
 /**
  * Convenience function for logging export events.
  */

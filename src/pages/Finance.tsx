@@ -330,7 +330,7 @@ export default function Finance() {
                 onChange={(e) => setFilterPatientId(e.target.value)}
                 className="input-field text-[13px] py-2 bg-surface"
               >
-                <option value="all">{t('sidebar.patients', 'Pacientes')} (Todos)</option>
+                <option value="all">{t('sidebar.patients', 'Pacientes')} ({t('common.all')})</option>
                 {Object.values(patients).map(p => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}

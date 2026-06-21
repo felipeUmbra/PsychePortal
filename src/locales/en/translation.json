@@ -60,7 +60,8 @@
         "show_patients": "Show Patients",
         "entire_calendar": "Entire Calendar",
         "sessions_by_day": "Sessions by day",
-        "audit_log": "Audit Log"
+        "audit_log": "Audit Log",
+        "compliance": "Compliance"
     },
     "audit": {
         "title": "Audit Trail",
@@ -113,7 +114,20 @@
     },
     "sessions": {
         "type": "Type",
-        "payment_status": "Payment Status"
+        "payment_status": "Payment Status",
+        "title": "Therapy Sessions",
+        "subtitle": "History of all sessions and clinical notes.",
+        "view_patient": "View Patient",
+        "search_placeholder": "Search by patient name or notes...",
+        "no_sessions": "No sessions found",
+        "no_sessions_hint": "Try adjusting your search or filters.",
+        "delete_confirm_title": "Delete Session",
+        "delete_confirm_message": "Are you sure you want to delete this session? This action cannot be undone.",
+        "edit_completed_warning_title": "Edit Completed Session?",
+        "edit_completed_warning_message": "This session is marked as completed. Editing clinical notes after completion is discouraged by CFP 09/2024. Are you sure you want to proceed?",
+        "edit_completed_warning_confirm": "Edit Anyway",
+        "edit_justification_label": "Justification for edit (required)",
+        "edit_justification_placeholder": "Explain why this edit is necessary..."
     },
     "landing_page": {
         "google_compliance_title": "Secure & Compliant",
@@ -124,7 +138,9 @@
         "workspace": "Workspace",
         "psychologist": "Psychologist",
         "auth_missing_scopes": "Access denied",
-        "auth_expired": "Session expired"
+        "auth_expired": "Session expired",
+        "retention_reminder_title": "Retention policy pending",
+        "retention_reminder_message": "Data retention has not been run for over 30 days. Run now to maintain compliance."
     },
     "finance": {
         "title": "Financial",
@@ -132,7 +148,24 @@
         "total_expected": "Total Expected",
         "total_paid": "Total Paid",
         "mark_paid": "Mark as Paid",
-        "mark_pending": "Mark as Pending"
+        "mark_pending": "Mark as Pending",
+        "expected_sessions": "Expected (Sessions)",
+        "expected_monthly": "Expected (Monthly)",
+        "pending_payments": "Pending Payments",
+        "patient_summary": "Patient Summary",
+        "no_data_period": "No data for the selected period",
+        "period": {
+            "all": "All",
+            "day": "Day",
+            "week": "Week",
+            "month": "Month",
+            "year": "Year"
+        },
+        "status": {
+            "paid": "Paid",
+            "pending": "Pending"
+        },
+        "no_records": "No financial records found."
     },
     "session_status": {
         "scheduled": "Scheduled",
@@ -172,20 +205,72 @@
         "subtitle": "Manage and view your patient records.",
         "search_placeholder": "Search patients by name or email...",
         "filters": "Filters",
+        "basic_info": "Basic Information",
+        "patient_since": "Patient since {{date}}",
+        "view_profile": "View Profile",
+        "add_modal_title": "Add New Patient",
+        "dob": "Date of Birth",
+        "gender": "Gender",
+        "genders": {
+            "male": "Male",
+            "female": "Female",
+            "non_binary": "Non-binary",
+            "other": "Other"
+        },
+        "cpf": {
+            "label": "CPF",
+            "error_length": "CPF must have 11 digits",
+            "error_invalid": "Invalid CPF"
+        },
+        "address": {
+            "title": "Address",
+            "country": "Country",
+            "zipCode": "ZIP Code",
+            "city": "City",
+            "state": "State",
+            "street": "Street",
+            "number": "Number",
+            "complement": "Complement",
+            "neighborhood": "Neighborhood"
+        },
+        "additional_data": {
+            "title": "Additional Data",
+            "education": "Education",
+            "ethnicity": "Ethnicity",
+            "education_levels": {
+                "infantil": "Early Childhood",
+                "fundamental_inc": "Elementary Incomplete",
+                "fundamental_comp": "Elementary Complete",
+                "medio_inc": "High School Incomplete",
+                "medio_comp": "High School Complete",
+                "superior_inc": "Bachelor's Incomplete",
+                "superior_comp": "Bachelor's Complete",
+                "pos_grad": "Postgraduate",
+                "mestrado": "Master's",
+                "doutorado": "Doctorate"
+            },
+            "ethnicities": {
+                "branco": "White",
+                "preto": "Black",
+                "pardo": "Mixed",
+                "indigena": "Indigenous",
+                "amarelo": "Asian",
+                "outro": "Other"
+            }
+        },
         "financial": {
             "title": "Financial Plan",
+            "plan": "Payment Plan",
             "plans": {
                 "per_session": "Per Session",
                 "monthly": "Monthly",
                 "health_insurance": "Health Insurance",
                 "exempt": "Exempt"
-            }
+            },
+            "session_value": "Session Value",
+            "monthly_value": "Monthly Value"
         },
-        "patient_since": "Patient since {{date}}",
-        "dob": "Date of Birth",
-        "view_profile": "View Profile",
-        "edit_profile": "Edit Patient",
-        "add_modal_title": "Add New Patient"
+        "edit_profile": "Edit Patient"
     },
     "patient_detail": {
         "id": "Patient ID",
@@ -224,7 +309,9 @@
         "social_habits": "Hábitos sociais e hobbies",
         "psychiatric_history_detailed": "Possui histórico psiquiátrico próprio ou familiar (medicação psiquiátrica, quadro neuro atípico, vício em substâncias ou alcoolismo)?",
         "recurrent_symptoms": "Possui alguma dor ou sintoma recorrente?",
-        "predominant_emotions": "Quais são suas emoções predominantes no dia-a-dia?"
+        "predominant_emotions": "Quais são suas emoções predominantes no dia-a-dia?",
+        "substance_use": "Substance Use",
+        "substance_use_placeholder": "Alcohol, tobacco, illicit substances..."
     },
     "calendar": {
         "title": "Agenda de Consultas",
@@ -303,7 +390,40 @@
         "consent_text_label": "Default Consent Text",
         "consent_text_placeholder": "Enter the consent text that patients will see...",
         "consent_version_label": "Consent Version",
-        "consent_config_hint": "This text will be presented to patients before their first session record is saved."
+        "consent_config_hint": "This text will be presented to patients before their first session record is saved.",
+        "crp_number": "CRP Registration Number",
+        "crp_number_placeholder": "e.g., 06/123456",
+        "crp_region": "CRP Region (State)",
+        "crp_region_placeholder": "Select a state...",
+        "dpo_section": "Data Protection Officer (DPO)",
+        "dpo_name_label": "Data Protection Officer (DPO) Name",
+        "dpo_email_label": "DPO Email",
+        "security_section": "Security",
+        "auto_lock_label": "Auto-lock after inactivity",
+        "auto_lock_never": "Never",
+        "auto_lock_5min": "5 minutes",
+        "auto_lock_10min": "10 minutes",
+        "auto_lock_15min": "15 minutes",
+        "auto_lock_30min": "30 minutes",
+        "auto_lock_60min": "60 minutes",
+        "auto_lock_helper": "The session will be automatically locked after the specified period of inactivity.",
+        "session_timeout_toast_title": "Session Locked",
+        "session_timeout_toast_message": "Your session was locked due to inactivity. Please enter your passphrase to continue.",
+        "retention_section": "Data Retention",
+        "retention_years_label": "Retention Period (years)",
+        "retention_years_hint": "Sessions older than this period will be permanently deleted.",
+        "retention_enabled_label": "Enable automatic retention enforcement",
+        "retention_warning": "Enabling automatic retention will permanently delete sessions older than the specified period. This action cannot be undone.",
+        "retention_run_now": "Run Retention Now",
+        "retention_running": "Running retention enforcement...",
+        "retention_last_run": "Last run",
+        "retention_result_title": "Retention Enforcement Complete",
+        "retention_result_sessions": "Sessions deleted",
+        "retention_result_consents": "Orphaned consents removed",
+        "retention_result_executed_at": "Executed at",
+        "retention_never_run": "Never",
+        "retention_invalid_years": "Retention period must be between 1 and 20 years",
+        "consent_change_warning": "Changing the consent text or version will require all patients to provide new consent before their next session record can be saved. Existing session records will NOT be affected. Continue?"
     },
     "terms_page": {
         "title": "Termos de Serviço",
@@ -337,8 +457,18 @@
         "consent_title": "5. Consent Management",
         "consent_text": "Before any clinical session record is stored, the patient must provide informed consent through an electronic signature. This signature, along with a timestamp and the signed consent text, is stored immutably. Patients may revoke their consent at any time from their patient profile. Upon revocation, an audit trail entry is created and the psychologist is notified. No new session records can be created for a patient without an active consent.",
         "dpo_title": "6. Data Controller Contact (DPO)",
-        "dpo_text": "The Data Protection Officer (DPO) for this deployment is: [To be filled in by the deploying psychologist]. For privacy inquiries, contact: [dpo@example.com — placeholder].",
-        "encryption_details": "Encryption & Security: All clinical notes are encrypted using AES-256-GCM before storage. Data in transit is protected by TLS 1.3. Consent records are stored in a tamper-evident audit chain. Session data is retained for the duration of the therapeutic relationship and deleted upon patient request or after the retention period defined by applicable regulations."
+        "dpo_text": "The Data Protection Officer (DPO) for this deployment is: {{dpoName}}. For privacy inquiries, contact: {{dpoEmail}}.",
+        "encryption_details": "Encryption & Security: All clinical notes are encrypted using AES-256-GCM before storage. Data in transit is protected by TLS 1.3. Consent records are stored in a tamper-evident audit chain. Session data is retained for the duration of the therapeutic relationship and deleted upon patient request or after the retention period defined by applicable regulations.",
+        "legal_basis_title": "7. Legal Basis for Processing (Art. 7 LGPD)",
+        "legal_basis_text": "The processing of clinical data carried out by this platform is based on the following legal bases of the LGPD: (i) execution of a contract or preliminary procedures related to a contract to which the data subject is a party (Art. 7, V) — the therapeutic relationship; (ii) regular exercise of rights in judicial, administrative or arbitral proceedings (Art. 7, VI); (iii) protection of the life or physical safety of the data subject or third party (Art. 7, VII); (iv) health protection, in procedures carried out by health professionals (Art. 7, VIII). Patient consent (Art. 7, I) is obtained electronically before any clinical session record is created.",
+        "patient_rights_title": "8. Data Subject Rights (Art. 18 LGPD)",
+        "patient_rights_text": "In accordance with Art. 18 of the LGPD, the patient (data subject) has the right to: (a) confirm the existence of data processing; (b) access their clinical data; (c) correct incomplete, inaccurate or outdated data; (d) request anonymization, blocking or deletion of unnecessary or non-compliant data; (e) request data portability; (f) delete data processed with their consent; (g) obtain information about entities with whom their data was shared; (h) revoke consent at any time. To exercise these rights, request your psychologist through the Data Subject Request (DSR) feature available in the Compliance panel.",
+        "retention_title": "9. Data Retention Period",
+        "retention_text": "Clinical records are retained for the period configured by the psychologist (default: 5 years), as required by CFP 09/2024 and applicable legislation. After the retention period ends, data is automatically deleted. The patient may request early deletion of their data at any time, except in cases where there is a legal obligation to maintain records.",
+        "international_transfer_title": "10. International Data Transfer",
+        "international_transfer_text": "This platform uses Google services (Google Drive and Google Calendar), whose servers may be located outside Brazil. Google LLC maintains international security certifications (ISO 27001, SOC 2) and participates in data protection frameworks. The processing carried out by this platform complies with the LGPD requirements for international data transfer (Art. 33), including the adoption of standard contractual clauses and ensuring an adequate level of protection.",
+        "anpd_title": "11. National Data Protection Authority (ANPD)",
+        "anpd_text": "The ANPD is the federal public administration body responsible for overseeing the protection of personal data and for regulating, implementing and enforcing compliance with the LGPD. For questions, complaints or reports about data processing, contact: Website: www.gov.br/anpd | Email: ascom@anpd.gov.br | Address: SCS Quadra 6, Bloco A, Edifício Brasília Shopping, 2nd floor, Brasília-DF, CEP 70300-915."
     },
     "encryption": {
         "enabled": "Criptografia Ativada",
@@ -372,7 +502,25 @@
         "passphrase_mismatch": "As senhas nÃ£o coincidem.",
         "common.back": "Voltar",
         "common.loading": "Carregando...",
-        "common.cancel": "Cancelar"
+        "common.cancel": "Cancelar",
+        "required_error": "Clinical note encryption is mandatory per CFP 09/2024. Please set up encryption before saving sessions.",
+        "setup_required": "Encryption setup is required",
+        "change_title": "Change Encryption Passphrase",
+        "change_desc": "Enter a new passphrase to replace the current one. Your existing encrypted notes will be re-encrypted with the new passphrase.",
+        "change_button": "Change Passphrase",
+        "section_title": "Note Encryption",
+        "section_desc": "Encryption protects your clinical notes and patient data with AES-256-GCM. Notes are encrypted before storage and only decrypted when you are authenticated.",
+        "status_enabled": "Encryption Enabled",
+        "status_disabled": "Encryption Disabled",
+        "status_enabled_desc": "Your notes are protected with AES-256-GCM encryption.",
+        "status_disabled_desc": "Your notes are NOT encrypted. Enable encryption to protect your clinical data.",
+        "enable_button": "Enable Encryption",
+        "change_passphrase_button": "Change Passphrase",
+        "disable_button": "Disable Encryption",
+        "disable_confirm_title": "Disable Encryption?",
+        "disable_confirm_message": "Are you sure you want to disable encryption? Your existing notes will remain encrypted, but new notes will not be protected.",
+        "disable_confirm_button": "Disable",
+        "disable_error": "Failed to disable encryption."
     },
     "consent": {
         "title": "Informed Consent",
@@ -395,6 +543,113 @@
         "accepted_on": "Accepted on",
         "revoked_on": "Revoked on",
         "no_consent": "No consent on file. Session records cannot be saved until consent is accepted.",
-        "required_before_session": "Active consent is required before saving a session record. Please have the patient accept the consent form first."
+        "required_before_session": "Active consent is required before saving a session record. Please have the patient accept the consent form first.",
+        "banner_required": "Active consent is required before creating session records. Please have the patient accept the consent form in the Consent tab.",
+        "form_warning": "Ensure the patient has accepted the consent form before saving clinical notes.",
+        "blocking_banner": "Active consent is required. Please have the patient accept the consent form before saving clinical notes.",
+        "guardian_name_required": "Guardian name is required for minor patients.",
+        "guardian_label": "Responsible",
+        "is_minor_label": "Patient is a minor (under 18) — consent must be provided by a parent or legal guardian",
+        "guardian_section_title": "Parent / Legal Guardian Information",
+        "guardian_name_label": "Guardian Full Name",
+        "guardian_name_placeholder": "Full name of parent or legal guardian",
+        "guardian_relationship_label": "Relationship",
+        "guardian_relationship_placeholder": "Select...",
+        "guardian_relationship_mother": "Mother",
+        "guardian_relationship_father": "Father",
+        "guardian_relationship_legal_guardian": "Legal Guardian",
+        "guardian_relationship_other": "Other",
+        "guardian_cpf_label": "Guardian CPF",
+        "guardian_signature_placeholder": "Guardian full name to sign",
+        "config_required": "Consent text not configured. Please configure the consent text in Settings before collecting patient consent.",
+        "go_to_settings": "Go to Settings"
+    },
+    "compliance": {
+        "title": "Compliance",
+        "subtitle": "Compliance status panel and self-attestation",
+        "status_panel": "Compliance Status",
+        "attestation_panel": "Professional Self-Attestation",
+        "encryption_status": "Encryption at Rest",
+        "audit_status": "Audit Trail",
+        "retention_status": "Retention Policy",
+        "consent_status": "Patient Consent",
+        "headers_status": "Security Headers",
+        "backup_status": "Google Drive Backup",
+        "compliant": "Compliant",
+        "non_compliant": "Non-Compliant",
+        "attestation_crp": "I have a valid CRP registration",
+        "attestation_patients": "I have informed my patients about data processing",
+        "attestation_recovery": "I keep a copy of my encryption recovery code in a safe place",
+        "attestation_cfp": "I have read and understand the CFP 09/2024 resolution",
+        "attestation_retention": "I have a data retention policy documented",
+        "attestation_dsr": "I know how to handle a data subject request",
+        "save_attestation": "Save Attestation",
+        "export_report": "Export Compliance Report",
+        "export_audit_csv": "Export Audit Log (CSV)",
+        "report_generated_at": "Generated at",
+        "backup_section": "Backup & Redundancy",
+        "force_backup": "Force Full Backup",
+        "backup_success": "Backup completed successfully",
+        "backup_history": "Backup History",
+        "secondary_account": "Secondary Account (Geographic Redundancy)",
+        "secondary_token_placeholder": "Read-only access token...",
+        "dsr_section": "Data Subject Request",
+        "dsr_patient_select": "Select Patient",
+        "dsr_generate": "Generate Signed Data Bundle",
+        "dsr_warning": "This will export all data for this patient including decrypted clinical notes. Handle with care.",
+        "snapshots_stored": "snapshots stored",
+        "crp_display": "CRP {number} — {region}",
+        "crp_missing_warning": "CRP number not provided. Please add it in Settings.",
+        "export_log_title": "Export Log",
+        "export_log_subtitle": "View data export history",
+        "export_log_exported_at": "Exported At",
+        "export_log_export_type": "Export Type",
+        "export_log_record_count": "Record Count",
+        "configure_retention": "Configure in Settings",
+        "retention_not_configured": "Not configured",
+        "retention_configured": "Configured: {years} years",
+        "retention_last_run_label": "Last run: {date}",
+        "compliance_run_retention": "Run Retention Now",
+        "secondary_account_hint": "Optional: paste a read-only Google Drive access token for a secondary account. Token is stored in session only."
+    },
+    "data_deletion": {
+        "title": "Delete All Patient Data",
+        "warning_title": "Delete All Patient Data?",
+        "warning_message": "This will permanently delete the patient record, all sessions, all consents, and all attached files from Google Drive. This action cannot be undone.",
+        "confirm_title": "Confirm Deletion",
+        "confirm_description": "To confirm, type the patient's full name below:",
+        "confirm_placeholder": "Type patient name to confirm",
+        "cancel": "Cancel",
+        "continue": "Continue",
+        "delete_permanently": "Delete Permanently",
+        "deletion_success": "Data Deletion Complete",
+        "result_patient_deleted": "Patient record deleted",
+        "result_sessions_deleted": "Sessions deleted",
+        "result_consents_deleted": "Consents deleted",
+        "result_attachments_deleted": "Attachments deleted",
+        "result_executed_at": "Executed at",
+        "error_failed": "Deletion failed. Please try again.",
+        "button_label": "Delete All Patient Data",
+        "dsr_button_label": "Delete All Patient Data",
+        "dsr_delete_warning": "This will permanently delete all data for this patient. This action cannot be undone."
+    },
+    "note_version": {
+        "view_history": "View Version History",
+        "title": "Note Version History",
+        "version": "Version",
+        "created_at": "Created At",
+        "no_versions": "No version history available.",
+        "unlock_required": "Unlock encryption to view version content.",
+        "close": "Close",
+        "loading": "Loading versions..."
+    },
+    "session_form": {
+        "consent_required_tooltip": "Obtain patient consent before saving"
+    },
+    "cookies": {
+        "message": "This site uses cookies to improve your experience. By continuing, you agree to our Privacy Policy.",
+        "accept": "Accept",
+        "decline": "Decline",
+        "policy": "Privacy Policy"
     }
 }

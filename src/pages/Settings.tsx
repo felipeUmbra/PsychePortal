@@ -1,6 +1,6 @@
 import { useState, useEffect, FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { doc, getDoc, updateDoc, setDoc, collection, query, where, getDocs, setDriveToken as setMockToken, forceSync } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc, collection, query, where, getDocs, setDriveToken as setMockToken, forceSync, deleteDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import {
@@ -15,7 +15,10 @@ import {
   Lock,
   Shield,
   AlertTriangle,
-  FileText
+  FileText,
+  HardDrive,
+  Database,
+  KeyRound
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
@@ -25,6 +28,10 @@ import Papa from 'papaparse';
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { useGoogleAuth } from '../context/GoogleAuthContext';
 import { logExport } from '../lib/audit';
+import { logDataExport } from '../lib/export-log';
+import { enforceRetentionPolicy, RetentionResult } from '../lib/retention';
+import { useEncryption } from '../hooks/useEncryption';
+import { EncryptionSetupModal } from '../components/EncryptionSetupModal';
 
 export default function Settings() {
   const [user] = useAuthState(auth);
@@ -42,10 +49,48 @@ export default function Settings() {
   const [isConnectingCalendar, setIsConnectingCalendar] = useState(false);
   const [isReauthorizingDrive, setIsReauthorizingDrive] = useState(false);
 
+  const [secondaryToken, setSecondaryToken] = useState('');
+
   const [consentText, setConsentText] = useState('');
   const [consentVersion, setConsentVersion] = useState('1.0');
+  const [autoLockMinutes, setAutoLockMinutes] = useState<number | null>(null);
+
+  const [retentionYears, setRetentionYears] = useState<number>(5);
+  const [retentionEnabled, setRetentionEnabled] = useState<boolean>(false);
+  const [lastRetentionRun, setLastRetentionRun] = useState<string>('');
+  const [isRunningRetention, setIsRunningRetention] = useState(false);
+  const [retentionResult, setRetentionResult] = useState<RetentionResult | null>(null);
 
   const googleCalendarToken = calendarToken;
+
+  // Encryption state
+  const { isSetup: encryptionSetup, isUnlocked: encryptionUnlocked, needsSetup: encryptionNeedsSetup, setup: encryptionSetupFn, disable: encryptionDisable, isLoading: encryptionLoading } = useEncryption();
+  const [showEncryptionModal, setShowEncryptionModal] = useState(false);
+  const [encryptionModalMode, setEncryptionModalMode] = useState<'setup' | 'change'>('setup');
+  const [showDisableConfirm, setShowDisableConfirm] = useState(false);
+  const [isDisabling, setIsDisabling] = useState(false);
+
+  const handleOpenSetupModal = (mode: 'setup' | 'change') => {
+    setEncryptionModalMode(mode);
+    setShowEncryptionModal(true);
+  };
+
+  const handleDisableEncryption = async () => {
+    if (!showDisableConfirm) {
+      setShowDisableConfirm(true);
+      return;
+    }
+    setIsDisabling(true);
+    try {
+      await encryptionDisable();
+      setShowDisableConfirm(false);
+    } catch (err) {
+      console.error('Failed to disable encryption:', err);
+      alert(t('encryption.disable_error', 'Failed to disable encryption.'));
+    } finally {
+      setIsDisabling(false);
+    }
+  };
 
   const handleConnectCalendar = async () => {
     if (isConnectingCalendar) return;
@@ -150,6 +195,10 @@ export default function Settings() {
     if (profile) {
       setConsentText(profile.consentText || '');
       setConsentVersion(profile.consentVersion || '1.0');
+      setAutoLockMinutes(profile.autoLockMinutes ?? null);
+      setRetentionYears(profile.retentionYears ?? 5);
+      setRetentionEnabled(profile.retentionEnabled ?? false);
+      setLastRetentionRun(profile.lastRetentionRun || '');
     }
   }, [profile]);
 
@@ -157,12 +206,24 @@ export default function Settings() {
     e.preventDefault();
     if (!user || !profile) return;
 
+    // G4: Warn if consent text or version changed
+    const consentChanged = (consentText !== (profile.consentText || '')) || (consentVersion !== (profile.consentVersion || '1.0'));
+    if (consentChanged && profile.consentText) {
+      const confirmed = window.confirm(
+        t('settings.consent_change_warning', 'Changing the consent text or version will require all patients to provide new consent before their next session record can be saved. Existing session records will NOT be affected. Continue?')
+      );
+      if (!confirmed) return;
+    }
+
     setIsSaving(true);
     try {
       await updateDoc(doc(db, 'psychologists', user.uid), {
         ...profile,
         consentText,
         consentVersion,
+        autoLockMinutes: autoLockMinutes ?? null,
+        retentionYears,
+        retentionEnabled,
         updatedAt: new Date().toISOString()
       });
       setShowSuccess(true);
@@ -171,6 +232,26 @@ export default function Settings() {
       handleFirestoreError(error, OperationType.UPDATE, `psychologists/${user.uid}`);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleRunRetention = async () => {
+    if (!user || isRunningRetention) return;
+    if (retentionYears < 1 || retentionYears > 20) {
+      alert(t('settings.retention_invalid_years'));
+      return;
+    }
+    setIsRunningRetention(true);
+    setRetentionResult(null);
+    try {
+      const result = await enforceRetentionPolicy(user.uid, retentionYears);
+      setRetentionResult(result);
+      setLastRetentionRun(result.executedAt);
+    } catch (err: any) {
+      console.error('Retention enforcement failed:', err);
+      alert(err.message || 'Retention enforcement failed');
+    } finally {
+      setIsRunningRetention(false);
     }
   };
 
@@ -257,6 +338,7 @@ export default function Settings() {
       const entity = exportOption.includes('session') ? 'session' : 'patient';
       const entityIds = exportOption.includes('session') ? allPatients.flatMap(p => p.sessions?.map((s: any) => s.id) || []) : allPatients.map(p => p.id);
       await logExport(user.uid, entity, entityIds, exportOption);
+      await logDataExport(user.uid, 'all', exportOption, exportData.length);
 
     } catch (error) {
       console.error('Export failed', error);
@@ -317,6 +399,73 @@ export default function Settings() {
                   />
                 </div>
                 <p className="text-[11px] text-text-muted mt-2 font-medium">{t('settings.email_hint')}</p>
+              </div>
+              <div>
+                <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.crp_number')}</label>
+                <input
+                  type="text"
+                  className="input-field text-[14px]"
+                  placeholder={t('settings.crp_number_placeholder')}
+                  value={profile.crpNumber || ''}
+                  onChange={(e) => setProfile({ ...profile, crpNumber: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.crp_region')}</label>
+                <select
+                  className="input-field text-[14px]"
+                  value={profile.crpRegion || ''}
+                  onChange={(e) => setProfile({ ...profile, crpRegion: e.target.value })}
+                >
+                  <option value="">{t('settings.crp_region_placeholder')}</option>
+                  <option value="AC">AC</option>
+                  <option value="AL">AL</option>
+                  <option value="AP">AP</option>
+                  <option value="AM">AM</option>
+                  <option value="BA">BA</option>
+                  <option value="CE">CE</option>
+                  <option value="DF">DF</option>
+                  <option value="ES">ES</option>
+                  <option value="GO">GO</option>
+                  <option value="MA">MA</option>
+                  <option value="MT">MT</option>
+                  <option value="MS">MS</option>
+                  <option value="MG">MG</option>
+                  <option value="PA">PA</option>
+                  <option value="PB">PB</option>
+                  <option value="PR">PR</option>
+                  <option value="PE">PE</option>
+                  <option value="PI">PI</option>
+                  <option value="RJ">RJ</option>
+                  <option value="RN">RN</option>
+                  <option value="RS">RS</option>
+                  <option value="RO">RO</option>
+                  <option value="RR">RR</option>
+                  <option value="SC">SC</option>
+                  <option value="SP">SP</option>
+                  <option value="SE">SE</option>
+                  <option value="TO">TO</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.dpo_name_label')}</label>
+                <input
+                  type="text"
+                  className="input-field text-[14px]"
+                  placeholder={t('settings.dpo_name_label')}
+                  value={profile.dpoName || ''}
+                  onChange={(e) => setProfile({ ...profile, dpoName: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.dpo_email_label')}</label>
+                <input
+                  type="email"
+                  className="input-field text-[14px]"
+                  placeholder="dpo@exemplo.com"
+                  value={profile.dpoEmail || ''}
+                  onChange={(e) => setProfile({ ...profile, dpoEmail: e.target.value })}
+                />
               </div>
             </div>
 
@@ -429,6 +578,237 @@ export default function Settings() {
           </div>
         </section>
 
+        {/* Security Section */}
+        <section className="card">
+          <h2 className="text-[16px] font-bold text-text-main mb-8 flex items-center gap-2 border-b border-border-custom pb-4">
+            <Shield className="w-5 h-5 text-primary-custom" />
+            {t('settings.security_section')}
+          </h2>
+
+          <div className="space-y-6">
+            <div>
+              <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.auto_lock_label')}</label>
+              <select
+                className="input-field text-[14px]"
+                value={autoLockMinutes ?? ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setAutoLockMinutes(val === '' ? null : Number(val));
+                }}
+              >
+                <option value="">{t('settings.auto_lock_never')}</option>
+                <option value="5">{t('settings.auto_lock_5min')}</option>
+                <option value="10">{t('settings.auto_lock_10min')}</option>
+                <option value="15">{t('settings.auto_lock_15min')}</option>
+                <option value="30">{t('settings.auto_lock_30min')}</option>
+                <option value="60">{t('settings.auto_lock_60min')}</option>
+              </select>
+              <p className="text-[11px] text-text-muted mt-2 font-medium">{t('settings.auto_lock_helper')}</p>
+            </div>
+          </div>
+        </section>
+
+        {/* Encryption Section */}
+        <section className="card">
+          <h2 className="text-[16px] font-bold text-text-main mb-8 flex items-center gap-2 border-b border-border-custom pb-4">
+            <KeyRound className="w-5 h-5 text-primary-custom" />
+            {t('encryption.section_title')}
+          </h2>
+
+          <div className="space-y-6">
+            <p className="text-[14px] text-text-muted">{t('encryption.section_desc')}</p>
+
+            {/* Status */}
+            <div className={`p-4 rounded-xl border ${encryptionSetup ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
+              <div className="flex items-center gap-3">
+                <div className={`w-3 h-3 rounded-full ${encryptionSetup ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                <span className={`font-bold text-[14px] ${encryptionSetup ? 'text-emerald-700' : 'text-amber-700'}`}>
+                  {encryptionSetup ? t('encryption.status_enabled') : t('encryption.status_disabled')}
+                </span>
+              </div>
+              <p className={`text-[13px] mt-1 ml-6 ${encryptionSetup ? 'text-emerald-600' : 'text-amber-600'}`}>
+                {encryptionSetup ? t('encryption.status_enabled_desc') : t('encryption.status_disabled_desc')}
+              </p>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex flex-wrap gap-3">
+              {!encryptionSetup && (
+                <button
+                  type="button"
+                  onClick={() => handleOpenSetupModal('setup')}
+                  className="btn-primary flex items-center gap-2 text-[14px]"
+                >
+                  <Lock className="w-4 h-4" />
+                  {t('encryption.enable_button')}
+                </button>
+              )}
+
+              {encryptionSetup && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenSetupModal('change')}
+                    className="btn-secondary flex items-center gap-2 text-[14px]"
+                  >
+                    <KeyRound className="w-4 h-4" />
+                    {t('encryption.change_passphrase_button')}
+                  </button>
+
+                  {!showDisableConfirm ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowDisableConfirm(true)}
+                      className="btn-secondary text-red-600 hover:bg-red-50 hover:border-red-200 flex items-center gap-2 text-[14px]"
+                    >
+                      <Lock className="w-4 h-4" />
+                      {t('encryption.disable_button')}
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl">
+                      <p className="text-[13px] text-red-700 font-medium">
+                        {t('encryption.disable_confirm_message')}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleDisableEncryption}
+                        disabled={isDisabling}
+                        className="btn-primary bg-red-600 hover:bg-red-700 border-red-600 text-[12px] h-8 px-3 flex items-center gap-1 disabled:opacity-50"
+                      >
+                        {isDisabling ? <Loader2 className="w-3 h-3 animate-spin" /> : t('encryption.disable_confirm_button')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowDisableConfirm(false)}
+                        className="btn-secondary text-[12px] h-8 px-3"
+                      >
+                        {t('common.cancel', 'Cancel')}
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Backup & Compliance Panel */}
+        <section className="card">
+          <h2 className="text-[16px] font-bold text-text-main mb-8 flex items-center gap-2 border-b border-border-custom pb-4">
+            <HardDrive className="w-5 h-5 text-primary-custom" />
+            {t('compliance.backup_section', 'Backup & Redundancy')}
+          </h2>
+          <div className="space-y-6">
+            <div>
+              <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">
+                {t('compliance.secondary_account', 'Secondary Account (Geographic Redundancy)')}
+              </label>
+              <input type="password" className="input-field text-[14px]" placeholder={t('compliance.secondary_token_placeholder', 'Read-only access token...')} value={secondaryToken} onChange={(e) => setSecondaryToken(e.target.value)} />
+              <p className="text-[11px] text-text-muted mt-2 font-medium">
+                Optional: paste a read-only Google Drive access token for a secondary account. Token is stored in session only.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!user || !driveToken) return;
+                try {
+                  const { triggerFullBackup } = await import('../lib/backup');
+                  const result = await triggerFullBackup(driveToken, user.uid, secondaryToken || undefined);
+                  alert(t('compliance.backup_success', 'Backup completed') + ' - ' + result.snapshotsKept + ' snapshots stored');
+                } catch (err: any) {
+                  alert(err.message || 'Backup failed');
+                }
+              }}
+              disabled={!driveToken}
+              className="btn-primary flex items-center justify-center gap-2 w-full text-[14px] disabled:opacity-50"
+            >
+              <HardDrive className="w-4 h-4" />
+              {t('compliance.force_backup', 'Force Full Backup')}
+            </button>
+          </div>
+          <div className="mt-6 pt-6 border-t border-border-custom">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-surface border border-border-custom rounded-xl gap-4">
+              <div>
+                <h3 className="font-bold text-text-main text-[14px]">{t('compliance.title', 'Compliance')}</h3>
+                <p className="text-text-muted text-[13px] mt-1">View compliance status, self-attestation, and generate reports.</p>
+              </div>
+              <Link to="/app/compliance" className="btn-secondary text-[12px] h-9 inline-flex items-center gap-2">
+                <Shield className="w-4 h-4" />
+                {t('compliance.title', 'Compliance')}
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* Data Retention Section */}
+        <section className="card">
+          <h2 className="text-[16px] font-bold text-text-main mb-8 flex items-center gap-2 border-b border-border-custom pb-4">
+            <Database className="w-5 h-5 text-primary-custom" />
+            {t('settings.retention_section')}
+          </h2>
+
+          <div className="space-y-6">
+            <div>
+              <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.retention_years_label')}</label>
+              <input
+                type="number"
+                min={1}
+                max={20}
+                className="input-field text-[14px] w-24"
+                value={retentionYears}
+                onChange={(e) => setRetentionYears(Math.max(1, Math.min(20, Number(e.target.value) || 1)))}
+              />
+              <p className="text-[11px] text-text-muted mt-2 font-medium">{t('settings.retention_years_hint')}</p>
+            </div>
+
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={retentionEnabled}
+                onChange={(e) => setRetentionEnabled(e.target.checked)}
+                className="w-4 h-4 rounded border-border-custom text-primary-custom focus:ring-primary-custom/20"
+              />
+              <span className="text-[14px] text-text-main group-hover:text-primary-custom transition-colors">{t('settings.retention_enabled_label')}</span>
+            </label>
+
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-[13px] text-amber-800 font-medium">{t('settings.retention_warning')}</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <button
+                type="button"
+                onClick={handleRunRetention}
+                disabled={isRunningRetention}
+                className="btn-primary flex items-center justify-center gap-2 text-[14px] min-w-[180px] disabled:opacity-50"
+              >
+                {isRunningRetention ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+                {isRunningRetention ? t('settings.retention_running') : t('settings.retention_run_now')}
+              </button>
+              {lastRetentionRun && (
+                <p className="text-[12px] text-text-muted">
+                  {t('settings.retention_last_run')}: {format(new Date(lastRetentionRun), 'yyyy-MM-dd HH:mm')}
+                </p>
+              )}
+              {!lastRetentionRun && (
+                <p className="text-[12px] text-text-muted">{t('settings.retention_never_run')}</p>
+              )}
+            </div>
+
+            {retentionResult && (
+              <div className="p-4 bg-surface border border-border-custom rounded-xl space-y-2">
+                <p className="text-[14px] font-bold text-text-main">{t('settings.retention_result_title')}</p>
+                <p className="text-[12px] text-text-muted">{t('settings.retention_result_sessions')}: <span className="font-bold text-text-main">{retentionResult.sessionsDeleted}</span></p>
+                <p className="text-[12px] text-text-muted">{t('settings.retention_result_consents')}: <span className="font-bold text-text-main">{retentionResult.consentsAffected}</span></p>
+                <p className="text-[12px] text-text-muted">{t('settings.retention_result_executed_at')}: {format(new Date(retentionResult.executedAt), 'yyyy-MM-dd HH:mm:ss')}</p>
+              </div>
+            )}
+          </div>
+        </section>
 
         <section className="card">
           <h2 className="text-[16px] font-bold text-text-main mb-8 flex items-center gap-2 border-b border-border-custom pb-4">
@@ -571,6 +951,15 @@ export default function Settings() {
           </button>
         </div>
       </form>
+      <EncryptionSetupModal
+        isOpen={showEncryptionModal}
+        onClose={() => setShowEncryptionModal(false)}
+        onComplete={async (passphrase) => {
+          await encryptionSetupFn(passphrase);
+          setShowEncryptionModal(false);
+        }}
+        mode={encryptionModalMode}
+      />
     </div>
   );
 }

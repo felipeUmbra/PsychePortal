@@ -18,6 +18,10 @@ interface PatientConsentProps {
     acceptedFrom: string;
     text: string;
     version: string;
+    isMinor?: boolean;
+    guardianName?: string;
+    guardianRelationship?: string;
+    guardianCpf?: string;
   }) => Promise<void>;
   onRevoke: () => Promise<void>;
   loading?: boolean;
@@ -38,20 +42,36 @@ export function PatientConsent({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showRevokeConfirm, setShowRevokeConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isMinor, setIsMinor] = useState(false);
+  const [guardianName, setGuardianName] = useState('');
+  const [guardianRelationship, setGuardianRelationship] = useState('');
+  const [guardianCpf, setGuardianCpf] = useState('');
 
   const handleAccept = async () => {
     if (!signature.trim()) return;
+    if (isMinor && !guardianName.trim()) {
+      setError(t('consent.guardian_name_required', 'Guardian name is required for minor patients.'));
+      return;
+    }
     setIsSubmitting(true);
     setError(null);
     try {
       await onAccept({
         signature: signature.trim(),
         acceptedAt: new Date().toISOString(),
-        acceptedFrom: 'patient',
+        acceptedFrom: isMinor ? 'guardian' : 'patient',
         text: consentText,
-        version: consentVersion
+        version: consentVersion,
+        isMinor: isMinor || undefined,
+        guardianName: isMinor ? guardianName.trim() : undefined,
+        guardianRelationship: isMinor ? guardianRelationship.trim() || undefined : undefined,
+        guardianCpf: isMinor ? guardianCpf.trim() || undefined : undefined,
       });
       setSignature('');
+      setIsMinor(false);
+      setGuardianName('');
+      setGuardianRelationship('');
+      setGuardianCpf('');
     } catch (err: any) {
       setError(err.message || t('consent.accept_error', 'Failed to record consent.'));
     } finally {
@@ -112,6 +132,12 @@ export function PatientConsent({
             <p className="text-[13px] text-text-muted mt-1">
               {t('consent.accepted_on', 'Accepted on')} {formatDate(currentConsent.acceptedAt)}
               {currentConsent.signature && ` — ${currentConsent.signature}`}
+              {currentConsent.isMinor && currentConsent.guardianName && (
+                <span className="block text-[12px] text-primary-custom mt-0.5">
+                  {t('consent.guardian_label', 'Responsible:')} {currentConsent.guardianName}
+                  {currentConsent.guardianRelationship && ` (${currentConsent.guardianRelationship})`}
+                </span>
+              )}
             </p>
           ) : currentConsent?.revokedAt ? (
             <p className="text-[13px] text-text-muted mt-1">
@@ -143,6 +169,74 @@ export function PatientConsent({
             {t('consent.accept_title', 'Accept Consent')}
           </h3>
           <div className="space-y-4">
+            <div className="flex items-center gap-3 p-3 bg-surface rounded-lg border border-border-custom">
+              <input
+                type="checkbox"
+                id="isMinorCheck"
+                checked={isMinor}
+                onChange={(e) => setIsMinor(e.target.checked)}
+                className="w-4 h-4 rounded border-border-custom text-primary-custom focus:ring-primary-custom/20"
+                disabled={isSubmitting}
+              />
+              <label htmlFor="isMinorCheck" className="text-[13px] font-medium text-text-main cursor-pointer select-none">
+                {t('consent.is_minor_label', 'Patient is a minor (under 18) — consent must be provided by a parent or legal guardian')}
+              </label>
+            </div>
+
+            {isMinor && (
+              <div className="space-y-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                <p className="text-[12px] font-bold text-amber-800 uppercase tracking-wider">
+                  {t('consent.guardian_section_title', 'Parent / Legal Guardian Information')}
+                </p>
+                <div>
+                  <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">
+                    {t('consent.guardian_name_label', 'Guardian Full Name')} *
+                  </label>
+                  <input
+                    type="text"
+                    className="input-field text-[14px]"
+                    placeholder={t('consent.guardian_name_placeholder', 'Full name of parent or legal guardian')}
+                    value={guardianName}
+                    onChange={(e) => setGuardianName(e.target.value)}
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">
+                      {t('consent.guardian_relationship_label', 'Relationship')}
+                    </label>
+                    <select
+                      className="input-field text-[14px]"
+                      value={guardianRelationship}
+                      onChange={(e) => setGuardianRelationship(e.target.value)}
+                      disabled={isSubmitting}
+                    >
+                      <option value="">{t('consent.guardian_relationship_placeholder', 'Select...')}</option>
+                      <option value="mother">{t('consent.guardian_relationship_mother', 'Mother')}</option>
+                      <option value="father">{t('consent.guardian_relationship_father', 'Father')}</option>
+                      <option value="legal_guardian">{t('consent.guardian_relationship_legal_guardian', 'Legal Guardian')}</option>
+                      <option value="other">{t('consent.guardian_relationship_other', 'Other')}</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">
+                      {t('consent.guardian_cpf_label', 'Guardian CPF')}
+                    </label>
+                    <input
+                      type="text"
+                      className="input-field text-[14px]"
+                      placeholder="000.000.000-00"
+                      value={guardianCpf}
+                      onChange={(e) => setGuardianCpf(e.target.value)}
+                      disabled={isSubmitting}
+                      maxLength={14}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">
                 {t('consent.signature_label', 'Full Name')}
@@ -150,7 +244,7 @@ export function PatientConsent({
               <input
                 type="text"
                 className="input-field text-[14px]"
-                placeholder={t('consent.signature_placeholder', 'Type your full name to sign')}
+                placeholder={isMinor ? t('consent.guardian_signature_placeholder', 'Guardian full name to sign') : t('consent.signature_placeholder', 'Type your full name to sign')}
                 value={signature}
                 onChange={(e) => setSignature(e.target.value)}
                 disabled={isSubmitting}

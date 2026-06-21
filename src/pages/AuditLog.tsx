@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, orderBy, limit, getDocs, startAfter } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { useTranslation } from 'react-i18next';
@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { AuditLog, AuditAction, AuditEntity } from '../types';
+import { verifyAuditChain } from '../lib/audit';
 
 const PAGE_SIZE = 25;
 
@@ -36,6 +37,9 @@ export default function AuditLogPage() {
     dateTo: '',
     search: ''
   });
+
+  const [verifying, setVerifying] = useState(false);
+  const [verificationResult, setVerificationResult] = useState<{ valid: boolean; firstInvalidId?: string; totalRecords: number } | null>(null);
  
   const fetchLogs = async (reset = false) => {
     if (!user) return;
@@ -85,6 +89,21 @@ export default function AuditLogPage() {
 
   const handleSearch = () => {
     fetchLogs(true);
+  };
+
+  const handleVerifyChain = async () => {
+    if (!user || verifying) return;
+    setVerifying(true);
+    setVerificationResult(null);
+    try {
+      const result = await verifyAuditChain(user.uid);
+      setVerificationResult(result);
+    } catch (err) {
+      console.error('Verification failed:', err);
+      setVerificationResult({ valid: false, totalRecords: 0 });
+    } finally {
+      setVerifying(false);
+    }
   };
 
   const handleLoadMore = () => {
@@ -165,7 +184,30 @@ export default function AuditLogPage() {
               {t('audit.filters.search')}
             </button>
           </div>
+          <div className="flex items-end">
+            <button
+              onClick={handleVerifyChain}
+              disabled={verifying}
+              className="btn-secondary w-full flex items-center justify-center gap-2"
+            >
+              {verifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
+              {t('audit.integrity.check')}
+            </button>
+          </div>
         </div>
+        {verificationResult && (
+          <div className={`mt-4 p-4 rounded-xl border ${verificationResult.valid ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
+            {verificationResult.valid ? (
+              <p className="text-emerald-700 font-bold text-[14px]">
+                {t('audit.integrity.verified')} — {verificationResult.totalRecords} records
+              </p>
+            ) : (
+              <p className="text-red-700 font-bold text-[14px]">
+                {t('audit.integrity.broken')} — {verificationResult.firstInvalidId ? `at record ${verificationResult.firstInvalidId}` : 'unknown record'}
+              </p>
+            )}
+          </div>
+        )}
         <div className="overflow-x-auto">
           <table className="w-full text-[13px]">
             <thead>

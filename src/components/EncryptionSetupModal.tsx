@@ -15,16 +15,20 @@ interface EncryptionSetupModalProps {
   isOpen: boolean;
   onClose: () => void;
   onComplete: (passphrase: string) => Promise<void>;
-  onSkip: () => void;
+  isRequired?: boolean;
+  mode?: 'setup' | 'change';
+  currentPassphrase?: string;
 }
 
-type Step = 'welcome' | 'passphrase' | 'recovery' | 'skip-warning';
+type Step = 'welcome' | 'passphrase' | 'recovery';
 
 export function EncryptionSetupModal({
   isOpen,
   onClose,
   onComplete,
-  onSkip,
+  isRequired = false,
+  mode = 'setup',
+  currentPassphrase,
 }: EncryptionSetupModalProps) {
   const { t } = useTranslation();
   const [step, setStep] = useState<Step>('welcome');
@@ -101,8 +105,6 @@ export function EncryptionSetupModal({
   };
 
   const handleClose = () => { reset(); onClose(); };
-  const handleSkip = () => setStep('skip-warning');
-  const handleSkipConfirm = () => { reset(); onSkip(); };
   const handleWelcomeNext = () => setStep('passphrase');
 
   if (!isOpen) return null;
@@ -113,7 +115,7 @@ export function EncryptionSetupModal({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        onClick={handleClose}
+        onClick={isRequired ? undefined : handleClose}
         className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
       />
       <motion.div
@@ -122,13 +124,19 @@ export function EncryptionSetupModal({
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl p-8"
       >
-        <button
-          onClick={handleClose}
-          className="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-full transition-colors"
-          aria-label={t('common.close', 'Close')}
-        >
-          <X className="w-5 h-5 text-slate-400" />
-        </button>
+        {isRequired ? (
+          <div className="absolute top-4 right-4 text-[11px] text-slate-400 font-medium max-w-[120px] text-right leading-tight">
+            {t('encryption.setup_required', 'Encryption setup is required')}
+          </div>
+        ) : (
+          <button
+            onClick={handleClose}
+            className="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-full transition-colors"
+            aria-label={t('common.close', 'Close')}
+          >
+            <X className="w-5 h-5 text-slate-400" />
+          </button>
+        )}
 
         <AnimatePresence mode="wait">
           {step === 'welcome' && (
@@ -144,13 +152,20 @@ export function EncryptionSetupModal({
                   <Shield className="w-8 h-8 text-primary-custom" />
                 </div>
                 <h2 className="text-2xl font-bold text-slate-900">
-                  {t('encryption.setup_title', 'Setup Note Encryption')}
+                  {mode === 'change'
+                    ? t('encryption.change_title', 'Change Encryption Passphrase')
+                    : t('encryption.setup_title', 'Setup Note Encryption')}
                 </h2>
                 <p className="text-slate-500 mt-2 text-[14px] leading-relaxed max-w-sm">
-                  {t(
-                    'encryption.setup_desc',
-                    'Your session and patient notes will be encrypted with AES-256-GCM before being stored. This protects your data even if the storage is compromised.',
-                  )}
+                  {mode === 'change'
+                    ? t(
+                        'encryption.change_desc',
+                        'Enter a new passphrase to replace the current one. Your existing encrypted notes will be re-encrypted with the new passphrase.',
+                      )
+                    : t(
+                        'encryption.setup_desc',
+                        'Your session and patient notes will be encrypted with AES-256-GCM before being stored. This protects your data even if the storage is compromised.',
+                      )}
                 </p>
               </div>
 
@@ -176,13 +191,9 @@ export function EncryptionSetupModal({
                   onClick={handleWelcomeNext}
                   className="w-full btn-primary py-3 text-[14px] font-bold"
                 >
-                  {t('encryption.setup_button', 'Setup Encryption')}
-                </button>
-                <button
-                  onClick={handleSkip}
-                  className="w-full btn-secondary py-2.5 text-[13px] text-slate-500"
-                >
-                  {t('encryption.skip_button', 'Skip for now')}
+                  {mode === 'change'
+                    ? t('encryption.change_button', 'Change Passphrase')
+                    : t('encryption.setup_button', 'Setup Encryption')}
                 </button>
               </div>
             </motion.div>
@@ -345,47 +356,6 @@ export function EncryptionSetupModal({
             </motion.div>
           )}
 
-          {step === 'skip-warning' && (
-            <motion.div
-              key="skip-warning"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="space-y-6"
-            >
-              <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mb-4">
-                  <AlertTriangle className="w-8 h-8 text-red-600" />
-                </div>
-                <h2 className="text-xl font-bold text-slate-900">
-                  {t('encryption.skip_warning_title', 'Skip Encryption?')}
-                </h2>
-                <div className="mt-3 bg-red-50 border border-red-200 rounded-xl p-4">
-                  <p className="text-[13px] text-red-700 font-medium">
-                    {t(
-                      'encryption.skip_warning_msg',
-                      'Notes will not be encrypted at rest — not CFP 09/2024 compliant. Your sensitive patient data will be stored in plain text.',
-                    )}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setStep('welcome')}
-                  className="flex-1 btn-secondary py-2.5 text-[13px]"
-                >
-                  {t('encryption.go_back_setup', 'Go back & setup encryption')}
-                </button>
-                <button
-                  onClick={handleSkipConfirm}
-                  className="flex-1 btn-primary bg-red-600 hover:bg-red-700 border-red-600 hover:border-red-700 py-2.5 text-[13px] font-bold"
-                >
-                  {t('encryption.skip_confirm', 'Skip anyway')}
-                </button>
-              </div>
-            </motion.div>
-          )}
         </AnimatePresence>
       </motion.div>
     </div>

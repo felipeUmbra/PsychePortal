@@ -3,16 +3,17 @@ import { useTranslation } from 'react-i18next';
 import { useEncryption } from '../../hooks/useEncryption';
 import { motion } from 'motion/react';
 import RichTextEditor from '../RichTextEditor';
-import { Paperclip, X, Loader2, Lock } from 'lucide-react';
+import { Paperclip, X, Loader2, Lock, AlertTriangle } from 'lucide-react';
 
 interface SessionFormProps {
   initialData?: any;
   onSubmit: (data: any) => Promise<void>;
   onCancel: () => void;
-  onUploadFile?: (file: File) => Promise<{ name: string; url: string; size: number }>;
+  onUploadFile?: (file: File) => Promise<{ name: string; url: string; size: number; storagePath: string }>;
   isUploading?: boolean;
   title: string;
   submitLabel: string;
+  consentRequired?: boolean;
 }
 
 export function SessionForm({ 
@@ -22,7 +23,8 @@ export function SessionForm({
   onUploadFile, 
   isUploading = false,
   title,
-  submitLabel
+  submitLabel,
+  consentRequired = false
 }: SessionFormProps) {
   const { t } = useTranslation();
   const { isUnlocked } = useEncryption();
@@ -31,7 +33,7 @@ export function SessionForm({
     notes: '',
     type: 'individual',
     status: 'completed',
-    attachments: [] as { name: string; url: string; size: number }[]
+    attachments: [] as { name: string; url: string; size: number; storagePath?: string }[]
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -98,6 +100,12 @@ export function SessionForm({
       className="card bg-white border border-border-custom"
     >
       <h3 className="text-[16px] font-bold text-text-main mb-6">{title}</h3>
+      {consentRequired && (
+        <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-300 rounded-lg mb-6">
+          <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <p className="text-[13px] text-red-800 font-bold">{t('consent.blocking_banner')}</p>
+        </div>
+      )}
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('common.date_time')}</label>
@@ -147,6 +155,7 @@ export function SessionForm({
             value={formData.notes}
             onChange={(val) => setFormData({...formData, notes: val})}
             height={300}
+            disabled={consentRequired}
           />
         </div>
 
@@ -176,7 +185,7 @@ export function SessionForm({
                   type="file" 
                   className="hidden" 
                   onChange={handleFileUpload}
-                  disabled={isUploading || isSubmitting}
+                  disabled={isUploading || isSubmitting || consentRequired}
                 />
               </label>
             </div>
@@ -188,14 +197,15 @@ export function SessionForm({
             type="button"
             onClick={onCancel}
             className="btn-secondary text-[13px]"
-            disabled={isUploading || isSubmitting}
+            disabled={isUploading || isSubmitting || consentRequired}
           >
             {t('common.cancel')}
           </button>
           <button 
             type="submit" 
             className="btn-primary text-[13px] flex items-center justify-center gap-2" 
-            disabled={isUploading || isSubmitting}
+            disabled={isUploading || isSubmitting || consentRequired}
+            title={consentRequired ? t('session_form.consent_required_tooltip') : undefined}
           >
             {isSubmitting && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
             {submitLabel}

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -15,6 +15,7 @@ import {
   isPassphraseValid,
   storeKeyRecord,
   getKeyRecord,
+  deleteKeyRecord,
   base64Decode,
   encryptNote,
   decryptNote,
@@ -34,6 +35,7 @@ export interface UseEncryptionReturn {
   setup: (passphrase: string) => Promise<{ recoveryPhrase: string }>;
   unlock: (passphrase: string) => Promise<void>;
   lock: () => void;
+  disable: () => Promise<void>;
   encrypt: (plaintext: string) => Promise<EncryptedPayload>;
   decrypt: (payload: EncryptedPayload) => Promise<string>;
   encryptFields: (fields: Record<string, string>) => Promise<EncryptedFields>;
@@ -121,6 +123,27 @@ export function useEncryption(): UseEncryptionReturn {
     setIsUnlocked(false);
   }, []);
 
+  const disable = useCallback(async () => {
+    const uid = uidRef.current ?? auth.currentUser?.uid;
+    if (!uid) throw new Error('No authenticated user');
+    await deleteKeyRecord(uid);
+    cachedMasterKey = null;
+    setIsUnlocked(false);
+    setIsSetup(false);
+    setNeedsSetup(true);
+  }, []);
+
+  // Listen for session-timeout event (dispatched by Layout on inactivity)
+  useEffect(() => {
+    const handleSessionTimeout = () => {
+      lock();
+    };
+    window.addEventListener('session-timeout', handleSessionTimeout);
+    return () => {
+      window.removeEventListener('session-timeout', handleSessionTimeout);
+    };
+  }, [lock]);
+
   const encrypt = useCallback(async (plaintext: string): Promise<EncryptedPayload> => {
     if (!cachedMasterKey) throw new Error('Encryption key not unlocked');
     return encryptNote(plaintext, cachedMasterKey);
@@ -149,6 +172,7 @@ export function useEncryption(): UseEncryptionReturn {
     setup,
     unlock,
     lock,
+    disable,
     encrypt,
     decrypt,
     encryptFields,

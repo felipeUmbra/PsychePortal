@@ -1,6 +1,7 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, FileText, Plus, Clock, Edit3, Trash2, X, ClipboardCheck } from 'lucide-react';
+import { ArrowLeft, Calendar, FileText, Plus, Clock, Edit3, Trash2, X, ClipboardCheck, AlertTriangle, Loader2, History, Lock, ExternalLink } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { format, isPast } from 'date-fns';
 import { ptBR, enUS } from 'date-fns/locale';
@@ -13,11 +14,15 @@ import { SessionForm } from '../components/sessions/SessionForm';
 import { PatientInfoCard } from '../components/patients/PatientInfoCard';
 import { usePatient } from '../hooks/usePatients';
 import { useSessions } from '../hooks/useSessions';
-import { auth } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { db, auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { logView } from '../lib/audit';
+import { logView, logEditCompleted } from '../lib/audit';
+import { deleteAllPatientData } from '../lib/data-deletion';
 import { PatientConsent } from '../components/patients/PatientConsent';
 import { usePatientConsent } from '../hooks/usePatientConsent';
+import { useEncryption } from '../hooks/useEncryption';
+import { getNoteVersions, type NoteVersion } from '../lib/note-versioning';
 
 export default function PatientDetail() {
   const { id } = useParams();
@@ -37,7 +42,23 @@ export default function PatientDetail() {
   const [expandedSessions, setExpandedSessions] = useState<string[]>([]);
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+const [showEditWarningModal, setShowEditWarningModal] = useState(false);
+const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(null);
+  const [editJustification, setEditJustification] = useState('');
   const [activeTab, setActiveTab] = useState<'sessions' | 'consent'>('sessions');
+  const [psychologistConsentText, setPsychologistConsentText] = useState<string | null>(null);
+  const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
+  const [deleteAllConfirmName, setDeleteAllConfirmName] = useState('');
+  const [deleteAllLoading, setDeleteAllLoading] = useState(false);
+
+  // Version history state
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [selectedSessionForHistory, setSelectedSessionForHistory] = useState<any>(null);
+  const [noteVersions, setNoteVersions] = useState<NoteVersion[]>([]);
+  const [versionsLoading, setVersionsLoading] = useState(false);
+  const [selectedVersion, setSelectedVersion] = useState<NoteVersion | null>(null);
+  const [decryptedVersionNotes, setDecryptedVersionNotes] = useState<string | null>(null);
+  const { isUnlocked, decrypt } = useEncryption();
 
   const { consents, hasActiveConsent, acceptConsent, revokeConsent } = usePatientConsent(id);
 // Log patient view
@@ -46,6 +67,24 @@ export default function PatientDetail() {
       logView(user.uid, 'patient', patient.id);
     }
   }, [user, patient]);
+
+  // Fetch psychologist profile for consentText
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      try {
+        const snap = await getDoc(doc(db, 'psychologists', user.uid));
+        if (snap.exists()) {
+          const data = snap.data() as any;
+          if (data.consentText && data.consentText.trim().length > 0) {
+            setPsychologistConsentText(data.consentText);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch psychologist profile:', err);
+      }
+    })();
+  }, [user]);
 
   const getSessionDate = (s: any) => s?.date ? ((s.date as any).toDate ? (s.date as any).toDate() : new Date(s.date)) : new Date(NaN);
 
@@ -93,6 +132,16 @@ export default function PatientDetail() {
     }
   };
 
+  const handleEditSessionClick = async (session: any) => {
+    if (session.status === 'completed') {
+      setPendingEditSessionId(session.id);
+      setEditJustification('');
+      setShowEditWarningModal(true);
+    } else {
+      setEditingSessionId(session.id);
+    }
+  };
+
   const toggleSessionNotes = (sessionId: string) => {
     if (user) {
       logView(user.uid, 'session', sessionId);
@@ -100,6 +149,57 @@ export default function PatientDetail() {
     setExpandedSessions(prev =>
       prev.includes(sessionId) ? prev.filter(id => id !== sessionId) : [...prev, sessionId]
     );
+  };
+
+  const handleDeleteAllPatientData = async () => {
+    if (!user || !patient) return;
+    setDeleteAllLoading(true);
+    try {
+      await deleteAllPatientData(patient.id, user.uid);
+      navigate('/app/patients');
+    } catch (err: any) {
+      console.error('Failed to delete all patient data:', err);
+      alert(t('data_deletion.error_failed', 'Deletion failed. Please try again.'));
+    } finally {
+      setDeleteAllLoading(false);
+      setShowDeleteAllModal(false);
+      setDeleteAllConfirmName('');
+    }
+  };
+
+  const handleViewHistory = async (session: any) => {
+    if (!user) return;
+    setSelectedSessionForHistory(session);
+    setShowVersionHistory(true);
+    setNoteVersions([]);
+    setSelectedVersion(null);
+    setDecryptedVersionNotes(null);
+    setVersionsLoading(true);
+    try {
+      const versions = await getNoteVersions(session.id, user.uid);
+      setNoteVersions(versions);
+    } catch (err) {
+      console.error('Failed to load note versions:', err);
+    } finally {
+      setVersionsLoading(false);
+    }
+  };
+
+  const handleSelectVersion = async (version: NoteVersion) => {
+    setSelectedVersion(version);
+    setDecryptedVersionNotes(null);
+    if (!isUnlocked) return;
+    try {
+      const payload = JSON.parse(version.notes);
+      if (payload.version && payload.ciphertext) {
+        const pt = await decrypt(payload);
+        setDecryptedVersionNotes(pt);
+      } else {
+        setDecryptedVersionNotes(version.notes);
+      }
+    } catch {
+      setDecryptedVersionNotes(version.notes);
+    }
   };
 
   if (patientLoading || sessionsLoading) {
@@ -153,11 +253,28 @@ export default function PatientDetail() {
             {t('calendar.schedule_session', 'Schedule Appointment')}
           </button>
           <button
-            onClick={() => setIsAddingSession(true)}
-            className="btn-primary flex items-center gap-2 text-[13px] sm:text-[14px] flex-1 sm:flex-none justify-center"
+            onClick={() => {
+              if (!hasActiveConsent) {
+                setActiveTab('consent');
+                return;
+              }
+              setIsAddingSession(true);
+            }}
+            disabled={!hasActiveConsent}
+            className={`btn-primary flex items-center gap-2 text-[13px] sm:text-[14px] flex-1 sm:flex-none justify-center ${
+              !hasActiveConsent ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
-            <Plus className="w-4 h-4" />
+            {!hasActiveConsent ? <Lock className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
             {t('patient_detail.log_session')}
+          </button>
+          <button
+            onClick={() => { setDeleteAllConfirmName(''); setShowDeleteAllModal(true); }}
+            disabled={deleteAllLoading}
+            className="text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-2 rounded-lg text-[13px] sm:text-[14px] font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
+          >
+            <Trash2 className="w-4 h-4" />
+            {t('data_deletion.button_label', 'Delete All Patient Data')}
           </button>
         </div>
       </header>
@@ -201,9 +318,25 @@ export default function PatientDetail() {
         </button>
       </div>
 
+      {activeTab === 'sessions' && !psychologistConsentText && (
+        <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg mb-6">
+          <AlertTriangle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-[13px] text-blue-800 font-medium">{t('consent.config_required', 'Consent text not configured. Please configure the consent text in Settings before collecting patient consent.')}</p>
+            <Link
+              to="/app/settings"
+              className="mt-2 text-[13px] font-bold text-blue-700 underline hover:text-blue-900 transition-colors inline-flex items-center gap-1"
+            >
+              {t('consent.go_to_settings', 'Go to Settings')}
+              <ExternalLink className="w-3 h-3" />
+            </Link>
+          </div>
+        </div>
+      )}
+
       {activeTab === 'consent' ? (
         <PatientConsent
-          consentText={consents && consents.length > 0 ? consents[0].text : t('consent.default_text', 'Please configure consent text in Settings.')}
+          consentText={psychologistConsentText || (consents && consents.length > 0 ? consents[0].text : t('consent.default_text', 'Please configure consent text in Settings.'))}
           consentVersion={consents && consents.length > 0 ? consents[0].version : '1.0'}
           currentConsent={consents && consents.length > 0 ? consents[0] : undefined}
           hasActiveConsent={hasActiveConsent}
@@ -216,7 +349,21 @@ export default function PatientDetail() {
             return Promise.resolve();
           }}
         />
-      ) : (
+      ) : (<>
+      {!hasActiveConsent && (
+        <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg mb-6">
+          <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-[13px] text-amber-800 font-medium">{t('consent.banner_required')}</p>
+            <button
+              onClick={() => setActiveTab('consent')}
+              className="mt-2 text-[13px] font-bold text-amber-700 underline hover:text-amber-900 transition-colors"
+            >
+              {t('consent.title', 'Consent')}
+            </button>
+          </div>
+        </div>
+      )}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="space-y-8">
           <PatientInfoCard patient={patient} />
@@ -238,7 +385,7 @@ export default function PatientDetail() {
                         <p className="text-[14px] font-bold text-text-main">{formatSessionDate(session)}</p>
                         <p className="text-[11px] text-text-muted font-bold uppercase tracking-wider flex items-center gap-1.5">
                           <Clock className="w-3 h-3" />
-                          {t('dashboard.one_hour_session')} â€¢ {t(`session_status.${session.status}`)}
+                          {t('dashboard.one_hour_session')} — {t(`session_status.${session.status}`)}
                         </p>
                       </div>
                     </div>
@@ -267,6 +414,7 @@ export default function PatientDetail() {
                 onCancel={() => setIsAddingSession(false)}
                 onUploadFile={(file) => uploadFile(file, id!)}
                 isUploading={isUploading}
+                consentRequired={!hasActiveConsent}
               />
             </div>
           )}
@@ -300,6 +448,7 @@ export default function PatientDetail() {
                           return uploadFile(file, session.id);
                         }}
                         isUploading={isUploading}
+                        consentRequired={!hasActiveConsent}
                       />
                     </div>
                   ) : (
@@ -313,7 +462,7 @@ export default function PatientDetail() {
                             <p className="text-[14px] font-bold text-text-main">{formatSessionDate(session)}</p>
                             <p className="text-[11px] text-text-muted font-bold uppercase tracking-wider flex items-center gap-1.5">
                               <Clock className="w-3 h-3" />
-                              {t('dashboard.one_hour_session')} â€¢ {t(`patient_detail.types.${session.type || 'individual'}`)}
+                              {t('dashboard.one_hour_session')} — {t(`patient_detail.types.${session.type || 'individual'}`)}
                             </p>
                           </div>
                         </div>
@@ -336,7 +485,7 @@ export default function PatientDetail() {
                           ) : (
                             <>
                               <button
-                                onClick={() => setEditingSessionId(session.id)}
+                                onClick={() => handleEditSessionClick(session)}
                                 className="p-1.5 text-text-muted hover:text-primary-custom hover:bg-bg rounded-md transition-colors"
                                 title={t('session_action.edit_session')}
                               >
@@ -352,6 +501,15 @@ export default function PatientDetail() {
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
+                              {session.notes && (
+                                <button
+                                  onClick={() => handleViewHistory(session)}
+                                  className="p-1.5 text-text-muted hover:text-primary-custom hover:bg-bg rounded-md transition-colors"
+                                  title={t('note_version.view_history', 'View Version History')}
+                                >
+                                  <History className="w-4 h-4" />
+                                </button>
+                              )}
                             </>
                           )}
                         </div>
@@ -422,9 +580,82 @@ export default function PatientDetail() {
           </div>
         </div>
       </div>
-      )}
+      </>)}
 
-      <AnimatePresence>
+            <AnimatePresence>
+        {showEditWarningModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                setShowEditWarningModal(false);
+                setPendingEditSessionId(null);
+              }}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6"
+            >
+              <div className="mb-6">
+                <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <AlertTriangle className="w-6 h-6 text-amber-600" />
+                </div>
+                <h2 className="text-xl font-bold text-slate-900 text-center mb-2">
+                  {t('sessions.edit_completed_warning_title')}
+                </h2>
+                <p className="text-text-muted text-[14px] text-center">
+                  {t('sessions.edit_completed_warning_message')}
+                </p>
+                <div className="mt-4">
+                  <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">
+                    {t('sessions.edit_justification_label', 'Justification for edit (required)')}
+                  </label>
+                  <textarea
+                    className="input-field h-20 resize-none text-[14px]"
+                    placeholder={t('sessions.edit_justification_placeholder', 'Explain why this edit is necessary...')}
+                    value={editJustification}
+                    onChange={(e) => setEditJustification(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => {
+                    setShowEditWarningModal(false);
+                    setPendingEditSessionId(null);
+                    setEditJustification('');
+                  }}
+                  className="btn-secondary"
+                >
+                  {t('common.cancel', 'Cancel')}
+                </button>
+                <button
+                  onClick={async () => {
+                    if (user && pendingEditSessionId) {
+                      await logEditCompleted(user.uid, pendingEditSessionId, pendingEditSessionId, editJustification);
+                    }
+                    setEditingSessionId(pendingEditSessionId);
+                    setShowEditWarningModal(false);
+                    setPendingEditSessionId(null);
+                    setEditJustification('');
+                  }}
+                  disabled={!editJustification.trim()}
+                  className="btn-primary disabled:opacity-50"
+                >
+                  {t('sessions.edit_completed_warning_confirm')}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+<AnimatePresence>
         {showDeleteModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div
@@ -463,6 +694,184 @@ export default function PatientDetail() {
                   className="btn-primary bg-red-600 hover:bg-red-700 border-red-600 hover:border-red-700"
                 >
                   {t('common.delete', 'Delete')}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showDeleteAllModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => { setShowDeleteAllModal(false); setDeleteAllConfirmName(''); }}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6"
+            >
+              <div className="mb-6">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <AlertTriangle className="w-6 h-6 text-red-600" />
+                </div>
+                <h2 className="text-xl font-bold text-slate-900 text-center mb-2">
+                  {t('data_deletion.warning_title', 'Delete All Patient Data?')}
+                </h2>
+                <p className="text-text-muted text-[13px] text-center mb-4">
+                  {t('data_deletion.confirm_description', "To confirm, type the patient's full name below:")}
+                </p>
+                <input
+                  type="text"
+                  className="input-field text-[14px]"
+                  placeholder={t('data_deletion.confirm_placeholder', 'Type patient name to confirm')}
+                  value={deleteAllConfirmName}
+                  onChange={(e) => setDeleteAllConfirmName(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => { setShowDeleteAllModal(false); setDeleteAllConfirmName(''); }}
+                  className="btn-secondary"
+                >
+                  {t('data_deletion.cancel', 'Cancel')}
+                </button>
+                <button
+                  onClick={handleDeleteAllPatientData}
+                  disabled={deleteAllConfirmName !== patient?.name || deleteAllLoading}
+                  className="btn-primary bg-red-600 hover:bg-red-700 border-red-600 hover:border-red-700 disabled:opacity-50"
+                >
+                  {deleteAllLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  {t('data_deletion.delete_permanently', 'Delete Permanently')}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showVersionHistory && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                setShowVersionHistory(false);
+                setSelectedSessionForHistory(null);
+                setNoteVersions([]);
+                setSelectedVersion(null);
+                setDecryptedVersionNotes(null);
+              }}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl p-6 max-h-[80vh] overflow-y-auto"
+            >
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-slate-900">
+                    {t('note_version.title', 'Note Version History')}
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setShowVersionHistory(false);
+                      setSelectedSessionForHistory(null);
+                      setNoteVersions([]);
+                      setSelectedVersion(null);
+                      setDecryptedVersionNotes(null);
+                    }}
+                    className="p-1.5 text-text-muted hover:text-text-main hover:bg-surface rounded-md transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {versionsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary-custom" />
+                  <span className="ml-2 text-text-muted text-[14px]">{t('note_version.loading', 'Loading versions...')}</span>
+                </div>
+              ) : noteVersions.length === 0 ? (
+                <div className="text-center py-8">
+                  <History className="w-10 h-10 text-border-custom mx-auto mb-3" />
+                  <p className="text-text-muted text-[14px]">{t('note_version.no_versions', 'No version history available.')}</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {noteVersions.map((version) => (
+                    <button
+                      key={version.id}
+                      onClick={() => handleSelectVersion(version)}
+                      className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                        selectedVersion?.id === version.id
+                          ? 'border-primary-custom bg-primary-custom/5'
+                          : 'border-border-custom hover:border-primary-custom/30 hover:bg-surface'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-[13px] font-bold text-text-main">
+                          {t('note_version.version', 'Version')} {version.version}
+                        </span>
+                        <span className="text-[11px] text-text-muted">
+                          {format(new Date(version.createdAt), 'MMM d, yyyy HH:mm', { locale: dateLocale })}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {selectedVersion && (
+                <div className="mt-4 pt-4 border-t border-border-custom">
+                  <h3 className="text-[13px] font-bold text-text-main mb-2">
+                    {t('note_version.version', 'Version')} {selectedVersion.version} — {t('note_version.created_at', 'Created At')}: {format(new Date(selectedVersion.createdAt), 'MMMM d, yyyy HH:mm', { locale: dateLocale })}
+                  </h3>
+                  {isUnlocked ? (
+                    decryptedVersionNotes !== null ? (
+                      <div className="bg-surface rounded-lg p-4 border border-border-custom">
+                        <RichTextRenderer
+                          content={decryptedVersionNotes}
+                          className="!bg-transparent"
+                          style={{ fontSize: '13px' }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 className="w-5 h-5 animate-spin text-primary-custom" />
+                      </div>
+                    )
+                  ) : (
+                    <div className="bg-surface rounded-lg p-4 border border-border-custom text-center">
+                      <Lock className="w-5 h-5 text-text-muted mx-auto mb-2" />
+                      <p className="text-text-muted text-[13px]">{t('note_version.unlock_required', 'Unlock encryption to view version content.')}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex justify-end mt-4 pt-4 border-t border-border-custom">
+                <button
+                  onClick={() => {
+                    setShowVersionHistory(false);
+                    setSelectedSessionForHistory(null);
+                    setNoteVersions([]);
+                    setSelectedVersion(null);
+                    setDecryptedVersionNotes(null);
+                  }}
+                  className="btn-secondary"
+                >
+                  {t('note_version.close', 'Close')}
                 </button>
               </div>
             </motion.div>

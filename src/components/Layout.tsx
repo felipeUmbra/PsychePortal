@@ -5,7 +5,10 @@ import { auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { useGoogleAuth } from '../context/GoogleAuthContext';
 import { useTranslation } from 'react-i18next';
-import { LogOut, AlertTriangle, ExternalLink, X, Menu } from 'lucide-react';
+import { LogOut, AlertTriangle, ExternalLink, X, Menu, Clock } from 'lucide-react';
+import { startInactivityTimer, resetInactivityTimer, clearInactivityTimer } from '../lib/token-expiration';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 export default function Layout() {
   const [user, loading] = useAuthState(auth);
@@ -14,6 +17,7 @@ export default function Layout() {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [authError, setAuthError] = useState<{ status: number; message?: string; service: string } | null>(null);
+  const [retentionReminder, setRetentionReminder] = useState(false);
   const { clearTokens } = useGoogleAuth();
 
   useEffect(() => {
@@ -31,12 +35,85 @@ export default function Layout() {
       setAuthError(null);
     };
     window.addEventListener('google-auth-error', handleAuthError);
+    const handleRetentionReminder = () => { setRetentionReminder(true); };
+    window.addEventListener('retention-reminder', handleRetentionReminder);
     window.addEventListener('google-auth-success', handleAuthSuccess);
     return () => {
       window.removeEventListener('google-auth-error', handleAuthError);
       window.removeEventListener('google-auth-success', handleAuthSuccess);
+      window.removeEventListener('retention-reminder', handleRetentionReminder);
     };
   }, []);
+
+  // Inactivity auto-lock: monitor user activity and lock encryption after timeout
+  useEffect(() => {
+    if (!user) return;
+
+    let autoLockMinutes: number | null = null;
+
+    // Read autoLockMinutes from psychologist profile
+    (async () => {
+      try {
+        const docRef = doc(db, 'psychologists', user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          autoLockMinutes = data.autoLockMinutes ?? null;
+          if (autoLockMinutes && autoLockMinutes > 0) {
+            startInactivityTimer(() => {
+              window.dispatchEvent(new CustomEvent('session-timeout'));
+            }, autoLockMinutes);
+          }
+          // Retention reminder check
+          if (data.retentionEnabled) {
+            const lastRun = data.lastRetentionRun;
+            const needsReminder = !lastRun || (Date.now() - new Date(lastRun).getTime()) > 30 * 24 * 60 * 60 * 1000;
+            if (needsReminder) {
+              window.dispatchEvent(new CustomEvent('retention-reminder'));
+            }
+            // Automatic retention: run if enabled and last run was > 24h ago
+            const lastRunTime = lastRun ? new Date(lastRun).getTime() : 0;
+            const hoursSinceLastRun = (Date.now() - lastRunTime) / (1000 * 60 * 60);
+            if (hoursSinceLastRun > 24) {
+              (async () => {
+                try {
+                  const { enforceRetentionPolicy } = await import('../lib/retention');
+                  await enforceRetentionPolicy(user.uid, data.retentionYears || 5);
+                } catch (err) {
+                  console.error('Automatic retention failed:', err);
+                }
+              })();
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to read auto-lock setting:', err);
+      }
+    })();
+
+    const ACTIVITY_EVENTS = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+
+    const handleActivity = () => {
+      resetInactivityTimer();
+      if (autoLockMinutes && autoLockMinutes > 0) {
+        startInactivityTimer(() => {
+          window.dispatchEvent(new CustomEvent('session-timeout'));
+        }, autoLockMinutes);
+      }
+    };
+
+    const eventOptions = { passive: true };
+    ACTIVITY_EVENTS.forEach(event => {
+      document.addEventListener(event, handleActivity, eventOptions);
+    });
+
+    return () => {
+      clearInactivityTimer();
+      ACTIVITY_EVENTS.forEach(event => {
+        document.removeEventListener(event, handleActivity);
+      });
+    };
+  }, [user]);
 
   const handleLogout = async () => {
     clearTokens();
@@ -99,6 +176,39 @@ export default function Layout() {
               <button
                 onClick={() => setAuthError(null)}
                 className="p-1.5 hover:bg-amber-100 rounded-lg text-amber-600"
+                aria-label={t('common.close', 'Close')}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+        {retentionReminder && (
+          <div className="bg-blue-50 border-b border-blue-200 px-8 py-2.5 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                <Clock className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-[13px] text-blue-800 font-bold">
+                  {t('layout.retention_reminder_title', 'Retention policy pending')}
+                </p>
+                <p className="text-[11px] text-blue-700 font-medium leading-tight">
+                  {t('layout.retention_reminder_message', 'Data retention has not been run for over 30 days. Run now to maintain compliance.')}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link
+                to="/app/compliance"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-900 rounded-lg text-[12px] font-bold transition-colors"
+                onClick={() => setRetentionReminder(false)}
+              >
+                {t('compliance.compliance_run_retention', 'Run Now')}
+              </Link>
+              <button
+                onClick={() => setRetentionReminder(false)}
+                className="p-1.5 hover:bg-blue-100 rounded-lg text-blue-600"
                 aria-label={t('common.close', 'Close')}
               >
                 <X className="w-4 h-4" />

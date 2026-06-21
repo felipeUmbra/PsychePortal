@@ -7,9 +7,9 @@ import Login from './pages/Login';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 import { GoogleAuthProvider } from './context/GoogleAuthContext';
-import { useState } from 'react';
-import { useEncryption } from './hooks/useEncryption';
-import { EncryptionSetupModal } from './components/EncryptionSetupModal';
+
+import { SessionTimeoutToast } from './components/SessionTimeoutToast';
+import CookieConsentBanner from './components/CookieConsentBanner';
 
 // Lazy load all page components for code splitting
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -21,6 +21,7 @@ const Sessions = lazy(() => import('./pages/Sessions'));
 const Finance = lazy(() => import('./pages/Finance'));
 const Settings = lazy(() => import("./pages/Settings"));
 const AuditLog = lazy(() => import("./pages/AuditLog"));
+const Compliance = lazy(() => import("./pages/Compliance"));
 
 // Loading fallback component
 function LoadingFallback() {
@@ -52,35 +53,17 @@ export default function App() {
                 <Route path="finance" element={<Finance />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="audit" element={<AuditLog />} />
+                <Route path="compliance" element={<Compliance />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
         </ErrorBoundary>
+        <CookieConsentBanner />
       </Router>
-      <EncryptionSetupModalWrapper />
+      <SessionTimeoutToast />
     </GoogleAuthProvider>
   );
 }
 
-function EncryptionSetupModalWrapper() {
-  const { needsSetup, setup } = useEncryption();
-  const [dismissed, setDismissed] = useState(false);
-  const [showSetup, setShowSetup] = useState(false);
 
-  if (needsSetup && !dismissed) {
-    return (
-      <EncryptionSetupModal
-        isOpen={true}
-        onClose={() => setDismissed(true)}
-        onComplete={async (passphrase) => {
-          await setup(passphrase);
-          setShowSetup(false);
-        }}
-        onSkip={() => setDismissed(true)}
-      />
-    );
-  }
-
-  return null;
-}

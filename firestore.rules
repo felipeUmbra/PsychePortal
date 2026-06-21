@@ -155,7 +155,34 @@ service cloud.firestore {
     match /audit_logs/{logId} {
       allow read: if isAuthenticated() && resource.data.actorId == request.auth.uid;
       allow create: if isAuthenticated() && request.resource.data.actorId == request.auth.uid;
-      // Audit logs are append-only - no update or delete allowed
+    }
+
+    match /patient_consents/{consentId} {
+      allow read: if isAuthenticated() && resource.data.psychologistId == request.auth.uid;
+      allow create: if isAuthenticated() &&
+        request.resource.data.psychologistId == request.auth.uid &&
+        request.resource.data.patientId is string &&
+        request.resource.data.version is string &&
+        request.resource.data.acceptedAt is timestamp;
+      allow update: if isAuthenticated() &&
+        resource.data.psychologistId == request.auth.uid &&
+        resource.data.revokedAt == null &&
+        request.resource.data.revokedAt is timestamp;
+    }
+
+    match /note_versions/{versionId} {
+      allow read: if isAuthenticated() && resource.data.psychologistId == request.auth.uid;
+      allow create: if isAuthenticated() &&
+        request.resource.data.psychologistId == request.auth.uid &&
+        request.resource.data.sessionId is string;
+    }
+
+    match /data_export_logs/{exportId} {
+      allow read: if isAuthenticated() && resource.data.psychologistId == request.auth.uid;
+      allow create: if isAuthenticated() &&
+        request.resource.data.psychologistId == request.auth.uid &&
+        request.resource.data.patientId is string &&
+        request.resource.data.exportedAt is timestamp;
     }
   }
 }
