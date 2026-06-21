@@ -498,6 +498,17 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                       />
                     </div>
                   </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.substance_use', 'Substance Use')}</label>
+                      <textarea 
+                        className="input-field h-20 resize-none" 
+                        value={formData.anamnesis.substanceUse || ''}
+                        onChange={(e) => setFormData(prev => ({...prev, anamnesis: {...prev.anamnesis, substanceUse: e.target.value}}))}
+                        placeholder={t('anamnesis.substance_use_placeholder', 'Alcohol, tobacco, illicit substances...')}
+                      />
+                    </div>
+                  </div>
                   
                   <div className="grid grid-cols-1 gap-4">
                     <div>

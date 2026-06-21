@@ -309,7 +309,9 @@
         "social_habits": "Hábitos sociais e hobbies",
         "psychiatric_history_detailed": "Possui histórico psiquiátrico próprio ou familiar (medicação psiquiátrica, quadro neuro atípico, vício em substâncias ou alcoolismo)?",
         "recurrent_symptoms": "Possui alguma dor ou sintoma recorrente?",
-        "predominant_emotions": "Quais são suas emoções predominantes no dia-a-dia?"
+        "predominant_emotions": "Quais são suas emoções predominantes no dia-a-dia?",
+        "substance_use": "Substance Use",
+        "substance_use_placeholder": "Alcohol, tobacco, illicit substances..."
     },
     "calendar": {
         "title": "Agenda de Consultas",
@@ -420,7 +422,8 @@
         "retention_result_consents": "Orphaned consents removed",
         "retention_result_executed_at": "Executed at",
         "retention_never_run": "Never",
-        "retention_invalid_years": "Retention period must be between 1 and 20 years"
+        "retention_invalid_years": "Retention period must be between 1 and 20 years",
+        "consent_change_warning": "Changing the consent text or version will require all patients to provide new consent before their next session record can be saved. Existing session records will NOT be affected. Continue?"
     },
     "terms_page": {
         "title": "Termos de Serviço",
@@ -455,7 +458,17 @@
         "consent_text": "Before any clinical session record is stored, the patient must provide informed consent through an electronic signature. This signature, along with a timestamp and the signed consent text, is stored immutably. Patients may revoke their consent at any time from their patient profile. Upon revocation, an audit trail entry is created and the psychologist is notified. No new session records can be created for a patient without an active consent.",
         "dpo_title": "6. Data Controller Contact (DPO)",
         "dpo_text": "The Data Protection Officer (DPO) for this deployment is: {{dpoName}}. For privacy inquiries, contact: {{dpoEmail}}.",
-        "encryption_details": "Encryption & Security: All clinical notes are encrypted using AES-256-GCM before storage. Data in transit is protected by TLS 1.3. Consent records are stored in a tamper-evident audit chain. Session data is retained for the duration of the therapeutic relationship and deleted upon patient request or after the retention period defined by applicable regulations."
+        "encryption_details": "Encryption & Security: All clinical notes are encrypted using AES-256-GCM before storage. Data in transit is protected by TLS 1.3. Consent records are stored in a tamper-evident audit chain. Session data is retained for the duration of the therapeutic relationship and deleted upon patient request or after the retention period defined by applicable regulations.",
+        "legal_basis_title": "7. Legal Basis for Processing (Art. 7 LGPD)",
+        "legal_basis_text": "The processing of clinical data carried out by this platform is based on the following legal bases of the LGPD: (i) execution of a contract or preliminary procedures related to a contract to which the data subject is a party (Art. 7, V) — the therapeutic relationship; (ii) regular exercise of rights in judicial, administrative or arbitral proceedings (Art. 7, VI); (iii) protection of the life or physical safety of the data subject or third party (Art. 7, VII); (iv) health protection, in procedures carried out by health professionals (Art. 7, VIII). Patient consent (Art. 7, I) is obtained electronically before any clinical session record is created.",
+        "patient_rights_title": "8. Data Subject Rights (Art. 18 LGPD)",
+        "patient_rights_text": "In accordance with Art. 18 of the LGPD, the patient (data subject) has the right to: (a) confirm the existence of data processing; (b) access their clinical data; (c) correct incomplete, inaccurate or outdated data; (d) request anonymization, blocking or deletion of unnecessary or non-compliant data; (e) request data portability; (f) delete data processed with their consent; (g) obtain information about entities with whom their data was shared; (h) revoke consent at any time. To exercise these rights, request your psychologist through the Data Subject Request (DSR) feature available in the Compliance panel.",
+        "retention_title": "9. Data Retention Period",
+        "retention_text": "Clinical records are retained for the period configured by the psychologist (default: 5 years), as required by CFP 09/2024 and applicable legislation. After the retention period ends, data is automatically deleted. The patient may request early deletion of their data at any time, except in cases where there is a legal obligation to maintain records.",
+        "international_transfer_title": "10. International Data Transfer",
+        "international_transfer_text": "This platform uses Google services (Google Drive and Google Calendar), whose servers may be located outside Brazil. Google LLC maintains international security certifications (ISO 27001, SOC 2) and participates in data protection frameworks. The processing carried out by this platform complies with the LGPD requirements for international data transfer (Art. 33), including the adoption of standard contractual clauses and ensuring an adequate level of protection.",
+        "anpd_title": "11. National Data Protection Authority (ANPD)",
+        "anpd_text": "The ANPD is the federal public administration body responsible for overseeing the protection of personal data and for regulating, implementing and enforcing compliance with the LGPD. For questions, complaints or reports about data processing, contact: Website: www.gov.br/anpd | Email: ascom@anpd.gov.br | Address: SCS Quadra 6, Bloco A, Edifício Brasília Shopping, 2nd floor, Brasília-DF, CEP 70300-915."
     },
     "encryption": {
         "enabled": "Criptografia Ativada",
@@ -533,7 +546,23 @@
         "required_before_session": "Active consent is required before saving a session record. Please have the patient accept the consent form first.",
         "banner_required": "Active consent is required before creating session records. Please have the patient accept the consent form in the Consent tab.",
         "form_warning": "Ensure the patient has accepted the consent form before saving clinical notes.",
-        "blocking_banner": "Active consent is required. Please have the patient accept the consent form before saving clinical notes."
+        "blocking_banner": "Active consent is required. Please have the patient accept the consent form before saving clinical notes.",
+        "guardian_name_required": "Guardian name is required for minor patients.",
+        "guardian_label": "Responsible",
+        "is_minor_label": "Patient is a minor (under 18) — consent must be provided by a parent or legal guardian",
+        "guardian_section_title": "Parent / Legal Guardian Information",
+        "guardian_name_label": "Guardian Full Name",
+        "guardian_name_placeholder": "Full name of parent or legal guardian",
+        "guardian_relationship_label": "Relationship",
+        "guardian_relationship_placeholder": "Select...",
+        "guardian_relationship_mother": "Mother",
+        "guardian_relationship_father": "Father",
+        "guardian_relationship_legal_guardian": "Legal Guardian",
+        "guardian_relationship_other": "Other",
+        "guardian_cpf_label": "Guardian CPF",
+        "guardian_signature_placeholder": "Guardian full name to sign",
+        "config_required": "Consent text not configured. Please configure the consent text in Settings before collecting patient consent.",
+        "go_to_settings": "Go to Settings"
     },
     "compliance": {
         "title": "Compliance",
@@ -580,7 +609,8 @@
         "retention_not_configured": "Not configured",
         "retention_configured": "Configured: {years} years",
         "retention_last_run_label": "Last run: {date}",
-        "compliance_run_retention": "Run Retention Now"
+        "compliance_run_retention": "Run Retention Now",
+        "secondary_account_hint": "Optional: paste a read-only Google Drive access token for a secondary account. Token is stored in session only."
     },
     "data_deletion": {
         "title": "Delete All Patient Data",

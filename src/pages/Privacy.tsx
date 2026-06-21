@@ -127,6 +127,51 @@ export default function Privacy() {
               </p>
             </div>
 
+            <div className="space-y-3">
+              <h2 className="text-text-main font-bold text-lg">
+                {t('privacy_page.legal_basis_title', '7. Base Legal para o Tratamento (Art. 7 LGPD)')}
+              </h2>
+              <p>
+                {t('privacy_page.legal_basis_text', 'O tratamento de dados clínicos realizado por esta plataforma fundamenta-se nas seguintes bases legais da LGPD: (i) execução de contrato ou de procedimentos preliminares relacionados a contrato do qual seja parte o titular (Art. 7º, V) — a relação terapêutica; (ii) exercício regular de direitos em processo judicial, administrativo ou arbitral (Art. 7º, VI); (iii) proteção da vida ou da incolumidade física do titular ou de terceiro (Art. 7º, VII); (iv) tutela da saúde, em procedimento realizado por profissionais de saúde (Art. 7º, VIII). O consentimento do paciente (Art. 7º, I) é obtido eletronicamente antes de qualquer registro de sessão clínica.')}
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <h2 className="text-text-main font-bold text-lg">
+                {t('privacy_page.patient_rights_title', '8. Direitos do Titular (Art. 18 LGPD)')}
+              </h2>
+              <p>
+                {t('privacy_page.patient_rights_text', 'Em conformidade com o Art. 18 da LGPD, o paciente (titular dos dados) tem o direito de: (a) confirmar a existência de tratamento de seus dados; (b) acessar seus dados clínicos; (c) corrigir dados incompletos, inexatos ou desatualizados; (d) solicitar a anonimização, bloqueio ou eliminação de dados desnecessários ou tratados em desconformidade; (e) solicitar a portabilidade de seus dados; (f) eliminar dados tratados com seu consentimento; (g) obter informação sobre as entidades com as quais seus dados foram compartilhados; (h) revogar seu consentimento a qualquer momento. Para exercer esses direitos, solicite ao seu psicólogo através da funcionalidade de Solicitação de Titular de Dados (DSR) disponível no painel de Conformidade.')}
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <h2 className="text-text-main font-bold text-lg">
+                {t('privacy_page.retention_title', '9. Prazo de Retenção de Dados')}
+              </h2>
+              <p>
+                {t('privacy_page.retention_text', 'Os registros clínicos são retidos pelo período configurado pelo psicólogo (padrão: 5 anos), conforme exigido pelo CFP 09/2024 e legislação aplicável. Após o término do período de retenção, os dados são eliminados automaticamente. O paciente pode solicitar a eliminação antecipada de seus dados a qualquer momento, ressalvadas as hipóteses de obrigação legal de manutenção de registros.')}
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <h2 className="text-text-main font-bold text-lg">
+                {t('privacy_page.international_transfer_title', '10. Transferência Internacional de Dados')}
+              </h2>
+              <p>
+                {t('privacy_page.international_transfer_text', 'Esta plataforma utiliza os serviços do Google (Google Drive e Google Calendar), cujos servidores podem estar localizados fora do Brasil. A Google LLC mantém certificações de segurança internacionais (ISO 27001, SOC 2) e participa de frameworks de proteção de dados. O tratamento realizado por esta plataforma está em conformidade com os requisitos da LGPD para transferência internacional de dados (Art. 33), incluindo a adoção de cláusulas contratuais padrão e a garantia de nível adequado de proteção.')}
+              </p>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 p-6 rounded-xl">
+              <h2 className="text-text-main font-bold text-base mb-2">
+                {t('privacy_page.anpd_title', '11. Autoridade Nacional de Proteção de Dados (ANPD)')}
+              </h2>
+              <p className="text-sm text-amber-800">
+                {t('privacy_page.anpd_text', 'A ANPD é o órgão da administração pública federal responsável por zelar pela proteção de dados pessoais e por regulamentar, implementar e fiscalizar o cumprimento da LGPD. Para dúvidas, reclamações ou denúncias sobre tratamento de dados, entre em contato: Site: www.gov.br/anpd | E-mail: ascom@anpd.gov.br | Endereço: SCS Quadra 6, Bloco A, Edifício Brasília Shopping, 2º andar, Brasília-DF, CEP 70300-915.')}
+              </p>
+            </div>
+
             <div className="bg-primary-custom/5 border border-primary-custom/10 p-6 rounded-xl">
               <h2 className="text-text-main font-bold text-base mb-2">
                 {t('privacy_page.encryption_details')}

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, Navigate, useNavigate, Link } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { auth } from '../firebase';
@@ -70,6 +70,19 @@ export default function Layout() {
             const needsReminder = !lastRun || (Date.now() - new Date(lastRun).getTime()) > 30 * 24 * 60 * 60 * 1000;
             if (needsReminder) {
               window.dispatchEvent(new CustomEvent('retention-reminder'));
+            }
+            // Automatic retention: run if enabled and last run was > 24h ago
+            const lastRunTime = lastRun ? new Date(lastRun).getTime() : 0;
+            const hoursSinceLastRun = (Date.now() - lastRunTime) / (1000 * 60 * 60);
+            if (hoursSinceLastRun > 24) {
+              (async () => {
+                try {
+                  const { enforceRetentionPolicy } = await import('../lib/retention');
+                  await enforceRetentionPolicy(user.uid, data.retentionYears || 5);
+                } catch (err) {
+                  console.error('Automatic retention failed:', err);
+                }
+              })();
             }
           }
         }

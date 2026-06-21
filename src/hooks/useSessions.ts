@@ -121,12 +121,14 @@ export function useSessions(patientId?: string) {
 
       // --- Note versioning: snapshot current notes before overwriting ---
       const isNotesChanged = 'notes' in updates && updates.notes !== undefined;
-      if (isNotesChanged && isUnlocked) {
+      if (isNotesChanged) {
         try {
           const currentDoc = await getDoc(doc(db, 'sessions', sessionId));
-          const currentEncryptedNotes = currentDoc.data()?.notes || '';
-          if (currentEncryptedNotes) {
-            await saveNextNoteVersion(sessionId, user.uid, currentEncryptedNotes);
+          const currentNotes = currentDoc.data()?.notes;
+          // Save version if there are existing notes (even empty string is a valid state change)
+          // But skip if notes field doesn't exist on the document at all
+          if (currentNotes !== undefined && currentNotes !== null) {
+            await saveNextNoteVersion(sessionId, user.uid, currentNotes);
           }
         } catch (versionErr) {
           // Version save failure should not block the session update

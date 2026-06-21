@@ -1,4 +1,4 @@
-﻿﻿/**
+/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -31,7 +31,13 @@ export interface Patient {
     psychiatricHistory: string;
     familyHistory: string;
     medications: string;
-    substanceUse: string;
+    substanceUse?: string;
+    familyStructure?: string;
+    workStudies?: string;
+    socialHabits?: string;
+    psychiatricHistoryDetailed?: string;
+    recurrentSymptoms?: string;
+    predominantEmotions?: string;
   };
   notes?: string;
   createdAt: string;
@@ -115,4 +121,9 @@ export interface PatientConsent {
   ipHint?: string;        // truncated IP or placeholder
   signature: string;      // free-text name of signatory
   revokedAt?: string;      // ISO 8601, present only when revoked
+  // Guardian fields (for minors)
+  isMinor?: boolean;           // true if patient is under 18
+  guardianName?: string;       // full name of parent/legal guardian
+  guardianRelationship?: string; // e.g. "mother", "father", "legal guardian"
+  guardianCpf?: string;        // guardian CPF (optional)
 }

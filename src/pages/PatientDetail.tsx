@@ -1,6 +1,7 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, FileText, Plus, Clock, Edit3, Trash2, X, ClipboardCheck, AlertTriangle, Loader2, History, Lock } from 'lucide-react';
+import { ArrowLeft, Calendar, FileText, Plus, Clock, Edit3, Trash2, X, ClipboardCheck, AlertTriangle, Loader2, History, Lock, ExternalLink } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { format, isPast } from 'date-fns';
 import { ptBR, enUS } from 'date-fns/locale';
@@ -43,6 +44,7 @@ export default function PatientDetail() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 const [showEditWarningModal, setShowEditWarningModal] = useState(false);
 const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(null);
+  const [editJustification, setEditJustification] = useState('');
   const [activeTab, setActiveTab] = useState<'sessions' | 'consent'>('sessions');
   const [psychologistConsentText, setPsychologistConsentText] = useState<string | null>(null);
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
@@ -133,6 +135,7 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
   const handleEditSessionClick = async (session: any) => {
     if (session.status === 'completed') {
       setPendingEditSessionId(session.id);
+      setEditJustification('');
       setShowEditWarningModal(true);
     } else {
       setEditingSessionId(session.id);
@@ -315,6 +318,22 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
         </button>
       </div>
 
+      {activeTab === 'sessions' && !psychologistConsentText && (
+        <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg mb-6">
+          <AlertTriangle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-[13px] text-blue-800 font-medium">{t('consent.config_required', 'Consent text not configured. Please configure the consent text in Settings before collecting patient consent.')}</p>
+            <Link
+              to="/app/settings"
+              className="mt-2 text-[13px] font-bold text-blue-700 underline hover:text-blue-900 transition-colors inline-flex items-center gap-1"
+            >
+              {t('consent.go_to_settings', 'Go to Settings')}
+              <ExternalLink className="w-3 h-3" />
+            </Link>
+          </div>
+        </div>
+      )}
+
       {activeTab === 'consent' ? (
         <PatientConsent
           consentText={psychologistConsentText || (consents && consents.length > 0 ? consents[0].text : t('consent.default_text', 'Please configure consent text in Settings.'))}
@@ -366,7 +385,7 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
                         <p className="text-[14px] font-bold text-text-main">{formatSessionDate(session)}</p>
                         <p className="text-[11px] text-text-muted font-bold uppercase tracking-wider flex items-center gap-1.5">
                           <Clock className="w-3 h-3" />
-                          {t('dashboard.one_hour_session')} â€¢ {t(`session_status.${session.status}`)}
+                          {t('dashboard.one_hour_session')} — {t(`session_status.${session.status}`)}
                         </p>
                       </div>
                     </div>
@@ -443,7 +462,7 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
                             <p className="text-[14px] font-bold text-text-main">{formatSessionDate(session)}</p>
                             <p className="text-[11px] text-text-muted font-bold uppercase tracking-wider flex items-center gap-1.5">
                               <Clock className="w-3 h-3" />
-                              {t('dashboard.one_hour_session')} â€¢ {t(`patient_detail.types.${session.type || 'individual'}`)}
+                              {t('dashboard.one_hour_session')} — {t(`patient_detail.types.${session.type || 'individual'}`)}
                             </p>
                           </div>
                         </div>
@@ -592,12 +611,24 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
                 <p className="text-text-muted text-[14px] text-center">
                   {t('sessions.edit_completed_warning_message')}
                 </p>
+                <div className="mt-4">
+                  <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">
+                    {t('sessions.edit_justification_label', 'Justification for edit (required)')}
+                  </label>
+                  <textarea
+                    className="input-field h-20 resize-none text-[14px]"
+                    placeholder={t('sessions.edit_justification_placeholder', 'Explain why this edit is necessary...')}
+                    value={editJustification}
+                    onChange={(e) => setEditJustification(e.target.value)}
+                  />
+                </div>
               </div>
               <div className="flex gap-3 justify-end">
                 <button
                   onClick={() => {
                     setShowEditWarningModal(false);
                     setPendingEditSessionId(null);
+                    setEditJustification('');
                   }}
                   className="btn-secondary"
                 >
@@ -606,13 +637,15 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
                 <button
                   onClick={async () => {
                     if (user && pendingEditSessionId) {
-                      await logEditCompleted(user.uid, pendingEditSessionId, pendingEditSessionId);
+                      await logEditCompleted(user.uid, pendingEditSessionId, pendingEditSessionId, editJustification);
                     }
                     setEditingSessionId(pendingEditSessionId);
                     setShowEditWarningModal(false);
                     setPendingEditSessionId(null);
+                    setEditJustification('');
                   }}
-                  className="btn-primary"
+                  disabled={!editJustification.trim()}
+                  className="btn-primary disabled:opacity-50"
                 >
                   {t('sessions.edit_completed_warning_confirm')}
                 </button>

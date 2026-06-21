@@ -1,5 +1,5 @@
 import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
-import { collection, query, where, onSnapshot, orderBy, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, getDocs, updateDoc, doc, deleteDoc, getDoc } from 'firebase/firestore';
 // Note: storage functions are imported from the firestore-mock which provides Google Drive integration
 
 import { ref, uploadBytes, getDownloadURL } from '../lib/firestore-mock';
@@ -17,7 +17,8 @@ import {
   X,
   Paperclip,
   Loader2,
-  Trash2
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
@@ -27,8 +28,10 @@ import { useTranslation } from 'react-i18next';
 import RichTextEditor from '../components/RichTextEditor';
 import RichTextRenderer from '../components/RichTextRenderer';
 import { handleFirestoreError, OperationType } from '../lib/error-handler';
+import { logEditCompleted } from '../lib/audit';
 import { cn } from '../lib/utils';
 import { useGoogleAuth } from '../context/GoogleAuthContext';
+import { saveNextNoteVersion } from '../lib/note-versioning';
 
 export default function Sessions() {
   const [user] = useAuthState(auth);
@@ -43,6 +46,9 @@ export default function Sessions() {
   const [expandedSessions, setExpandedSessions] = useState<string[]>([]);
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showEditWarningModal, setShowEditWarningModal] = useState(false);
+  const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(null);
+  const [editJustification, setEditJustification] = useState('');
 
   const [sessionForm, setSessionForm] = useState({
     notes: '',
@@ -136,6 +142,17 @@ export default function Sessions() {
     try {
       const session = sessions.find(s => s.id === editingSessionId);
 
+      // Save note version before overwriting (if notes changed and document has notes)
+      try {
+        const currentDoc = await getDoc(doc(db, 'sessions', editingSessionId));
+        const currentNotes = currentDoc.data()?.notes;
+        if (currentNotes !== undefined && currentNotes !== null) {
+          await saveNextNoteVersion(editingSessionId, user.uid, currentNotes);
+        }
+      } catch (versionErr) {
+        console.error('Failed to save note version:', versionErr);
+      }
+
       await updateDoc(doc(db, 'sessions', editingSessionId), {
         notes: sessionForm.notes,
         type: sessionForm.type,
@@ -177,6 +194,12 @@ export default function Sessions() {
   };
 
   const openEditForm = (session: any) => {
+    if (session.status === 'completed') {
+      setPendingEditSessionId(session.id);
+      setEditJustification('');
+      setShowEditWarningModal(true);
+      return;
+    }
     const draft = localStorage.getItem(`draft_edit_${session.id}`);
     if (draft) {
       try {
@@ -468,6 +491,80 @@ export default function Sessions() {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showEditWarningModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                setShowEditWarningModal(false);
+                setPendingEditSessionId(null);
+                setEditJustification('');
+              }}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6"
+            >
+              <div className="mb-6">
+                <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <AlertTriangle className="w-6 h-6 text-amber-600" />
+                </div>
+                <h2 className="text-xl font-bold text-slate-900 text-center mb-2">
+                  {t('sessions.edit_completed_warning_title')}
+                </h2>
+                <p className="text-text-muted text-[14px] text-center">
+                  {t('sessions.edit_completed_warning_message')}
+                </p>
+                <div className="mt-4">
+                  <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">
+                    {t('sessions.edit_justification_label', 'Justification for edit (required)')}
+                  </label>
+                  <textarea
+                    className="input-field h-20 resize-none text-[14px]"
+                    placeholder={t('sessions.edit_justification_placeholder', 'Explain why this edit is necessary...')}
+                    value={editJustification}
+                    onChange={(e) => setEditJustification(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => {
+                    setShowEditWarningModal(false);
+                    setPendingEditSessionId(null);
+                    setEditJustification('');
+                  }}
+                  className="btn-secondary"
+                >
+                  {t('common.cancel', 'Cancel')}
+                </button>
+                <button
+                  onClick={async () => {
+                    if (user && pendingEditSessionId) {
+                      await logEditCompleted(user.uid, pendingEditSessionId, pendingEditSessionId, editJustification);
+                    }
+                    setEditingSessionId(pendingEditSessionId);
+                    setShowEditWarningModal(false);
+                    setPendingEditSessionId(null);
+                    setEditJustification('');
+                  }}
+                  disabled={!editJustification.trim()}
+                  className="btn-primary disabled:opacity-50"
+                >
+                  {t('sessions.edit_completed_warning_confirm')}
+                </button>
+              </div>
             </motion.div>
           </div>
         )}

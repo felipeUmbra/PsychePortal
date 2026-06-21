@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect, FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { doc, getDoc, updateDoc, setDoc, collection, query, where, getDocs, setDriveToken as setMockToken, forceSync, deleteDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
@@ -205,6 +205,15 @@ export default function Settings() {
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
     if (!user || !profile) return;
+
+    // G4: Warn if consent text or version changed
+    const consentChanged = (consentText !== (profile.consentText || '')) || (consentVersion !== (profile.consentVersion || '1.0'));
+    if (consentChanged && profile.consentText) {
+      const confirmed = window.confirm(
+        t('settings.consent_change_warning', 'Changing the consent text or version will require all patients to provide new consent before their next session record can be saved. Existing session records will NOT be affected. Continue?')
+      );
+      if (!confirmed) return;
+    }
 
     setIsSaving(true);
     try {

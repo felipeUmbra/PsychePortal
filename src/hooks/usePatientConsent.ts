@@ -45,6 +45,10 @@ export function usePatientConsent(patientId?: string) {
     acceptedFrom: string;
     text: string;
     version: string;
+    isMinor?: boolean;
+    guardianName?: string;
+    guardianRelationship?: string;
+    guardianCpf?: string;
   }) => {
     if (!user || !patientId) throw new Error('Unauthenticated or missing patient ID');
     try {
