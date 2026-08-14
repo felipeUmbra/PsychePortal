@@ -698,12 +698,21 @@ export default function Settings() {
             <HardDrive className="w-5 h-5 text-primary-custom" />
             {t('compliance.backup_section', 'Backup & Redundancy')}
           </h2>
-          <div className="space-y-6">
+          <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
             <div>
-              <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">
+              <label htmlFor="settings-secondary-token" className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">
                 {t('compliance.secondary_account', 'Secondary Account (Geographic Redundancy)')}
               </label>
-              <input type="password" className="input-field text-[14px]" placeholder={t('compliance.secondary_token_placeholder', 'Read-only access token...')} value={secondaryToken} onChange={(e) => setSecondaryToken(e.target.value)} />
+              <input
+                id="settings-secondary-token"
+                name="secondaryToken"
+                type="password"
+                autoComplete="off"
+                className="input-field text-[14px]"
+                placeholder={t('compliance.secondary_token_placeholder', 'Read-only access token...')}
+                value={secondaryToken}
+                onChange={(e) => setSecondaryToken(e.target.value)}
+              />
               <p className="text-[11px] text-text-muted mt-2 font-medium">
                 Optional: paste a read-only Google Drive access token for a secondary account. Token is stored in session only.
               </p>
@@ -726,7 +735,7 @@ export default function Settings() {
               <HardDrive className="w-4 h-4" />
               {t('compliance.force_backup', 'Force Full Backup')}
             </button>
-          </div>
+          </form>
           <div className="mt-6 pt-6 border-t border-border-custom">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-surface border border-border-custom rounded-xl gap-4">
               <div>
