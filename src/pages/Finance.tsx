@@ -36,7 +36,7 @@ export default function Finance() {
       const snap = await getDocs(q);
       const patientMap: Record<string, any> = {};
       snap.docs.forEach(doc => {
-        patientMap[doc.id] = doc.data();
+        patientMap[doc.id] = { id: doc.id, ...doc.data() };
       });
       setPatients(patientMap);
     };

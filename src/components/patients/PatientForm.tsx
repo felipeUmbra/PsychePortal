@@ -101,6 +101,7 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
       psychiatricHistory: '',
       familyHistory: '',
       medications: '',
+      substanceUse: '',
       familyStructure: '',
       workStudies: '',
       socialHabits: '',
@@ -125,7 +126,7 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
         name: '', email: '', phone: '', cpf: '', dateOfBirth: '', gender: 'Other',
         address: { country: '', zipCode: '', city: '', state: '', street: '', number: '', complement: '', neighborhood: '' },
         education: '', ethnicity: '', financialPlan: 'per_session', financialValue: '',
-        anamnesis: { chiefComplaint: '', medicalHistory: '', psychiatricHistory: '', familyHistory: '', medications: '', 
+        anamnesis: { chiefComplaint: '', medicalHistory: '', psychiatricHistory: '', familyHistory: '', medications: '', substanceUse: '',
           familyStructure: '', workStudies: '', socialHabits: '', psychiatricHistoryDetailed: '', recurrentSymptoms: '', predominantEmotions: '' }
       });
     }

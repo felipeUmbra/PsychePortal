@@ -57,7 +57,7 @@ describe('Patient Management', () => {
     // Delete
     cy.get('button').contains('Options').click();
     cy.contains('Delete').click();
-    cy.get('window').then((win) => {
+    cy.window().then((win) => {
       cy.stub(win, 'confirm').returns(true);
     });
     // Since confirm is a browser dialog, we might need to handle it via cy.window() or similar

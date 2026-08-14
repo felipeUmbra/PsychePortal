@@ -1,4 +1,4 @@
-﻿import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
@@ -8,12 +8,12 @@ import {
   LogOut,
   Languages,
   DollarSign,
-  Shield
+  Shield,
+  X
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { auth } from '../firebase';
 import { cn } from '../lib/utils';
-import { X } from 'lucide-react';
 import { changeLanguage } from '../i18n';
 
 interface SidebarProps {
@@ -23,6 +23,7 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { t, i18n } = useTranslation();
 
   const navItems = [
@@ -49,7 +50,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     { icon: DollarSign, label: t('sidebar.finance'), path: '/app/finance' },
     { icon: Settings, label: t('sidebar.settings'), path: '/app/settings' },
     { icon: Shield, label: t('sidebar.compliance'), path: '/app/compliance' }
-      ];
+  ];
 
   const handleLogout = async () => {
     await auth.signOut();
@@ -116,11 +117,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 <div className="absolute left-full top-0 pl-2 hidden lg:group-hover:block z-50">
                   <div className="bg-white border border-border-custom shadow-lg rounded-lg py-2 w-48">
                     {item.subItems.map((subItem) => {
-                      // More precise matching for search params
-                      const isActuallyActive = window.location.pathname === subItem.path.split('?')[0] &&
-                        (subItem.path.includes('?')
-                          ? window.location.search === '?' + subItem.path.split('?')[1]
-                          : window.location.search === '');
+                      // Precise matching using react-router useLocation
+                      const targetPath = subItem.path.split('?')[0];
+                      const targetQuery = subItem.path.includes('?') ? '?' + subItem.path.split('?')[1] : '';
+                      const isActuallyActive = location.pathname === targetPath && location.search === targetQuery;
 
                       return (
                         <NavLink

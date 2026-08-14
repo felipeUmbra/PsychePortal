@@ -23,7 +23,7 @@ import { useGoogleAuth } from '../context/GoogleAuthContext';
 export default function Calendar() {
   const [user] = useAuthState(auth);
   const { t, i18n } = useTranslation();
-  const { driveToken } = useGoogleAuth();
+  const { driveToken, calendarToken } = useGoogleAuth();
   const navigate = useNavigate();
   const dateLocale = i18n.language.startsWith('pt') ? ptBR : enUS;
 
@@ -58,7 +58,7 @@ export default function Calendar() {
       await updateDoc(doc(db, 'sessions', session.id), { status: 'cancelled' });
 
       if (session.googleEventId) {
-        const token = driveToken;
+        const token = calendarToken || driveToken;
         if (token) {
           const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${session.googleEventId}`, {
             method: 'DELETE',
@@ -194,7 +194,7 @@ export default function Calendar() {
               </h2>
               <div className="flex gap-2">
                 <button className="px-3 py-1.5 rounded-lg bg-accent-custom text-primary-custom text-[11px] font-bold uppercase tracking-wider">{t('calendar.day_view')}</button>
-                <button onClick={() => navigate('/calendar')} className="px-3 py-1.5 rounded-lg text-text-muted text-[11px] font-bold uppercase tracking-wider hover:bg-bg transition-colors">{t('calendar.week_view')}</button>
+                <button onClick={() => navigate('/app/calendar')} className="px-3 py-1.5 rounded-lg text-text-muted text-[11px] font-bold uppercase tracking-wider hover:bg-bg transition-colors">{t('calendar.week_view')}</button>
               </div>
             </div>
 

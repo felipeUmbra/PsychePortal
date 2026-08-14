@@ -68,7 +68,7 @@ export default function Calendar() {
     let backgroundColor = '#3b82f6'; // blue-500 (scheduled)
     
     if (status === 'completed') backgroundColor = '#10b981'; // emerald-500
-    if (status === 'no_show') backgroundColor = '#f59e0b'; // amber-500
+    if (status === 'no-show' || status === 'no_show') backgroundColor = '#f59e0b'; // amber-500
     if (status === 'cancelled') backgroundColor = '#ef4444'; // red-500
 
     return {
@@ -102,7 +102,7 @@ export default function Calendar() {
     <div className="h-[calc(100vh-8rem)] flex flex-col space-y-6">
       <header>
         <h1 className="text-2xl font-bold text-text-main tracking-tight">{t('sidebar.entire_calendar')}</h1>
-        <p className="text-text-muted text-[14px]">{t('sidebar.entire_calendar')}</p>
+        <p className="text-text-muted text-[14px]">{t('calendar.subtitle', 'Manage appointments and clinical schedule.')}</p>
       </header>
 
       <div className="flex-1 bg-surface rounded-2xl border border-border-custom p-6 shadow-sm min-h-[600px] flex flex-col">

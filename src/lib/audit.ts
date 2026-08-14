@@ -1,4 +1,4 @@
-import { collection, query, orderBy, limit, getDocs, addDoc } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, getDocs, addDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { v4 as uuidv4 } from 'uuid';
 import { sha256, computeEntityHashAsync, computeRecordHash } from './crypto';

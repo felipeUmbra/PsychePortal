@@ -1,4 +1,4 @@
-﻿// Mock Firestore implementation using localStorage and generic events to simulate Firebase syncing locally
+// Mock Firestore implementation using localStorage and generic events to simulate Firebase syncing locally
 import { v4 as uuidv4 } from 'uuid';
 
 const DRIVE_TOKEN_STORAGE_KEY = 'google_drive_token';
@@ -105,6 +105,7 @@ export class QuerySnapshot {
   docs: DocSnapshot[];
   constructor(docs: DocSnapshot[]) { this.docs = docs; }
   get size() { return this.docs.length; }
+  get empty() { return this.docs.length === 0; }
 }
 
 const toTimestamp = (val: any): any => {

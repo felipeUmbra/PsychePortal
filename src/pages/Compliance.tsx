@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -217,7 +217,7 @@ export default function Compliance() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      await logDataExport(user.uid, 'all', 'audit_csv', snap.docs.size);
+      await logDataExport(user.uid, 'all', 'audit_csv', snap.docs.length);
     } catch (err: any) { console.error('Audit CSV export failed:', err); alert(err.message || 'Export failed'); }
   }, [user, reportFrom, reportTo]);
 
