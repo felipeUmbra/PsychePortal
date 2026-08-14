@@ -51,7 +51,9 @@ let state: Record<string, any[]> = {
   patients: [],
   sessions: [],
   psychologists: [],
-  audit_logs: []
+  audit_logs: [],
+  patient_consents: [],
+  note_versions: []
 };
 
 // Setup internal events for onSnapshot
@@ -162,13 +164,14 @@ export const loadFromDrive = async () => {
 
   isLoading = true;
   loadPromise = (async () => {
-    // Initialize state to empty to ensure no stale data remains if the load takes time
     state = {
       patients: [],
       sessions: [],
       psychologists: [],
-  audit_logs: []
-};
+      audit_logs: [],
+      patient_consents: [],
+      note_versions: []
+    };
 
     try {
       const token = driveToken;

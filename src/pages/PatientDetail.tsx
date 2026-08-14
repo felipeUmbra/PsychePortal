@@ -342,7 +342,7 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
           hasActiveConsent={hasActiveConsent}
           onAccept={async (data) => {
             await acceptConsent(data);
-            return Promise.resolve();
+            setActiveTab('sessions');
           }}
           onRevoke={async () => {
             await revokeConsent();

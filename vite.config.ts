@@ -16,6 +16,9 @@ export default defineConfig(({ mode }) => {
         },
         injectRegister: false, // Don't inject in dev mode
         includeAssets: ['logo.png'],
+        workbox: {
+          navigateFallbackDenylist: [/^\/api/, /^https:\/\/www\.googleapis\.com/, /^https:\/\/identitytoolkit\.googleapis\.com/, /^https:\/\/api\.ipify\.org/],
+        },
         manifest: {
           name: 'Portal Psis',
           short_name: 'Portal Psis',
