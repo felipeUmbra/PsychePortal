@@ -37,17 +37,22 @@ export default function Login() {
       provider.setCustomParameters({ prompt: 'consent' });
       googleScopes.forEach(scope => provider.addScope(scope));
 
-      const result = await signInWithPopup(auth, provider);
+      // Under Cypress, auth is a MockAuth instance that simulates the Google
+      // OAuth popup; otherwise use the real Firebase signInWithPopup.
+      const result = typeof (auth as any).signInWithPopup === 'function'
+        ? await (auth as any).signInWithPopup(provider)
+        : await signInWithPopup(auth, provider);
       const user = result.user;
 
       // Save the OAuth token for Google APIs
       const credential = GoogleAuthProvider.credentialFromResult(result);
-      if (credential?.accessToken) {
+      const accessToken = credential?.accessToken ?? (result as any)?._tokenResponse?.oauthAccessToken;
+      if (accessToken) {
         // Note: setMockToken internally calls forceSync now, 
         // but we await it here to ensure the profile check uses fresh data.
-        setMockToken(credential.accessToken);
-        setDriveToken(credential.accessToken);
-        setCalendarToken(credential.accessToken);
+        setMockToken(accessToken);
+        setDriveToken(accessToken);
+        setCalendarToken(accessToken);
         await forceSync();
       }
 

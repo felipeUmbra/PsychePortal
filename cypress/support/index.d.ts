@@ -13,6 +13,10 @@ declare global {
     namespace Cypress {
         interface Chainable {
             login(tokens: { driveToken: string; calendarToken: string }): Chainable<void>;
+            loginWithGoogle(): Chainable<void>;
+            openPatientCard(name: string): Chainable<void>;
+            mockDriveApi(): Chainable<void>;
+            mockCalendarApi(): Chainable<void>;
         }
     }
 }

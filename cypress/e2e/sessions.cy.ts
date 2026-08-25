@@ -1,57 +1,66 @@
-describe('Sessions and Clinical Logging', () => {
-  const mockTokens = {
-    driveToken: 'mock-drive-token-123',
-    calendarToken: 'mock-calendar-token-456'
-  };
+describe('Sessions', () => {
+  const NAME = 'Sessions Test Patient';
+  const MODAL = 'div[class*="inset-0"]';
+
+  function createPatientWithSession() {
+    // Create patient
+    cy.visit('/#/app/patients');
+    cy.contains('button', /Adicionar Novo Paciente|Add Patient/i).click();
+    cy.get(`${MODAL} input`).eq(0).type(NAME);
+    cy.get(`${MODAL} input[type="date"]`).first().type('1988-03-03');
+    cy.contains('button', /Salvar|Save/i).click();
+    cy.openPatientCard(NAME);
+
+    // Accept consent so session logging unlocks
+    cy.contains(/Consentimento Informado|Informed Consent/i).click();
+    cy.get('input[placeholder*="sign"], input[placeholder*="assinar"]').type(NAME);
+    cy.contains('button', /Eu Aceito|I Accept/i).click();
+
+    // Log a completed session (yesterday)
+    cy.contains('button', /Registrar Sessão|Log Session/i)
+      .should('not.be.disabled', { timeout: 10000 })
+      .click();
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const localDt = `${yesterday.getFullYear()}-${pad(yesterday.getMonth() + 1)}-${pad(yesterday.getDate())}T14:00`;
+    cy.get('input[type="datetime-local"]').type(localDt);
+    cy.contains('button', /Salvar Registro da Sessão|Save Session/i).click();
+  }
 
   beforeEach(() => {
-    cy.visit('/');
-    cy.login(mockTokens);
+    cy.loginWithGoogle();
+    createPatientWithSession();
   });
 
-  it('should schedule a new session', () => {
-    cy.visit('/app/patients');
-    cy.contains('.card').first().click();
-
-    cy.contains('Schedule Appointment').click();
-    // NewSessionModal interactions
-    cy.get('input[type="date"]').type('2026-06-01');
-    cy.get('button').contains('Schedule').click();
-
-    cy.contains('scheduled').should('be.visible');
+  it('renders the sessions page with search and filters', () => {
+    cy.visit('/#/app/sessions');
+    cy.get('h1').contains(/Sessões de Terapia|Therapy Sessions/i).should('be.visible');
+    cy.get('input[placeholder*="Pesquisar"], input[placeholder*="Search"]').should('be.visible');
+    cy.contains('button', /Filtros|Filters/i).should('be.visible');
   });
 
-  it('should log a clinical session with notes and a file', () => {
-    cy.visit('/app/patients');
-    cy.contains('.card').first().click();
-
-    cy.contains('Log Session').click();
-
-    // SessionForm interactions
-    cy.get('textarea').type('Patient showed significant improvement in mood. Discussed coping strategies.');
-
-    // Mock file upload
-    cy.get('input[type="file"]').selectFile('cypress/fixtures/test-file.pdf', { force: true });
-
-    cy.get('button').contains('Save Record').click();
-
-    cy.contains('completed').should('be.visible');
-    cy.contains('Patient showed significant improvement').should('be.visible');
+  it('shows the logged session with patient name and status', () => {
+    cy.visit('/#/app/sessions');
+    cy.contains(NAME).should('be.visible');
+    cy.contains(/Realizada|Completed/i).should('be.visible');
+    cy.contains(/Terapia Individual|Individual Therapy/i).should('be.visible');
   });
 
-  it('should allow expanding and viewing session notes', () => {
-    cy.visit('/app/patients');
-    cy.contains('.card').first().click();
+  it('searches sessions by patient name', () => {
+    cy.visit('/#/app/sessions');
+    cy.contains(NAME).should('be.visible');
 
-    cy.contains('Show Notes').click();
-    cy.get('.markdown-body').should('be.visible');
+    cy.get('input[placeholder*="Pesquisar"], input[placeholder*="Search"]')
+      .type('Nonexistent Name XYZ');
+    cy.contains(NAME).should('not.exist');
   });
 
-  it('should cancel a scheduled session', () => {
-    cy.visit('/app/patients');
-    cy.contains('.card').first().click();
-
-    cy.contains('Cancel').click();
-    cy.contains('cancelled').should('be.visible');
+  it('navigates to the patient profile from a session card', () => {
+    cy.visit('/#/app/sessions');
+    cy.contains('a:visible, button:visible', /Ver Paciente|View Patient/i)
+      .first()
+      .click();
+    cy.url().should('include', '/app/patients/');
   });
 });

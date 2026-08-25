@@ -9,3 +9,6 @@ coverage/
 Claude.md
 e2e.md
 .clinerules
+cypress/screenshots
+cypress/videos
+
