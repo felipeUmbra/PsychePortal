@@ -1,5 +1,10 @@
 /// <reference types="cypress" />
 
+declare module "cypress-mochawesome-reporter/plugin" {
+    const plugin: (on: Cypress.PluginEvents, config?: Cypress.PluginConfigOptions) => void;
+    export default plugin;
+}
+
 declare global {
     interface Window {
         Cypress?: any;

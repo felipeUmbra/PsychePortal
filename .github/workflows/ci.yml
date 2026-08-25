@@ -47,3 +47,14 @@ jobs:
           name: dist
           path: dist/
           retention-days: 7
+
+      - name: Upload test reports (mochawesome)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-test-reports
+          path: |
+            cypress/reports/
+            cypress/screenshots/
+            cypress/videos/
+          retention-days: 7
