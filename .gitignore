@@ -3,6 +3,7 @@ build/
 dist/
 cypress/screenshots
 cypress/videos
+cypress/reports
 coverage/
 .DS_Store
 *.log

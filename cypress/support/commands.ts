@@ -16,12 +16,14 @@ Cypress.Commands.add('mockCalendarApi', () => {
 // The detail page can intermittently render blank while the Drive sync
 // layer settles, so the navigation is retried once before failing.
 Cypress.Commands.add('openPatientCard', (name: string) => {
-  cy.contains('.card', name).find('a').first().click();
-  cy.wait(2000);
-  cy.get('body').then(($body) => {
-    if (!$body.find('h1').text().includes(name)) {
-      cy.visit('/#/app/patients');
-      cy.contains('.card', name).find('a').first().click();
+  cy.contains('.card', name, { timeout: 10000 }).find('a').first().click();
+  cy.get('h1', { timeout: 15000 }).then(($h1) => {
+    if (!$h1.text().includes(name)) {
+      // Retry via client-side navigation (sidebar link). A full page
+      // reload here would race with the Drive sync layer and can render
+      // an empty patients directory.
+      cy.contains('a', /Pacientes|Patients/i).click();
+      cy.contains('.card', name, { timeout: 10000 }).find('a').first().click();
     }
   });
   cy.contains('h1', name, { timeout: 15000 }).should('be.visible');

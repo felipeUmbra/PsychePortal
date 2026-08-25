@@ -32,12 +32,11 @@ const setSessionStorageItem = (key: string, value: string | null) => {
 driveToken = getSessionStorageItem(DRIVE_TOKEN_STORAGE_KEY);
 
 export const setDriveToken = (token: string | null) => {
+  // Skip redundant syncs (e.g. token restored twice on page reload).
+  if (driveToken === token) return;
   driveToken = token;
   setSessionStorageItem(DRIVE_TOKEN_STORAGE_KEY, token);
-  if (token && !isLoaded) {
-    forceSync();
-  }
-  // Always force a clean sync when a new token is provided to prevent
+  // Force a clean sync when a new token is provided to prevent
   // data leakage between different user sessions on the same machine.
   if (token) {
     forceSync().catch(console.error);
@@ -164,15 +163,10 @@ export const loadFromDrive = async () => {
 
   isLoading = true;
   loadPromise = (async () => {
-    state = {
-      patients: [],
-      sessions: [],
-      psychologists: [],
-      audit_logs: [],
-      patient_consents: [],
-      note_versions: []
-    };
-
+    // NOTE: `state` is intentionally NOT reset here. It is replaced
+    // atomically once the Drive/localStorage data arrives. Wiping it up
+    // front opened a window where the UI (and a debounced saveToDrive)
+    // could observe/persist an empty database, losing user data.
     try {
       const token = driveToken;
       if (!token) {
@@ -287,12 +281,6 @@ export const ensureLoaded = () => {
 export const forceSync = async () => {
   if (isLoading && loadPromise) return loadPromise;
   isLoaded = false;
-  state = {
-    patients: [],
-    sessions: [],
-    psychologists: [],
-  audit_logs: []
-};
   loadPromise = null; // Important: Clear the promise to allow a new fetch with fresh tokens
   return loadFromDrive();
 };
