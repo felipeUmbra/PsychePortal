@@ -1,5 +1,10 @@
 /// <reference types="cypress" />
 
+declare module "cypress-mochawesome-reporter/plugin" {
+    const plugin: (on: Cypress.PluginEvents, config?: Cypress.PluginConfigOptions) => void;
+    export default plugin;
+}
+
 declare global {
     interface Window {
         Cypress?: any;
@@ -13,6 +18,10 @@ declare global {
     namespace Cypress {
         interface Chainable {
             login(tokens: { driveToken: string; calendarToken: string }): Chainable<void>;
+            loginWithGoogle(): Chainable<void>;
+            openPatientCard(name: string): Chainable<void>;
+            mockDriveApi(): Chainable<void>;
+            mockCalendarApi(): Chainable<void>;
         }
     }
 }

@@ -23,10 +23,10 @@ export function usePatients() {
     const unsubscribe = onSnapshot(q, (snapshot: any) => {
       const loaded = snapshot.docs.map((doc: any) => {
         const pt: Patient = { id: doc.id, ...doc.data() };
-        if (isUnlocked && pt.notes) { try { const pl = JSON.parse(pt.notes); if (pl.version && pl.ciphertext) { decrypt(pl).then((x) => setPatients((prev) => prev.map((y) => y.id === pt.id ? { ...y, notes: x } : y))).catch(() => {}); pt.notes = ''; } } catch {} }
+        if (isUnlocked && pt.notes) { try { const pl = JSON.parse(pt.notes); if (pl.version && pl.ciphertext) { decrypt(pl).then((x) => setPatients((prev) => prev.map((y) => y.id === pt.id ? { ...y, notes: x } : y))).catch(() => { }); pt.notes = ''; } } catch { } }
         if (isUnlocked && pt.anamnesis) {
-          for (const f of ['chiefComplaint','medicalHistory','psychiatricHistory','familyHistory','medications','substanceUse','familyStructure','workStudies','socialHabits','psychiatricHistoryDetailed','recurrentSymptoms','predominantEmotions']) {
-            if (pt.anamnesis[f]) { try { const pl = JSON.parse(pt.anamnesis[f]); if (pl.version && pl.ciphertext) { const cid = pt.id; decrypt(pl).then((x) => setPatients((prev) => prev.map((y) => y.id === cid ? { ...y, anamnesis: { ...y.anamnesis, [f]: x } } : y))).catch(() => {}); pt.anamnesis[f] = ''; } } catch {} }
+          for (const f of ['chiefComplaint', 'medicalHistory', 'psychiatricHistory', 'familyHistory', 'medications', 'substanceUse', 'familyStructure', 'workStudies', 'socialHabits', 'psychiatricHistoryDetailed', 'recurrentSymptoms', 'predominantEmotions']) {
+            if (pt.anamnesis[f]) { try { const pl = JSON.parse(pt.anamnesis[f]); if (pl.version && pl.ciphertext) { const cid = pt.id; decrypt(pl).then((x) => setPatients((prev) => prev.map((y) => y.id === cid ? { ...y, anamnesis: { ...y.anamnesis, [f]: x } } : y))).catch(() => { }); pt.anamnesis[f] = ''; } } catch { } }
           }
         }
         return pt;
@@ -48,7 +48,7 @@ export function usePatients() {
       if (isUnlocked) {
         if (dataToWrite.notes) dataToWrite.notes = JSON.stringify(await encrypt(dataToWrite.notes));
         if (dataToWrite.anamnesis) {
-          for (const f of ['chiefComplaint','medicalHistory','psychiatricHistory','familyHistory','medications','substanceUse','familyStructure','workStudies','socialHabits','psychiatricHistoryDetailed','recurrentSymptoms','predominantEmotions']) {
+          for (const f of ['chiefComplaint', 'medicalHistory', 'psychiatricHistory', 'familyHistory', 'medications', 'substanceUse', 'familyStructure', 'workStudies', 'socialHabits', 'psychiatricHistoryDetailed', 'recurrentSymptoms', 'predominantEmotions']) {
             if (dataToWrite.anamnesis[f]) dataToWrite.anamnesis[f] = JSON.stringify(await encrypt(dataToWrite.anamnesis[f]));
           }
         }
@@ -68,7 +68,7 @@ export function usePatients() {
       if (isUnlocked) {
         if (uw.notes) uw.notes = JSON.stringify(await encrypt(uw.notes));
         if (uw.anamnesis) {
-          for (const f of ['chiefComplaint','medicalHistory','psychiatricHistory','familyHistory','medications','substanceUse','familyStructure','workStudies','socialHabits','psychiatricHistoryDetailed','recurrentSymptoms','predominantEmotions']) {
+          for (const f of ['chiefComplaint', 'medicalHistory', 'psychiatricHistory', 'familyHistory', 'medications', 'substanceUse', 'familyStructure', 'workStudies', 'socialHabits', 'psychiatricHistoryDetailed', 'recurrentSymptoms', 'predominantEmotions']) {
             if (uw.anamnesis[f]) uw.anamnesis[f] = JSON.stringify(await encrypt(uw.anamnesis[f]));
           }
         }
@@ -106,9 +106,15 @@ export function usePatient(id?: string) {
 
     const fetchPatient = async () => {
       try {
-        const docSnap = await getDoc(doc(db, 'patients', id));
-        if (docSnap.exists()) {
-          setPatient({ id: docSnap.id, ...docSnap.data() } as Patient);
+        // The sync layer may still be settling right after a navigation,
+        // so retry briefly before concluding the patient does not exist.
+        for (let attempt = 0; attempt < 5; attempt++) {
+          const docSnap = await getDoc(doc(db, 'patients', id));
+          if (docSnap.exists()) {
+            setPatient({ id: docSnap.id, ...docSnap.data() } as Patient);
+            return;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 400));
         }
       } catch (error) {
         handleFirestoreError(error, OperationType.GET, `patients/${id}`);

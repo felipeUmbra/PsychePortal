@@ -146,7 +146,7 @@ export default function AuditLogPage() {
       </header>
 
       <section className="card p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
           <div>
             <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('audit.filters.entity')}</label>
             <select className="input-field text-[14px]" value={filters.entity} onChange={e => handleFilterChange('entity', e.target.value)}>

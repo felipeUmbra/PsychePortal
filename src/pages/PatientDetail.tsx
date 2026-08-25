@@ -342,7 +342,7 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
           hasActiveConsent={hasActiveConsent}
           onAccept={async (data) => {
             await acceptConsent(data);
-            return Promise.resolve();
+            setActiveTab('sessions');
           }}
           onRevoke={async () => {
             await revokeConsent();
@@ -431,7 +431,7 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
                         initialData={session}
                         onSubmit={(data) => {
                           if (!session.id) {
-                            alert(t('common.error_invalid_session', 'ID de sessÃ£o invÃ¡lido. Salve a sessÃ£o primeiro.'));
+                            alert(t('common.error_invalid_session', 'ID de sessão inválido. Salve a sessão primeiro.'));
                             return Promise.reject();
                           }
                           return handleUpdateSessionSubmit(data, session.id);
@@ -442,7 +442,7 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
                         }}
                         onUploadFile={(file) => {
                           if (!session.id) {
-                            alert(t('common.error_upload_no_id', 'NÃ£o Ã© possÃ­vel fazer upload: SessÃ£o sem identificador.'));
+                            alert(t('common.error_upload_no_id', 'Não é possível fazer upload: Sessão sem identificador.'));
                             return Promise.reject();
                           }
                           return uploadFile(file, session.id);

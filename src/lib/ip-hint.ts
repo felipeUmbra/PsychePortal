@@ -41,7 +41,7 @@ export async function getIpHint(): Promise<string> {
       cachedIpHint = anonymized;
       return cachedIpHint;
     } catch (error) {
-      console.warn('Failed to fetch IP hint:', error);
+      console.debug('IP hint unavailable, falling back:', error);
       cachedIpHint = 'unavailable';
       return cachedIpHint;
     } finally {

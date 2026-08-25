@@ -51,7 +51,7 @@ export default function Dashboard() {
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
           <h1 className="text-2xl font-bold text-text-main tracking-tight">{t('dashboard.title')}</h1>
-          <p className="text-text-muted text-[14px] mt-1">{t('dashboard.welcome', { name: user?.displayName?.split(' ')[1] || 'Psychologist' })}</p>
+          <p className="text-text-muted text-[14px] mt-1">{t('dashboard.welcome', { name: user?.displayName?.split(' ')[0] || user?.displayName || 'Psychologist' })}</p>
         </div>
         <div className="flex flex-wrap gap-3 w-full sm:w-auto">
           <Link to="/app/calendar" className="btn-secondary flex items-center gap-2 text-[14px]">

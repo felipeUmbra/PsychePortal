@@ -26,7 +26,7 @@ interface NewSessionModalProps {
 
 export function NewSessionModal({ isOpen, onClose, userId, patients, preselectedPatientId, preselectedDate }: NewSessionModalProps) {
   const { t } = useTranslation();
-  const { driveToken } = useGoogleAuth();
+  const { driveToken, calendarToken } = useGoogleAuth();
 
   const formatDateISO = (d: Date) => {
     return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
@@ -160,7 +160,7 @@ export function NewSessionModal({ isOpen, onClose, userId, patients, preselected
 
         // Sync with Google Calendar per slot (only for the first instance of recurrence to avoid duplicates if RRULE is used)
         const isFirstInstance = sessionsToAdd.indexOf(sessionData) < slots.length;
-        const googleToken = driveToken;
+        const googleToken = calendarToken || driveToken;
 
         if (googleToken && isFirstInstance && slot) {
           const patient = patients.find(p => p.id === patientId);

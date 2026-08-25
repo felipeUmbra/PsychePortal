@@ -1,66 +1,94 @@
-describe('Patient Management', () => {
-  const mockTokens = {
-    driveToken: 'mock-drive-token-123',
-    calendarToken: 'mock-calendar-token-456'
+describe('Patients Directory', () => {
+  const PATIENT = {
+    name: 'John Doe',
+    email: 'john.doe@test.com',
+    phone: '11999998888'
   };
 
   beforeEach(() => {
-    cy.visit('/');
-    cy.login(mockTokens);
-    cy.visit('/app/patients');
+    cy.loginWithGoogle();
+    cy.visit('/#/app/patients');
+    cy.contains(/Diretório de Pacientes|Patients/i).should('be.visible');
   });
 
-  it('should allow adding a new patient', () => {
-    cy.contains('Add New').click();
+  function openAddForm() {
+    cy.contains('button', /Adicionar Novo Paciente|Add Patient/i).click();
+    cy.contains(/Adicionar Novo Paciente|Add New Patient/i).should('be.visible');
+  }
 
-    cy.get('input[name="name"]').type('John Doe');
-    cy.get('input[name="email"]').type('john@example.com');
-    cy.get('input[name="phone"]').type('123456789');
-    cy.get('input[name="dateOfBirth"]').type('1990-01-01');
+  function fillRequiredFields(name: string) {
+    // Inputs have no name attributes; order inside the modal:
+    // name, CPF, email, phone, birth date...
+    const modal = 'div.fixed.inset-0.z-50';
+    cy.get(`${modal} input`).eq(0).clear().type(name);
+    cy.get(`${modal} input`).eq(2).clear().type(PATIENT.email);
+    cy.get(`${modal} input`).eq(3).clear().type(PATIENT.phone);
+    cy.get(`${modal} input[type="date"]`).first().type('1990-01-01');
+  }
 
-    cy.get('button').contains('Save').click();
+  it('creates a new patient', () => {
+    openAddForm();
+    fillRequiredFields(PATIENT.name);
+    cy.contains('button', /Salvar|Save/i).click();
 
-    cy.contains('John Doe').should('be.visible');
+    cy.contains('.card', PATIENT.name).should('be.visible');
+    cy.contains('.card', PATIENT.email).should('be.visible');
   });
 
-  it('should allow searching and filtering patients', () => {
-    // Create a patient to search for
-    cy.login(mockTokens);
-    cy.visit('/app/patients');
-    cy.contains('Add New').click();
-    cy.get('input[name="name"]').type('Search Test');
-    cy.get('button').contains('Save').click();
+  it('searches patients by name', () => {
+    openAddForm();
+    fillRequiredFields(PATIENT.name);
+    cy.contains('button', /Salvar|Save/i).click();
+    cy.contains('.card', PATIENT.name).should('be.visible');
 
-    cy.get('input[placeholder*="Search"]').type('Search Test');
-    cy.contains('Search Test').should('be.visible');
-    cy.get('input[placeholder*="Search"]').clear();
-    cy.contains('Search Test').should('be.visible');
+    cy.get('input[placeholder*="Pesquisar"], input[placeholder*="Search"]')
+      .type(PATIENT.name);
+    cy.contains('.card', PATIENT.name).should('be.visible');
+
+    cy.get('input[placeholder*="Pesquisar"], input[placeholder*="Search"]')
+      .clear()
+      .type('Nonexistent Patient XYZ');
+    cy.contains('.card', PATIENT.name).should('not.exist');
   });
 
-  it('should navigate to patient details', () => {
-    cy.contains('.card').first().click();
-    cy.url().should('include', '/app/patients/');
-    cy.get('h1').should('be.visible');
+  it('shows financial plan filter options', () => {
+    cy.contains('button', /Filtros|Filters/i).click();
+    cy.contains(/Plano Financeiro|Financial Plan/i).should('be.visible');
+    // Close dropdown
+    cy.get('body').click('topLeft');
   });
 
-  it('should allow editing and deleting a patient', () => {
-    // Get first patient ID
-    cy.get('.card').first().within(() => {
-      cy.get('button').contains('Options').click();
-      cy.contains('Edit').click();
-    });
+  it('edits an existing patient', () => {
+    openAddForm();
+    fillRequiredFields(PATIENT.name);
+    cy.contains('button', /Salvar|Save/i).click();
+    cy.contains('.card', PATIENT.name).should('be.visible');
 
-    cy.get('input[name="name"]').clear().type('Updated Name');
-    cy.get('button').contains('Save').click();
-    cy.contains('Updated Name').should('be.visible');
+    cy.contains('.card', PATIENT.name)
+      .find('button')
+      .last()
+      .click();
+    cy.contains(/Editar|Edit/i).click();
+    cy.contains(/Editar Paciente|Edit Patient/i).should('be.visible');
 
-    // Delete
-    cy.get('button').contains('Options').click();
-    cy.contains('Delete').click();
-    cy.get('window').then((win) => {
-      cy.stub(win, 'confirm').returns(true);
-    });
-    // Since confirm is a browser dialog, we might need to handle it via cy.window() or similar
-    // but for simplicity in this mock, we just check if the card is gone after a confirm mock
+    cy.get('div.fixed.inset-0.z-50 input').eq(0).clear().type('John Doe Updated');
+    cy.contains('button', /Salvar|Save/i).click();
+    cy.contains('.card', 'John Doe Updated').should('be.visible');
+  });
+
+  it('deletes a patient after confirmation', () => {
+    openAddForm();
+    fillRequiredFields(PATIENT.name);
+    cy.contains('button', /Salvar|Save/i).click();
+    cy.contains('.card', PATIENT.name).should('be.visible');
+
+    cy.contains('.card', PATIENT.name)
+      .find('button')
+      .last()
+      .click();
+    cy.contains(/Excluir|Delete/i).click();
+
+    // window.confirm is auto-accepted by Cypress
+    cy.contains('.card', PATIENT.name).should('not.exist');
   });
 });

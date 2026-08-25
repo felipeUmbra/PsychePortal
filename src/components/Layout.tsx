@@ -217,8 +217,8 @@ export default function Layout() {
           </div>
         )}
         <header className="h-16 bg-surface border-b border-border-custom flex items-center justify-between px-4 sm:px-8 shrink-0">
-          <div className="flex items-center gap-2">
-            {/* Mobile Menu Toggle - moved to appear first (left) */}
+          <div className="flex items-center gap-3">
+            {/* Mobile Menu Toggle */}
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className="lg:hidden p-2 hover:bg-bg rounded-lg text-text-muted transition-colors"
@@ -227,45 +227,54 @@ export default function Layout() {
               {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
 
-            <div className="relative">
-              <button
-                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="flex items-center gap-4 hover:opacity-80 transition-opacity"
-                aria-label={t('layout.user_menu', 'User Menu')}
-                aria-expanded={isUserMenuOpen}
-              >
-                <div className="flex flex-col items-end hidden sm:flex">
-                  <span className="text-[13px] font-semibold text-text-main">{user.displayName}</span>
-                </div>
-                <div className="w-8 h-8 rounded-full bg-accent-custom border border-border-custom flex items-center justify-center text-[12px] font-bold text-primary-custom overflow-hidden">
-                  {user.photoURL ? (
-                    <img src={user.photoURL} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                  ) : (
-                    user.displayName?.charAt(0) || 'P'
-                  )}
-                </div>
-              </button>
-
-              {isUserMenuOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setIsUserMenuOpen(false)} />
-                  <div className="absolute right-0 mt-2 w-48 bg-white border border-border-custom rounded-xl shadow-lg z-50 p-2">
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-red-600 hover:bg-red-50 rounded-lg transition-colors font-bold"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      {t('sidebar.logout', 'Logout')}
-                    </button>
-                  </div>
-                </>
-              )}
+            <div className="flex flex-col">
+              <span className="text-[14px] font-semibold text-text-main">{t('layout.workspace', 'Workspace')}</span>
+              <span className="text-[11px] text-text-muted uppercase tracking-wider font-bold">Portal Psis v0.0.4 (Alpha)</span>
             </div>
           </div>
 
-          <div className="flex flex-col">
-            <span className="text-[14px] font-semibold text-text-main">{t('layout.workspace', 'Workspace')}</span>
-            <span className="text-[11px] text-text-muted uppercase tracking-wider font-bold">Workspace v0.0.4 (Alpha)</span>
+          <div className="relative">
+            <button
+              onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+              className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+              aria-label={t('layout.user_menu', 'User Menu')}
+              aria-expanded={isUserMenuOpen}
+            >
+              <div className="flex flex-col items-end hidden sm:flex">
+                <span className="text-[13px] font-semibold text-text-main">{user.displayName}</span>
+                <span className="text-[11px] text-text-muted font-medium">{user.email}</span>
+              </div>
+              <div className="w-9 h-9 rounded-full bg-accent-custom border border-border-custom flex items-center justify-center text-[12px] font-bold text-primary-custom overflow-hidden shadow-sm">
+                {user.photoURL ? (
+                  <img src={user.photoURL} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                ) : (
+                  user.displayName?.charAt(0) || 'P'
+                )}
+              </div>
+            </button>
+
+            {isUserMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setIsUserMenuOpen(false)} />
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-border-custom rounded-xl shadow-lg z-50 p-2 animate-in fade-in zoom-in-95">
+                  <Link
+                    to="/app/settings"
+                    onClick={() => setIsUserMenuOpen(false)}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-text-main hover:bg-bg rounded-lg transition-colors font-medium"
+                  >
+                    {t('sidebar.settings', 'Configurações')}
+                  </Link>
+                  <div className="h-px bg-border-custom my-1" />
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-red-600 hover:bg-red-50 rounded-lg transition-colors font-bold"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    {t('sidebar.logout', 'Logout')}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </header>
         <main className="flex-1 p-4 sm:p-8 overflow-y-auto">

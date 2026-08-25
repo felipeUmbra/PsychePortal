@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -217,7 +217,7 @@ export default function Compliance() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      await logDataExport(user.uid, 'all', 'audit_csv', snap.docs.size);
+      await logDataExport(user.uid, 'all', 'audit_csv', snap.docs.length);
     } catch (err: any) { console.error('Audit CSV export failed:', err); alert(err.message || 'Export failed'); }
   }, [user, reportFrom, reportTo]);
 
@@ -433,20 +433,29 @@ export default function Compliance() {
           <HardDrive className="w-5 h-5 text-primary-custom" />
           {t('compliance.backup_section', 'Backup & Redundancy')}
         </h2>
-        <div className="space-y-6">
+        <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
           <div>
-            <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('compliance.secondary_account', 'Secondary Account (Geographic Redundancy)')}</label>
-            <input type="password" className="input-field text-[14px]" placeholder={t('compliance.secondary_token_placeholder', 'Read-only access token...')} value={secondaryToken} onChange={(e) => setSecondaryToken(e.target.value)} />
+            <label htmlFor="compliance-secondary-token" className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('compliance.secondary_account', 'Secondary Account (Geographic Redundancy)')}</label>
+            <input
+              id="compliance-secondary-token"
+              name="secondaryToken"
+              type="password"
+              autoComplete="off"
+              className="input-field text-[14px]"
+              placeholder={t('compliance.secondary_token_placeholder', 'Read-only access token...')}
+              value={secondaryToken}
+              onChange={(e) => setSecondaryToken(e.target.value)}
+            />
             <p className="text-[11px] text-text-muted mt-2 font-medium">{t('compliance.secondary_account_hint')}</p>
           </div>
-          <button onClick={handleForceBackup} disabled={backupLoading || !driveToken} className="btn-primary flex items-center justify-center gap-2 w-full text-[14px] disabled:opacity-50">
+          <button type="button" onClick={handleForceBackup} disabled={backupLoading || !driveToken} className="btn-primary flex items-center justify-center gap-2 w-full text-[14px] disabled:opacity-50">
             {backupLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <HardDrive className="w-4 h-4" />}
             {t('compliance.force_backup', 'Force Full Backup')}
           </button>
           {backupResult && (
             <p className={"text-[13px] font-medium " + (backupResult.includes('Error') || backupResult.includes('failed') ? 'text-red-600' : 'text-success-custom')}>{backupResult}</p>
           )}
-        </div>
+        </form>
       </section>
 
       <section className="card">

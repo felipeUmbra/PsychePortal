@@ -1,6 +1,9 @@
 node_modules/
 build/
 dist/
+cypress/screenshots
+cypress/videos
+cypress/reports
 coverage/
 .DS_Store
 *.log
@@ -9,3 +12,5 @@ coverage/
 Claude.md
 e2e.md
 .clinerules
+
+

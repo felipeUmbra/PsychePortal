@@ -37,7 +37,7 @@ export default function Sessions() {
   const [user] = useAuthState(auth);
   const { t, i18n } = useTranslation();
   const dateLocale = i18n.language.startsWith('pt') ? ptBR : enUS;
-  const { driveToken } = useGoogleAuth();
+  const { driveToken, calendarToken } = useGoogleAuth();
   const [sessions, setSessions] = useState<any[]>([]);
   const [patients, setPatients] = useState<Record<string, any>>({});
   const [searchTerm, setSearchTerm] = useState('');
@@ -74,7 +74,7 @@ export default function Sessions() {
       const snap = await getDocs(q);
       const patientMap: Record<string, any> = {};
       snap.docs.forEach(doc => {
-        patientMap[doc.id] = doc.data();
+        patientMap[doc.id] = { id: doc.id, ...doc.data() };
       });
       setPatients(patientMap);
     };
@@ -162,7 +162,7 @@ export default function Sessions() {
 
       // Handle cancel event in google calendar if status changed to cancelled explicitly here
       if (session && session.status !== 'cancelled' && sessionForm.status === 'cancelled' && session.googleEventId) {
-        const token = driveToken;
+        const token = calendarToken || driveToken;
         if (token) {
           const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${session.googleEventId}`, {
             method: 'DELETE',
