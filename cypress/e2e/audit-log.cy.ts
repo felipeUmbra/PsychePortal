@@ -7,7 +7,7 @@ describe('Audit Log', () => {
 
     it('renders the audit trail table with filters', () => {
         // Table headers
-        cy.contains(/Data\/Hora|Date\/Time/i).should('be.visible');
+        cy.contains(/Data\/Hora|Timestamp|Date\/Time/i).should('be.visible');
         cy.contains(/Ação|Action/i).should('be.visible');
         cy.contains(/Entidade|Entity/i).should('be.visible');
 

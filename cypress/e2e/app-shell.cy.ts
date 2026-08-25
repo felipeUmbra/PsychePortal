@@ -10,7 +10,7 @@ describe('App Shell', () => {
         cy.contains('a:visible', /Pacientes|Patients/i).should('be.visible');
         cy.contains('a:visible', /Agenda|Calendar/i).should('be.visible');
         cy.contains('a:visible', /Sessões|Sessions/i).should('be.visible');
-        cy.contains('a:visible', /Financeiro|Finance/i).should('be.visible');
+        cy.contains('a:visible', /Financeiro|Financial|Finance/i).should('be.visible');
         cy.contains('a:visible', /Configurações|Settings/i).should('be.visible');
         cy.contains('a:visible', /Conformidade|Compliance/i).should('be.visible');
     });
@@ -23,7 +23,7 @@ describe('App Shell', () => {
     it('navigates between pages via the sidebar', () => {
         cy.contains('a:visible', /Pacientes|Patients/i).click();
         cy.url().should('include', '/app/patients');
-        cy.contains('a:visible', /Financeiro|Finance/i).click();
+        cy.contains('a:visible', /Financeiro|Financial|Finance/i).click();
         cy.url().should('include', '/app/finance');
         cy.contains('a:visible', /Painel|Dashboard/i).click();
         cy.url().should('include', '/app');

@@ -22,6 +22,7 @@ Portal Psis is a modern, secure, and clinical-grade web application designed spe
 - **📊 Dashboard:** Quick overview of daily schedules, patient metrics, clinical growth (month-over-month), and recent activity.
 - **📤 Data Export:** Export patient and session records to CSV for external reporting, with configurable date ranges and export modes.
 - **☁️ Google Drive Backup:** All patient and session data is synchronized to your personal Google Drive (`appDataFolder`) for privacy-first cloud backup.
+- **⚖️ LGPD Compliance:** Audit log with integrity chain verification, data retention policies, informed consent management with digital signature, full data erasure (right to be forgotten), encrypted clinical notes with version history, and full backup snapshots.
 - **📄 Public Pages:** Landing page, Terms of Service, and Privacy Policy pages for compliance and public access.
 
 ## 🛠️ Technology Stack
@@ -34,7 +35,8 @@ Portal Psis is a modern, secure, and clinical-grade web application designed spe
 - **Date Utilities:** `date-fns`
 - **i18n:** i18next & react-i18next
 - **Charts:** Recharts
-- **Testing:** Cypress with a custom MockAuth implementation for end-to-end testing without live credentials
+- **Testing:** Cypress 15 with a custom MockAuth implementation, Google Drive/Calendar API intercepts, and `cypress-mochawesome-reporter` for HTML/JSON test reports
+- **CI/CD:** GitHub Actions pipeline (type check → E2E tests → build → artifacts)
 - **Deployment:** GitHub Pages (`gh-pages`)
 
 ## 🚀 Getting Started Locally
@@ -66,6 +68,32 @@ Portal Psis is a modern, secure, and clinical-grade web application designed spe
    npm run dev
    ```
    The application will be available at `http://localhost:5173`.
+
+## 🧪 Testing
+
+The project ships with a comprehensive end-to-end test suite (13 specs, 54 tests) covering authentication, patient management, scheduling, sessions, finance, compliance, audit logs, settings, and data persistence (browser cache, Google Drive sync, and Google Calendar sync).
+
+```bash
+# Run all E2E tests headlessly (requires the dev server or use the CI workflow)
+npx cypress run --browser chrome
+
+# Open the Cypress interactive runner
+npx cypress open
+```
+
+- **MockAuth:** A custom mock replaces Firebase Auth during Cypress runs, simulating the Google OAuth flow without live credentials.
+- **API intercepts:** All Google Drive and Calendar network calls are stubbed, so tests run fully offline.
+- **Reports:** `cypress-mochawesome-reporter` generates HTML + JSON reports under `cypress/reports/html/` after each run.
+
+## 🤖 CI/CD
+
+A GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push and pull request to `main`:
+
+1. Install dependencies (`npm ci`)
+2. Type check (`npm run lint`)
+3. Run the full Cypress E2E suite against the Vite dev server
+4. Build the production bundle (**only if all tests pass**)
+5. Upload the `dist/` build and the mochawesome test reports as artifacts
 
 ## 🌐 Deployment to GitHub Pages
 

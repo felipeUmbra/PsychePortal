@@ -36,7 +36,7 @@ describe('Calendar', () => {
 
     it('renders the full calendar with toolbar controls', () => {
         cy.visit('/#/app/calendar');
-        cy.get('h1').contains(/Calendário Completo|Full Calendar/i).should('be.visible');
+        cy.get('h1').contains(/Calendário Completo|Entire Calendar|Full Calendar/i).should('be.visible');
         // react-big-calendar built-in toolbar (pt labels)
         cy.contains('button', /Hoje|Today/i).should('be.visible');
         cy.contains('button', /Mês|Month/i).should('be.visible');
