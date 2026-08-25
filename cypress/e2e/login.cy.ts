@@ -80,7 +80,7 @@ describe('User Login Flow', () => {
             cy.url().should('include', '/app/patients');
 
             // Navigate to Finance
-            cy.contains(/Finance|Financeiro/i).first().click();
+            cy.contains(/Financial|Finance|Financeiro/i).first().click();
             cy.url().should('include', '/app/finance');
         });
     });

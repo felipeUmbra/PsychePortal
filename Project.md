@@ -34,9 +34,11 @@ Portal Psis is a secure, clinical-grade workspace designed for mental health pro
 - **PWA**: `vite-plugin-pwa` (Full Progressive Web App support, installable on Android/iOS)
 - **Deployment**: [GitHub Pages](https://pages.github.com/)
 
-### Testing
-- **E2E Framework**: Cypress 15
+### Testing & CI/CD
+- **E2E Framework**: Cypress 15 with `cypress-mochawesome-reporter` (HTML + JSON reports)
 - **Mock Auth**: Custom `MockAuth` class swaps real Firebase Auth during Cypress runs, enabling full UI testing without live credentials
+- **API Mocks**: Google Drive and Calendar endpoints are intercepted, so the whole suite runs offline
+- **CI/CD**: GitHub Actions workflow (`.github/workflows/ci.yml`) — type check → E2E tests → build (only if all tests pass) → artifact upload
 
 ---
 
@@ -63,11 +65,25 @@ Portal Psis/
 │   │   ├── usePatients.ts    # Patient CRUD + real-time Firestore listener
 │   │   ├── useSessions.ts   # Session CRUD + Google Calendar sync + file upload/delete
 │   │   ├── useAllSessions.ts # All sessions for calendar views
-│   │   └── useDashboard.ts  # Aggregated stats + today's sessions + recent sessions
+│   │   ├── useDashboard.ts  # Aggregated stats + today's sessions + recent sessions
+│   │   ├── usePatientConsent.ts # Informed consent lifecycle per patient
+│   │   └── useEncryption.ts # Note encryption unlock state
 │   ├── lib/                  # Core utilities
 │   │   ├── error-handler.ts  # Centralized Firestore error management
 │   │   ├── utils.ts          # Tailwind merge and common helpers
-│   │   └── firestore-mock.ts # Advanced localStorage + Google Drive persistence layer
+│   │   ├── firestore-mock.ts # Advanced localStorage + Google Drive persistence layer
+│   │   ├── audit.ts          # Audit trail logging with hash-chain integrity
+│   │   ├── backup.ts         # Full backup snapshots to Google Drive
+│   │   ├── crypto.ts         # Cryptographic helpers (hash chain)
+│   │   ├── data-deletion.ts  # LGPD full data erasure (right to be forgotten)
+│   │   ├── data-export.ts    # LGPD data subject export bundles
+│   │   ├── export-log.ts     # Export audit logging
+│   │   ├── note-crypto.ts    # AES-GCM encryption for clinical notes
+│   │   ├── note-versioning.ts# Clinical note version history
+│   │   ├── retention.ts      # Data retention policy enforcement
+│   │   ├── storage-migration.ts # Attachment path migrations
+│   │   ├── token-crypto.ts   # Token encryption at rest (sessionStorage)
+│   │   └── token-expiration.ts  # Token expiry timers
 │   ├── pages/                # Main application views
 │   │   ├── Dashboard.tsx     # Practice overview with KPI cards, today's schedule, recent sessions, quick actions
 │   │   ├── Patients.tsx      # Patient directory with search and filtering
@@ -76,6 +92,8 @@ Portal Psis/
 │   │   ├── DailyCalendar.tsx # Hourly day view with weekly overview
 │   │   ├── Sessions.tsx      # Clinical history, notes, attachments, and session actions
 │   │   ├── Finance.tsx       # Revenue tracking, pending payments, patient financial summaries
+│   │   ├── AuditLog.tsx      # Audit trail table with filters and integrity verification
+│   │   ├── Compliance.tsx    # LGPD compliance panel: attestations, retention, backups, erasure
 │   │   ├── Settings.tsx      # Psychologist profile, Calendar/Drive re-authorization, CSV data export
 │   │   ├── Login.tsx         # Google OAuth authentication screen with scoped permissions
 │   │   ├── Landing.tsx       # Public marketing landing page with feature showcase
@@ -86,6 +104,12 @@ Portal Psis/
 │   ├── firebase.ts         # Firebase initialization + MockAuth switch for Cypress
 │   ├── main.tsx            # Entry point & PWA registration
 │   └── index.css           # Global styles and Tailwind v4 theme
+├── cypress/                  # E2E test suite
+│   ├── e2e/                  # 13 spec files (54 tests): auth, login, patients, patient-detail,
+│   │                         # calendar, sessions, finance, dashboard, settings, compliance,
+│   │                         # audit-log, app-shell, persistence
+│   └── support/              # Custom commands (login, patient navigation, API mocks) + types
+├── .github/workflows/ci.yml  # CI pipeline: lint → E2E tests → build → artifacts
 ├── vite.config.ts          # Build and PWA configuration
 ├── tsconfig.json           # TypeScript configuration
 ├── cypress.config.ts       # Cypress E2E test configuration
@@ -157,6 +181,8 @@ This module is a key architectural decision. It provides:
 - **Pending operation queue**: If Drive is still loading when a write occurs, the operation is queued and applied once data is ready — preventing data loss.
 - **Auto-save debounce**: A 500ms debounce batches rapid mutations before syncing to Drive.
 - **Emergency unload backup**: `beforeunload` ensures `localStorage` is flushed.
+- **Atomic state replacement**: State is only replaced once Drive/localStorage data fully arrives — the UI and debounced saves never observe or persist an empty database (fixes a data-loss race on page reloads).
+- **Redundant sync guard**: `setDriveToken` skips no-op token updates and never spawns concurrent `forceSync` loads.
 
 ### Auth & Token Management (`GoogleAuthContext`)
 - Tokens for Google Calendar and Google Drive are managed in React Context.
@@ -205,6 +231,9 @@ This module is a key architectural decision. It provides:
 
 ## 🧪 Testing
 
-- **Cypress** is configured and ready for end-to-end testing.
-- The `MockAuth` implementation in `firebase.ts` detects `window.Cypress` and swaps the real Firebase Auth with a controllable mock, allowing test suites to simulate login/logout without real Google credentials.
-- Token setters are exposed to the Cypress window for automated integration testing.
+- **Cypress 15** with 13 spec files / 54 E2E tests covering: app shell, authentication, login flow, patient directory, patient detail, calendar, sessions, finance, dashboard, settings, LGPD compliance, audit log, and data persistence (browser cache + Google Drive + Google Calendar).
+- The `MockAuth` implementation in `firebase.ts` detects `window.Cypress` and swaps the real Firebase Auth with a controllable mock, allowing test suites to simulate login/logout without real Google credentials. The mocked session persists across page reloads via `sessionStorage`.
+- **API intercepts** (`cypress/support/commands.ts`): `mockDriveApi` and `mockCalendarApi` stub all Google endpoints; `loginWithGoogle` drives the real OAuth button; `openPatientCard` navigates to patient profiles with retry hardening.
+- **Reports**: `cypress-mochawesome-reporter` generates timestamped HTML + JSON reports under `cypress/reports/html/` on every run.
+- Token setters are exposed to the Cypress window (`window.setTestTokens`) for automated integration testing.
+- Run locally with `npx cypress run --browser chrome` (dev server must be running) or push to `main` to trigger the CI workflow.

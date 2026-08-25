@@ -30,8 +30,8 @@ describe('Finance', () => {
     beforeEach(() => {
         cy.loginWithGoogle();
         createPatientWithSession();
-        cy.contains('a:visible', /Financeiro|Finance/i).click();
-        cy.get('h1').contains(/Financeiro|Finance/i).should('be.visible');
+        cy.contains('a:visible', /Financeiro|Financial|Finance/i).click();
+        cy.get('h1').contains(/Financeiro|Financial|Finance/i).should('be.visible');
     });
 
     it('renders title, stat cards and period filters', () => {
