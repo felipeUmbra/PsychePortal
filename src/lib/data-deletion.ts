@@ -111,5 +111,68 @@ export async function deleteAllPatientData(
     });
   }
 
+  // 6. Delete note_versions snapshots of the deleted sessions' notes
+  // (pre-edit note bodies must not survive a legally mandated erasure).
+  for (const session of sessions) {
+    try {
+      const versionsSnap = await getDocs(
+        query(collection(db, 'note_versions'), where('sessionId', '==', session.id))
+      );
+      for (const versionDoc of versionsSnap.docs) {
+        await deleteDoc(doc(db, 'note_versions', versionDoc.id));
+      }
+    } catch (err) {
+      console.error(`Failed to delete note versions for session ${session.id}:`, err);
+    }
+  }
+
+  // 7. Browser-storage hygiene: remove unsaved note drafts belonging to the
+  // erased sessions and any legacy plaintext localStorage mirror remnants.
+  if (typeof window !== 'undefined') {
+    try {
+      const sessionIds = new Set(sessions.map((s) => s.id));
+      const draftKeys: string[] = [];
+      for (let i = 0; i < window.localStorage.length; i++) {
+        const key = window.localStorage.key(i);
+        if (key && key.startsWith('draft_edit_')) draftKeys.push(key);
+      }
+      for (const key of draftKeys) {
+        const sessionId = key.replace('draft_edit_', '');
+        // Remove drafts unconditionally tied to this patient's sessions;
+        // unknown session ids are left untouched.
+        if (sessionIds.has(sessionId)) {
+          window.localStorage.removeItem(key);
+        }
+      }
+      // Legacy plaintext mirror removed by the CVE-312 fix; purge leftovers
+      // from older app versions so erased data is not recoverable from disk.
+      const legacyCache = window.localStorage.getItem('mock_db_cache');
+      if (legacyCache) {
+        try {
+          const cached = JSON.parse(legacyCache);
+          cached.patients = (cached.patients || []).filter((p: any) => p.id !== patientId);
+          cached.sessions = (cached.sessions || []).filter(
+            (s: any) => s.patientId !== patientId && !sessionIds.has(s.id)
+          );
+          cached.note_versions = (cached.note_versions || []).filter(
+            (v: any) => !sessionIds.has(v.sessionId)
+          );
+          if (
+            cached.patients.length === 0 &&
+            cached.sessions.length === 0
+          ) {
+            window.localStorage.removeItem('mock_db_cache');
+          } else {
+            window.localStorage.setItem('mock_db_cache', JSON.stringify(cached));
+          }
+        } catch {
+          window.localStorage.removeItem('mock_db_cache');
+        }
+      }
+    } catch (err) {
+      console.error('Browser-storage cleanup during erasure failed:', err);
+    }
+  }
+
   return result;
 }

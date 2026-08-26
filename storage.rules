@@ -3,10 +3,14 @@ service firebase.storage {
   match /b/{bucket}/o {
     match /patients/{psychologistId}/{patientId}/{allPaths=**} {
       // Only the owning psychologist can read/write to their patient's storage path
-      allow read, write: if request.auth != null && request.auth.uid == psychologistId;
+      allow read: if request.auth != null && request.auth.uid == psychologistId;
 
       // Limit file size to 40MB
-      allow write: if request.resource.size < 40 * 1024 * 1024;
+      allow create, update: if request.auth != null && request.auth.uid == psychologistId
+        && request.resource.size < 40 * 1024 * 1024;
+
+      // Deletion must not depend on request.resource (undefined for deletes).
+      allow delete: if request.auth != null && request.auth.uid == psychologistId;
     }
   }
 }

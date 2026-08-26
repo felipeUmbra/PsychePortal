@@ -1,7 +1,12 @@
 // Verifies that newly added data is properly persisted to:
-// 1. The browser cache (localStorage "mock_db_cache")
-// 2. Google Drive (workspace.json upload requests)
-// 3. Google Calendar (event creation requests)
+// 1. Google Drive (workspace.json upload requests)
+// 2. Google Calendar (event creation requests)
+//
+// NOTE: The app no longer mirrors clinical data into localStorage
+// ('mock_db_cache') — that plaintext cache was removed by the CWE-312
+// security fix. Google Drive's workspace.json is the only persistence
+// target, so all persistence assertions below inspect the captured
+// upload request bodies instead of web storage.
 const NAME = 'Persistence Test Patient';
 const MODAL = 'div[class*="inset-0"]';
 
@@ -47,34 +52,45 @@ function scheduleTomorrow(hour: string) {
 }
 
 describe('Data Persistence', () => {
+    // Capture every workspace.json upload so persistence can be verified
+    // against the actual sync payload. Registered BEFORE loginWithGoogle's
+    // stubs so it takes precedence; it replies with the same stubbed
+    // payload to keep the app offline.
+    const uploadBodies: string[] = [];
+
     beforeEach(() => {
         cy.loginWithGoogle();
-        createPatient();
-    });
 
-    it('stores the new patient in the browser cache (localStorage)', () => {
-        // saveToDrive debounces writes by 500ms; the retrying assertion
-        // waits until the cache flush containing the patient lands.
-        cy.window({ timeout: 15000 }).should((win) => {
-            const cache = JSON.parse(win.localStorage.getItem('mock_db_cache') || '{}');
-            const stored = (cache.patients || []).find((p: any) => p.name === NAME);
-            expect(stored, 'patient saved in mock_db_cache').to.exist;
-            expect(stored.psychologistId, 'patient linked to the psychologist').to.equal('test-user-123');
-            expect(stored.dateOfBirth, 'birth date saved').to.include('1993-09-09');
-        });
-    });
-
-    it('syncs the new patient to Google Drive (workspace.json upload)', () => {
-        const uploadBodies: string[] = [];
-        // Registered after loginWithGoogle's stubs so it takes precedence;
-        // it replies with the same stubbed payload to keep the app offline.
+        // Capture every workspace.json upload so persistence can be verified
+        // against the actual sync payload. Registered AFTER loginWithGoogle's
+        // stubs because Cypress gives precedence to the latest matching
+        // intercept; it replies with the same stubbed payload to keep the app
+        // offline.
+        uploadBodies.length = 0;
         cy.intercept('POST', '**/upload/drive/v3/files**', async (req) => {
             uploadBodies.push(await toText(req.body));
             req.reply({ id: 'mock-drive-file' });
         }).as('driveUploadCapture');
 
-        // Add another patient AFTER registering the capture so the upload
-        // triggered by this mutation is guaranteed to be observed.
+        createPatient();
+    });
+
+    it('stores the new patient in the synced workspace.json (Google Drive)', () => {
+        // saveToDrive debounces writes by 500ms; the retrying assertion
+        // waits until the Drive flush containing the patient lands.
+        // Uploads are multipart requests whose JSON part embeds the full
+        // state, so assertions run against the raw request text.
+        cy.wrap(null, { timeout: 15000 }).should(() => {
+            const flush = uploadBodies.find((t) => t.includes(NAME));
+            expect(flush, 'patient saved in a Google Drive workspace.json upload').to.exist;
+            expect(flush, 'patient linked to the psychologist').to.include('"psychologistId":"test-user-123"');
+            expect(flush, 'birth date saved').to.include('1993-09-09');
+        });
+    });
+
+    it('syncs the new patient to Google Drive (workspace.json upload)', () => {
+        // Add another patient AFTER the beforeEach capture was registered so
+        // the upload triggered by this mutation is guaranteed to be observed.
         const driveName = 'Persistence Drive Patient';
         cy.visit('/#/app/patients');
         cy.contains('button', /Adicionar Novo Paciente|Add Patient/i).click();
@@ -105,12 +121,11 @@ describe('Data Persistence', () => {
             expect(text, 'calendar event references the patient').to.include(`Psis: Consulta - ${NAME}`);
         });
 
-        // The mocked calendar event id must be persisted with the session.
-        cy.window({ timeout: 15000 }).should((win) => {
-            const cache = JSON.parse(win.localStorage.getItem('mock_db_cache') || '{}');
-            const session = (cache.sessions || []).find((s: any) => s.googleEventId);
-            expect(session, 'session stored with a Google Calendar event id').to.exist;
-            expect(session.googleEventId).to.equal('mock-calendar-event');
+        // The mocked calendar event id must be persisted with the session in
+        // the next debounced Drive flush of workspace.json.
+        cy.wrap(null, { timeout: 15000 }).should(() => {
+            const flush = uploadBodies.find((t) => t.includes('"googleEventId":"mock-calendar-event"'));
+            expect(flush, 'session stored with a Google Calendar event id in the Drive sync').to.exist;
         });
     });
 });

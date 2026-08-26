@@ -5,47 +5,61 @@ import { sha256, computeEntityHashAsync, computeRecordHash } from './crypto';
 import { AuditLog, AuditAction, AuditEntity } from '../types';
 import { getIpHint } from './ip-hint';
 
-let lastHashCache: string | null = null;
-let lastHashPromise: Promise<string> | null = null;
+let lastHashCache: Record<string, string> = {};
+let lastHashPromise: Record<string, Promise<string>> = {};
 
 /**
- * Gets the hash of the most recent audit log for Merkle chaining.
+ * Gets the hash of the most recent audit log FOR THE GIVEN ACTOR for Merkle
+ * chaining. SECURITY (CWE-353): the chain is scoped per actor end-to-end so
+ * that construction (this function) and verification (verifyAuditChain,
+ * which filters by actorId and starts from genesis) agree. Previously the
+ * newest hash across ALL actors was used, guaranteeing broken verification
+ * whenever more than one psychologist wrote audit events.
  * Uses caching to avoid repeated Firestore reads.
  */
-export async function getLastAuditHash(): Promise<string> {
-  if (lastHashCache) return lastHashCache;
-  if (lastHashPromise) return lastHashPromise;
+export async function getLastAuditHash(actorId: string): Promise<string> {
+  if (!actorId) return '0'.repeat(64); // Genesis hash
+  if (lastHashCache[actorId]) return lastHashCache[actorId];
+  if (lastHashPromise[actorId]) return lastHashPromise[actorId];
 
-  lastHashPromise = (async () => {
+  lastHashPromise[actorId] = (async () => {
     try {
       const q = query(
         collection(db, 'audit_logs'),
+        where('actorId', '==', actorId),
         orderBy('timestamp', 'desc'),
         limit(1)
       );
       const snapshot = await getDocs(q);
       if (snapshot.size > 0) {
         const lastLog = snapshot.docs[0].data() as AuditLog;
-        lastHashCache = lastLog.hash || '';
-        return lastHashCache;
+        lastHashCache[actorId] = lastLog.hash || '';
+        return lastHashCache[actorId];
       }
-      lastHashCache = '0'.repeat(64); // Genesis hash
-      return lastHashCache;
+      lastHashCache[actorId] = '0'.repeat(64); // Genesis hash
+      return lastHashCache[actorId];
     } catch (error) {
       console.error('Failed to get last audit hash:', error);
-      lastHashCache = '0'.repeat(64);
-      return lastHashCache;
+      lastHashCache[actorId] = '0'.repeat(64);
+      return lastHashCache[actorId];
+    } finally {
+      delete lastHashPromise[actorId];
     }
   })();
-  return lastHashPromise;
+  return lastHashPromise[actorId];
 }
 
 /**
- * Clears the last hash cache (call after writing a new audit log).
+ * Clears the per-actor last hash cache (call after writing a new audit log).
  */
-export function clearLastHashCache(): void {
-  lastHashCache = null;
-  lastHashPromise = null;
+export function clearLastHashCache(actorId?: string): void {
+  if (actorId) {
+    delete lastHashCache[actorId];
+    delete lastHashPromise[actorId];
+  } else {
+    lastHashCache = {};
+    lastHashPromise = {};
+  }
 }
  
 
@@ -69,7 +83,7 @@ export async function logEvent(event: {
     let capturedIpHint: string | undefined;
     ipHintPromise.then(hint => { capturedIpHint = hint; });
 
-    const prevHash = await getLastAuditHash();
+    const prevHash = await getLastAuditHash(event.actorId);
     const beforeHash = event.beforeData ? await computeEntityHashAsync(event.beforeData) : undefined;
     const afterHash = event.afterData ? await computeEntityHashAsync(event.afterData) : undefined;
     const timestamp = new Date().toISOString();
@@ -94,7 +108,7 @@ export async function logEvent(event: {
       hash
     };
     await addDoc(collection(db, 'audit_logs'), auditLog);
-    clearLastHashCache();
+    clearLastHashCache(event.actorId);
   } catch (error) {
     console.error('Failed to log audit event:', error);
   }

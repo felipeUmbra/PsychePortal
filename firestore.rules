@@ -1,4 +1,4 @@
-﻿rules_version = '2';
+rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -69,9 +69,10 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isAuthenticated() &&
-        (get(/databases/$(database)/documents/psychologists/$(request.auth.uid)).data.role == 'admin' ||
-          (request.auth.token.email == "BlackFenrir.NoboDy@gmail.com" && request.auth.token.email_verified == true));
+      // Admin status is provisioned server-side via a custom claim granted
+      // only through the Admin SDK to vetted operators. No client-writable
+      // field or hard-coded identity may grant admin privileges.
+      return isAuthenticated() && request.auth.token.admin == true;
     }
 
     function isValidEmail(email) {
@@ -85,7 +86,8 @@ service cloud.firestore {
     // Domain Validators
 
     function isValidPsychologist(data) {
-      return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+      return hasOnlyAllowedFields(['name', 'email', 'specialization', 'bio', 'avatarUrl']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
              data.email is string && isValidEmail(data.email) &&
              (!('bio' in data) || (data.bio is string && data.bio.size() < 2000));
     }
@@ -162,11 +164,15 @@ service cloud.firestore {
       allow create: if isAuthenticated() &&
         request.resource.data.psychologistId == request.auth.uid &&
         request.resource.data.patientId is string &&
+        exists(/databases/$(database)/documents/patients/$(request.resource.data.patientId)) &&
+        get(/databases/$(database)/documents/patients/$(request.resource.data.patientId)).data.psychologistId == request.auth.uid &&
         request.resource.data.version is string &&
         request.resource.data.acceptedAt is timestamp;
+      // Absence-safe guard: treat a missing revokedAt exactly like null,
+      // then require the incoming value to be a genuine timestamp.
       allow update: if isAuthenticated() &&
         resource.data.psychologistId == request.auth.uid &&
-        resource.data.revokedAt == null &&
+        (!('revokedAt' in resource.data) || resource.data.revokedAt == null) &&
         request.resource.data.revokedAt is timestamp;
     }
 

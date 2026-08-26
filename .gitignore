@@ -6,6 +6,7 @@ cypress/screenshots
 cypress/videos
 cypress/reports
 coverage/
+strix_runs/
 .DS_Store
 *.log
 .env*

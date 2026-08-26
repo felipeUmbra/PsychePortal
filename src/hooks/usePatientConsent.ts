@@ -87,7 +87,9 @@ export function usePatientConsent(patientId?: string) {
     if (!activeConsent) throw new Error('No active consent to revoke');
     try {
       await updateDoc(doc(db, 'patient_consents', activeConsent.id), {
-        revokedAt: new Date().toISOString()
+        // Native Date is converted to a Firestore Timestamp by the SDK,
+        // satisfying the security rule `request.resource.data.revokedAt is timestamp`.
+        revokedAt: new Date()
       });
 
       await logEvent({

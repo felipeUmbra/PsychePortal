@@ -86,11 +86,10 @@ export default defineConfig(({ mode }) => {
             // UI libraries (loaded as needed)
             'vendor-ui-react': ['lucide-react'],
             'vendor-motion': ['motion'],
-            'vendor-recharts': ['recharts'],
             // Date libraries
             'vendor-date': ['date-fns'],
             // Editor libraries (lazy loaded)
-            'vendor-editor': ['@uiw/react-md-editor', 'react-markdown', 'rehype-sanitize'],
+            'vendor-editor': ['react-markdown', 'rehype-sanitize'],
           },
           // Add chunk file naming for better caching
           chunkFileNames: 'assets/js/[name]-[hash].js',
