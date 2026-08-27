@@ -1,41 +1,15 @@
 // Mock Firestore implementation using localStorage and generic events to simulate Firebase syncing locally
 import { v4 as uuidv4 } from 'uuid';
 
-const DRIVE_TOKEN_STORAGE_KEY = 'google_drive_token';
-
-let driveToken: string | null = typeof window !== 'undefined' ? sessionStorage.getItem(DRIVE_TOKEN_STORAGE_KEY) : null;
-
-const getSessionStorageItem = (key: string): string | null => {
-  if (typeof window === 'undefined') return null;
-
-  try {
-    return window.sessionStorage.getItem(key);
-  } catch {
-    return null;
-  }
-};
-
-const setSessionStorageItem = (key: string, value: string | null) => {
-  if (typeof window === 'undefined') return;
-
-  try {
-    if (value) {
-      window.sessionStorage.setItem(key, value);
-    } else {
-      window.sessionStorage.removeItem(key);
-    }
-  } catch {
-    // Ignore storage errors. Token state will still work in memory for the current session.
-  }
-};
-
-driveToken = getSessionStorageItem(DRIVE_TOKEN_STORAGE_KEY);
+// SECURITY (CWE-311): OAuth tokens are never persisted to web storage.
+// They live in module memory only and are re-provisioned by the auth layer
+// after a page reload.
+let driveToken: string | null = null;
 
 export const setDriveToken = (token: string | null) => {
   // Skip redundant syncs (e.g. token restored twice on page reload).
   if (driveToken === token) return;
   driveToken = token;
-  setSessionStorageItem(DRIVE_TOKEN_STORAGE_KEY, token);
   // Force a clean sync when a new token is provided to prevent
   // data leakage between different user sessions on the same machine.
   if (token) {
@@ -170,11 +144,8 @@ export const loadFromDrive = async () => {
     try {
       const token = driveToken;
       if (!token) {
-        const localCache = localStorage.getItem('mock_db_cache');
-        if (localCache) {
-          state = JSON.parse(localCache);
-          notify();
-        }
+        // SECURITY (CWE-312): no plaintext localStorage mirror of clinical data.
+        // Without a Drive token there is no persistence layer; state stays in memory.
         return;
       }
 
@@ -318,9 +289,10 @@ const saveToDrive = () => {
   syncTimer = setTimeout(async () => {
     const token = driveToken;
 
-    // Always backup to localStorage as a safety net
-    // Even if not fully loaded, backup what we have
-    localStorage.setItem('mock_db_cache', JSON.stringify(state));
+    // SECURITY (CWE-312): the previous plaintext localStorage "safety net"
+    // mirror (mock_db_cache) was removed — it persisted unencrypted clinical
+    // PII to disk bypassing the app's opt-in encryption. Drive is the only
+    // persistence target.
 
     if (!token || isSyncing) {
       return;
@@ -411,8 +383,9 @@ const saveToDrive = () => {
 // Emergency sync on unload
 if (typeof window !== 'undefined') {
   window.addEventListener('beforeunload', () => {
-    // We can't do much async here, but we can at least ensure localStorage is fresh
-    localStorage.setItem('mock_db_cache', JSON.stringify(state));
+    // SECURITY (CWE-312): previously flushed the full clinical dataset into
+    // localStorage ('mock_db_cache') in plaintext. Removed — no web-storage
+    // mirror of regulated data.
   });
 }
 

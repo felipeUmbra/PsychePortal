@@ -28,6 +28,7 @@ import Papa from 'papaparse';
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { useGoogleAuth } from '../context/GoogleAuthContext';
 import { logExport } from '../lib/audit';
+import { sanitizeCsvRows } from '../lib/utils';
 import { logDataExport } from '../lib/export-log';
 import { enforceRetentionPolicy, RetentionResult } from '../lib/retention';
 import { useEncryption } from '../hooks/useEncryption';
@@ -323,7 +324,7 @@ export default function Settings() {
         return;
       }
 
-      const csv = Papa.unparse(exportData);
+      const csv = Papa.unparse(sanitizeCsvRows(exportData));
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
