@@ -43,7 +43,11 @@ export interface UseEncryptionReturn {
 }
 
 export function useEncryption(): UseEncryptionReturn {
-  const [isUnlocked, setIsUnlocked] = useState(false);
+  // The master key lives at module level (cachedMasterKey) so it survives page
+  // navigation. A hook instance that remounts after setup/unlock must report
+  // the SAME unlock state, otherwise callers (useSessions/usePatients) would
+  // silently skip encryption and leak plaintext to Drive (CWE-311).
+  const [isUnlocked, setIsUnlocked] = useState(() => cachedMasterKey !== null);
   const [isSetup, setIsSetup] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [needsSetup, setNeedsSetup] = useState(false);

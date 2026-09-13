@@ -7,7 +7,7 @@
  * Every deletion is logged to the tamper-evident audit trail.
  */
 
-import { collection, query, where, getDocs, doc, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, getDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { logDelete } from './audit';
 import { deleteObject } from './firestore-mock';
@@ -64,16 +64,16 @@ export async function deleteAllPatientData(
     });
   }
 
-  // 3. Delete the patient document
-  try {
+  // 3. Delete the patient document (report deletion only if it actually existed,
+  // so an erasure of an unknown id returns patientDeleted: false, not success).
+  const patientExists = (await getDoc(doc(db, 'patients', patientId))).exists();
+  if (patientExists) {
     await deleteDoc(doc(db, 'patients', patientId));
     result.patientDeleted = true;
     await logDelete(psychologistId, 'patient', patientId, {
       context: 'erasure_request',
       sessionsCount: sessions.length,
     });
-  } catch (err) {
-    console.error('Failed to delete patient document:', err);
   }
 
   // 4. Delete all sessions

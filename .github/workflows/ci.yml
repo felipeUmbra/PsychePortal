@@ -3,11 +3,21 @@ name: CI
 # Runs all testing scripts before building.
 # The build step only executes if every prior step succeeds.
 
+name: CI
+
+# Full no-merge/no-deploy quality gate (QA_PLAN §4)
+# Every push/PR to main must pass: typecheck → unit tests → E2E → build.
+# Production deploy happens ONLY on a green `push` to main.
+
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test-and-build:
@@ -26,8 +36,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint (TypeScript type check)
-        run: npm run lint
+      - name: Typecheck (lint)
+        run: npm run typecheck
+
+      - name: Run unit tests (Vitest)
+        run: npm run test:unit
 
       - name: Run E2E tests (Cypress)
         uses: cypress-io/github-action@v6
@@ -37,7 +50,7 @@ jobs:
           wait-on-timeout: 120
           browser: chrome
 
-      # Reached only if lint and all Cypress tests passed.
+      # Reached only if typecheck, unit and all Cypress tests passed.
       - name: Build
         run: npm run build
 
@@ -47,6 +60,7 @@ jobs:
           name: dist
           path: dist/
           retention-days: 7
+          if-no-files-found: error
 
       - name: Upload test reports (mochawesome)
         if: always()
@@ -58,3 +72,38 @@ jobs:
             cypress/screenshots/
             cypress/videos/
           retention-days: 7
+
+  # NEW — production deploy, gated on the whole test-and-build job.
+  # Runs only on a green `push` to main; skipped for PRs.
+  deploy:
+    needs: [test-and-build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Deploy to GitHub Pages
+        run: npm run deploy
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

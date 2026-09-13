@@ -43,4 +43,38 @@ describe('Settings', () => {
             }
         });
     });
+
+    it('exports patient data as a CSV file', () => {
+        // Create a patient first so the export has data
+        const exportName = 'Export CSV Patient';
+        cy.visit('/#/app/patients');
+        cy.contains('button', /Adicionar Novo Paciente|Add Patient/i).click();
+        cy.get('div[class*="inset-0"] input').eq(0).type(exportName);
+        cy.get('div[class*="inset-0"] input[type="date"]').first().type('1985-05-05');
+        cy.contains('button', /Salvar|Save/i).click();
+        cy.contains('.card', exportName).should('be.visible');
+
+        // Go to settings and download the CSV via the anchor download attribute.
+        // The export handler sets link.download then calls link.click(), so we
+        // intercept HTMLElement.click to capture the filename.
+        cy.visit('/#/app/settings');
+        cy.get('h1').contains(/Configurações da Conta|Account Settings/i).should('be.visible');
+
+        let downloadName = '';
+        cy.window().then((win) => {
+            cy.stub(win.HTMLAnchorElement.prototype, 'click').callsFake(function (this: HTMLAnchorElement) {
+                downloadName = this.getAttribute('download') || '';
+            });
+        });
+
+        cy.contains('button', /Exportar para CSV|Export to CSV/i)
+            .scrollIntoView()
+            .should('be.visible')
+            .click();
+
+        // Filename convention: export_<option>_<timestamp>.csv
+        cy.wrap(null, { timeout: 10000 }).should(() => {
+            expect(downloadName, 'CSV download filename').to.match(/^export_.+\.csv$/);
+        });
+    });
 });
