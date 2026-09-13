@@ -13,7 +13,12 @@ export function usePatients() {
   const { isUnlocked, encrypt, decrypt } = useEncryption();
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      // Match useAllSessions/usePatient: resolve loading when logged out so
+      // consumers never get stuck on an indefinite spinner.
+      setLoading(false);
+      return;
+    }
 
     const q = query(
       collection(db, 'patients'),
