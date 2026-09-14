@@ -1,10 +1,5 @@
 name: CI
 
-# Runs all testing scripts before building.
-# The build step only executes if every prior step succeeds.
-
-name: CI
-
 # Full no-merge/no-deploy quality gate (QA_PLAN §4)
 # Every push/PR to main must pass: typecheck → unit tests → E2E → build.
 # Production deploy happens ONLY on a green `push` to main.
