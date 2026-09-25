@@ -92,24 +92,27 @@ export default function RichTextEditor({ value, onChange, height = 300, classNam
         <button
           type="button"
           onClick={() => executeCommand('bold')}
-          className={`p-1.5 rounded text-text-main transition-colors ${disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-slate-200"}`}
+          className={`p-1.5 rounded text-text-main transition-colors ${disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-slate-200 focus-visible:ring-2 focus-visible:ring-primary-custom focus-visible:ring-offset-2"}`}
           title="Bold"
+          aria-label="Bold"
         >
           <Bold className="w-4 h-4" />
         </button>
         <button
           type="button"
           onClick={() => executeCommand('italic')}
-          className={`p-1.5 rounded text-text-main transition-colors ${disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-slate-200"}`}
+          className={`p-1.5 rounded text-text-main transition-colors ${disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-slate-200 focus-visible:ring-2 focus-visible:ring-primary-custom focus-visible:ring-offset-2"}`}
           title="Italic"
+          aria-label="Italic"
         >
           <Italic className="w-4 h-4" />
         </button>
         <button
           type="button"
           onClick={() => executeCommand('underline')}
-          className={`p-1.5 rounded text-text-main transition-colors ${disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-slate-200"}`}
+          className={`p-1.5 rounded text-text-main transition-colors ${disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-slate-200 focus-visible:ring-2 focus-visible:ring-primary-custom focus-visible:ring-offset-2"}`}
           title="Underline"
+          aria-label="Underline"
         >
           <Underline className="w-4 h-4" />
         </button>
@@ -119,8 +122,9 @@ export default function RichTextEditor({ value, onChange, height = 300, classNam
         <button
           type="button"
           onClick={() => executeCommand('formatBlock', '<h3>')}
-          className={`p-1.5 rounded text-text-main transition-colors ${disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-slate-200"}`}
+          className={`p-1.5 rounded text-text-main transition-colors ${disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-slate-200 focus-visible:ring-2 focus-visible:ring-primary-custom focus-visible:ring-offset-2"}`}
           title="Heading"
+          aria-label="Heading"
         >
           <Heading className="w-4 h-4" />
         </button>
@@ -130,16 +134,18 @@ export default function RichTextEditor({ value, onChange, height = 300, classNam
         <button
           type="button"
           onClick={() => executeCommand('insertUnorderedList')}
-          className={`p-1.5 rounded text-text-main transition-colors ${disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-slate-200"}`}
+          className={`p-1.5 rounded text-text-main transition-colors ${disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-slate-200 focus-visible:ring-2 focus-visible:ring-primary-custom focus-visible:ring-offset-2"}`}
           title="Bullet List"
+          aria-label="Bullet List"
         >
           <List className="w-4 h-4" />
         </button>
         <button
           type="button"
           onClick={() => executeCommand('insertOrderedList')}
-          className={`p-1.5 rounded text-text-main transition-colors ${disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-slate-200"}`}
+          className={`p-1.5 rounded text-text-main transition-colors ${disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-slate-200 focus-visible:ring-2 focus-visible:ring-primary-custom focus-visible:ring-offset-2"}`}
           title="Numbered List"
+          aria-label="Numbered List"
         >
           <ListOrdered className="w-4 h-4" />
         </button>
@@ -149,8 +155,9 @@ export default function RichTextEditor({ value, onChange, height = 300, classNam
         <button
           type="button"
           onClick={addLink}
-          className={`p-1.5 rounded text-text-main transition-colors ${disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-slate-200"}`}
+          className={`p-1.5 rounded text-text-main transition-colors ${disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-slate-200 focus-visible:ring-2 focus-visible:ring-primary-custom focus-visible:ring-offset-2"}`}
           title="Add Link"
+          aria-label="Add Link"
         >
           <Link className="w-4 h-4" />
         </button>
@@ -158,8 +165,9 @@ export default function RichTextEditor({ value, onChange, height = 300, classNam
         <button
           type="button"
           onClick={() => executeCommand('removeFormat')}
-          className={`p-1.5 rounded text-text-main transition-colors ${disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-slate-200"}`}
+          className={`p-1.5 rounded text-text-main transition-colors ${disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-slate-200 focus-visible:ring-2 focus-visible:ring-primary-custom focus-visible:ring-offset-2"}`}
           title="Clear Formatting"
+          aria-label="Clear Formatting"
         >
           <Trash2 className="w-4 h-4" />
         </button>

@@ -171,14 +171,14 @@ export default function Layout() {
                 onClick={() => setAuthError(null)}
               >
                 Configurações
-                <ExternalLink className="w-3 h-3" />
+                <ExternalLink className="w-3 h-3" aria-hidden="true" />
               </Link>
               <button
                 onClick={() => setAuthError(null)}
                 className="p-1.5 hover:bg-amber-100 rounded-lg text-amber-600"
                 aria-label={t('common.close', 'Close')}
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
           </div>

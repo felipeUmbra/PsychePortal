@@ -107,7 +107,7 @@ export default function Login() {
         <p className="text-text-muted text-[15px] mb-8">{t('login.title')}</p>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded text-red-600 text-sm font-medium">
+          <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded text-red-600 text-sm font-medium" role="alert">
             {error}
           </div>
         )}
@@ -116,7 +116,8 @@ export default function Login() {
           <button
             onClick={handleGoogleLogin}
             disabled={isLoading}
-            className="w-full flex items-center justify-center gap-3 bg-white border border-border-custom text-text-main font-bold py-3.5 px-4 rounded-sm hover:bg-bg hover:border-primary-custom/30 transition-all duration-200 shadow-sm group disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-3 bg-white border border-border-custom text-text-main font-bold py-3.5 px-4 rounded-sm hover:bg-bg hover:border-primary-custom/30 transition-all duration-200 shadow-sm group disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-primary-custom focus-visible:ring-offset-2"
+            aria-label={t('login.sign_in_google', 'Sign in with Google')}
           >
             {isLoading ? (
               <Loader2 className="w-5 h-5 animate-spin text-primary-custom" />
