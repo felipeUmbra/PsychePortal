@@ -26,7 +26,7 @@ export function SessionTimeoutToast() {
     return (
         <div className="fixed top-4 right-4 z-[100] bg-amber-50 border border-amber-200 rounded-lg shadow-lg p-4 max-w-sm animate-in fade-in slide-in-from-top-2">
             <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 shrink-0" aria-hidden="true">
                     <Lock className="w-4 h-4" />
                 </div>
                 <div className="flex-1">

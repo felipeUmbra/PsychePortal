@@ -45,7 +45,16 @@ jobs:
           wait-on-timeout: 120
           browser: chrome
 
-      # Reached only if typecheck, unit and all Cypress tests passed.
+      - name: Run Accessibility tests (Cypress + axe)
+        uses: cypress-io/github-action@v6
+        with:
+          start: npm run dev
+          wait-on: "http://localhost:5173"
+          wait-on-timeout: 120
+          browser: chrome
+          spec: cypress/e2e/accessibility-full.cy.ts
+
+      # Reached only if typecheck, unit, E2E and accessibility tests passed.
       - name: Build
         run: npm run build
 

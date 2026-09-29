@@ -47,6 +47,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       ]
     },
     { icon: History, label: t('sidebar.sessions'), path: '/app/sessions' },
+    { icon: History, label: t('sidebar.audit', 'Audit Log'), path: '/app/audit' },
     { icon: DollarSign, label: t('sidebar.finance'), path: '/app/finance' },
     { icon: Settings, label: t('sidebar.settings'), path: '/app/settings' },
     { icon: Shield, label: t('sidebar.compliance'), path: '/app/compliance' }
@@ -66,7 +67,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     <aside className={cn(
       "w-60 bg-[#fcfdfe] border-r border-border-custom flex flex-col h-screen fixed lg:relative lg:translate-x-0 top-0 z-50 transition-transform duration-300 ease-in-out",
       isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"
-    )}>
+    )} id="sidebar-nav" aria-label="Sidebar navigation">
       <div className="h-16 flex items-center justify-between gap-3 px-6 border-b border-border-custom shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-[#897fff] rounded-sm flex items-center justify-center shadow-sm">

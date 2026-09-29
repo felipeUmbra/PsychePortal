@@ -148,8 +148,8 @@ export default function AuditLogPage() {
       <section className="card p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
           <div>
-            <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('audit.filters.entity')}</label>
-            <select className="input-field text-[14px]" value={filters.entity} onChange={e => handleFilterChange('entity', e.target.value)}>
+            <label htmlFor="audit-entity-filter" className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('audit.filters.entity')}</label>
+            <select id="audit-entity-filter" className="input-field text-[14px]" value={filters.entity} onChange={e => handleFilterChange('entity', e.target.value)}>
               <option value="">{t('audit.filters.all_entities')}</option>
               <option value="session">{t('audit.entities.session')}</option>
               <option value="patient">{t('audit.entities.patient')}</option>
@@ -158,8 +158,8 @@ export default function AuditLogPage() {
             </select>
           </div>
           <div>
-            <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('audit.filters.action')}</label>
-            <select className="input-field text-[14px]" value={filters.action} onChange={e => handleFilterChange('action', e.target.value)}>
+            <label htmlFor="audit-action-filter" className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('audit.filters.action')}</label>
+            <select id="audit-action-filter" className="input-field text-[14px]" value={filters.action} onChange={e => handleFilterChange('action', e.target.value)}>
               <option value="">{t('audit.filters.all_actions')}</option>
               <option value="view">{t('audit.actions.view')}</option>
               <option value="create">{t('audit.actions.create')}</option>
@@ -171,16 +171,16 @@ export default function AuditLogPage() {
             </select>
           </div>
           <div>
-            <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('audit.filters.date_from')}</label>
-            <input type="date" className="input-field text-[14px]" value={filters.dateFrom} onChange={e => handleFilterChange('dateFrom', e.target.value)} />
+            <label htmlFor="audit-date-from" className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('audit.filters.date_from')}</label>
+            <input id="audit-date-from" type="date" className="input-field text-[14px]" value={filters.dateFrom} onChange={e => handleFilterChange('dateFrom', e.target.value)} />
           </div>
           <div>
-            <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('audit.filters.date_to')}</label>
-            <input type="date" className="input-field text-[14px]" value={filters.dateTo} onChange={e => handleFilterChange('dateTo', e.target.value)} />
+            <label htmlFor="audit-date-to" className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('audit.filters.date_to')}</label>
+            <input id="audit-date-to" type="date" className="input-field text-[14px]" value={filters.dateTo} onChange={e => handleFilterChange('dateTo', e.target.value)} />
           </div>
           <div className="flex items-end">
             <button onClick={handleSearch} className="btn-primary w-full flex items-center justify-center gap-2">
-              <Search className="w-4 h-4" />
+              <Search className="w-4 h-4" aria-hidden="true" />
               {t('audit.filters.search')}
             </button>
           </div>
@@ -190,7 +190,7 @@ export default function AuditLogPage() {
               disabled={verifying}
               className="btn-secondary w-full flex items-center justify-center gap-2"
             >
-              {verifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
+              {verifying ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Shield className="w-4 h-4" aria-hidden="true" />}
               {t('audit.integrity.check')}
             </button>
           </div>
@@ -269,7 +269,7 @@ export default function AuditLogPage() {
               className="btn-secondary p-2 disabled:opacity-50"
               aria-label={t('audit.pagination.previous')}
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-4 h-4" aria-hidden="true" />
             </button>
             <button
               onClick={handleNextPage}
@@ -277,7 +277,7 @@ export default function AuditLogPage() {
               className="btn-secondary p-2 disabled:opacity-50"
               aria-label={t('audit.pagination.next')}
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
         </div>

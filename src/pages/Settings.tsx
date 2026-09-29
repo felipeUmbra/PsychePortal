@@ -380,8 +380,9 @@ export default function Settings() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-6">
               <div>
-                <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.full_name')}</label>
+                <label htmlFor="settings-full-name" className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.full_name')}</label>
                 <input
+                  id="settings-full-name"
                   type="text"
                   className="input-field text-[14px]"
                   value={profile.name}
@@ -389,10 +390,11 @@ export default function Settings() {
                 />
               </div>
               <div>
-                <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.email')}</label>
+                <label htmlFor="settings-email" className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.email')}</label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted w-4 h-4" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted w-4 h-4" aria-hidden="true" />
                   <input
+                    id="settings-email"
                     disabled
                     type="email"
                     className="input-field pl-10 bg-bg cursor-not-allowed text-[14px]"
@@ -402,8 +404,9 @@ export default function Settings() {
                 <p className="text-[11px] text-text-muted mt-2 font-medium">{t('settings.email_hint')}</p>
               </div>
               <div>
-                <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.crp_number')}</label>
+                <label htmlFor="settings-crp-number" className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.crp_number')}</label>
                 <input
+                  id="settings-crp-number"
                   type="text"
                   className="input-field text-[14px]"
                   placeholder={t('settings.crp_number_placeholder')}
@@ -412,8 +415,9 @@ export default function Settings() {
                 />
               </div>
               <div>
-                <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.crp_region')}</label>
+                <label htmlFor="settings-crp-region" className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.crp_region')}</label>
                 <select
+                  id="settings-crp-region"
                   className="input-field text-[14px]"
                   value={profile.crpRegion || ''}
                   onChange={(e) => setProfile({ ...profile, crpRegion: e.target.value })}
@@ -449,8 +453,9 @@ export default function Settings() {
                 </select>
               </div>
               <div>
-                <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.dpo_name_label')}</label>
+                <label htmlFor="settings-dpo-name" className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.dpo_name_label')}</label>
                 <input
+                  id="settings-dpo-name"
                   type="text"
                   className="input-field text-[14px]"
                   placeholder={t('settings.dpo_name_label')}
@@ -459,8 +464,9 @@ export default function Settings() {
                 />
               </div>
               <div>
-                <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.dpo_email_label')}</label>
+                <label htmlFor="settings-dpo-email" className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.dpo_email_label')}</label>
                 <input
+                  id="settings-dpo-email"
                   type="email"
                   className="input-field text-[14px]"
                   placeholder="dpo@exemplo.com"
@@ -491,10 +497,11 @@ export default function Settings() {
 
           <div className="space-y-6">
             <div>
-              <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.specializations')}</label>
+              <label htmlFor="settings-specializations" className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.specializations')}</label>
               <div className="relative">
-                <BookOpen className="absolute left-3 top-3 text-text-muted w-4 h-4" />
+                <BookOpen className="absolute left-3 top-3 text-text-muted w-4 h-4" aria-hidden="true" />
                 <textarea
+                  id="settings-specializations"
                   className="input-field pl-10 h-24 resize-none text-[14px] leading-relaxed"
                   placeholder={t('settings.specializations_placeholder')}
                   value={Array.isArray(profile.specialization) ? profile.specialization.join(', ') : ''}
@@ -504,8 +511,9 @@ export default function Settings() {
             </div>
 
             <div>
-              <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.bio')}</label>
+              <label htmlFor="settings-bio" className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.bio')}</label>
               <textarea
+                id="settings-bio"
                 className="input-field h-40 resize-none text-[14px] leading-relaxed"
                 placeholder={t('settings.bio_placeholder')}
                 value={profile.bio}
@@ -530,7 +538,7 @@ export default function Settings() {
             </div>
             <div>
               {googleCalendarToken ? (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-success-custom/10 text-success-custom rounded-lg text-[13px] font-bold">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-success-custom/10 text-[#155e75] rounded-lg text-[13px] font-bold">
                   <CheckCircle2 className="w-4 h-4" />
                   {t('settings.connected')}
                 </span>
@@ -588,8 +596,9 @@ export default function Settings() {
 
           <div className="space-y-6">
             <div>
-              <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.auto_lock_label')}</label>
+              <label htmlFor="settings-auto-lock" className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.auto_lock_label')}</label>
               <select
+                id="settings-auto-lock"
                 className="input-field text-[14px]"
                 value={autoLockMinutes ?? ''}
                 onChange={(e) => {
@@ -760,8 +769,9 @@ export default function Settings() {
 
           <div className="space-y-6">
             <div>
-              <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.retention_years_label')}</label>
+              <label htmlFor="settings-retention-years" className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.retention_years_label')}</label>
               <input
+                id="settings-retention-years"
                 type="number"
                 min={1}
                 max={20}
@@ -772,15 +782,16 @@ export default function Settings() {
               <p className="text-[11px] text-text-muted mt-2 font-medium">{t('settings.retention_years_hint')}</p>
             </div>
 
-            <label className="flex items-center gap-3 cursor-pointer group">
+            <div className="flex items-center gap-3">
               <input
+                id="settings-retention-enabled"
                 type="checkbox"
                 checked={retentionEnabled}
                 onChange={(e) => setRetentionEnabled(e.target.checked)}
                 className="w-4 h-4 rounded border-border-custom text-primary-custom focus:ring-primary-custom/20"
               />
-              <span className="text-[14px] text-text-main group-hover:text-primary-custom transition-colors">{t('settings.retention_enabled_label')}</span>
-            </label>
+              <label htmlFor="settings-retention-enabled" className="text-[14px] text-text-main cursor-pointer">{t('settings.retention_enabled_label')}</label>
+            </div>
 
             <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
               <div className="flex items-start gap-3">
@@ -828,8 +839,9 @@ export default function Settings() {
 
           <div className="space-y-6">
             <div>
-              <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.consent_text_label')}</label>
+              <label htmlFor="settings-consent-text" className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.consent_text_label')}</label>
               <textarea
+                id="settings-consent-text"
                 className="input-field h-40 resize-none text-[14px] leading-relaxed"
                 placeholder={t('settings.consent_text_placeholder')}
                 value={consentText}
@@ -837,8 +849,9 @@ export default function Settings() {
               />
             </div>
             <div>
-              <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.consent_version_label')}</label>
+              <label htmlFor="settings-consent-version" className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.consent_version_label')}</label>
               <input
+                id="settings-consent-version"
                 type="text"
                 className="input-field text-[14px] w-32"
                 value={consentVersion}
@@ -859,8 +872,9 @@ export default function Settings() {
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.start_date')}</label>
+                <label htmlFor="settings-export-start" className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.start_date')}</label>
                 <input
+                  id="settings-export-start"
                   type="date"
                   className="input-field text-[14px]"
                   value={exportStartDate}
@@ -868,8 +882,9 @@ export default function Settings() {
                 />
               </div>
               <div>
-                <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.end_date')}</label>
+                <label htmlFor="settings-export-end" className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.end_date')}</label>
                 <input
+                  id="settings-export-end"
                   type="date"
                   className="input-field text-[14px]"
                   value={exportEndDate}
@@ -879,8 +894,9 @@ export default function Settings() {
             </div>
 
             <div>
-              <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.export_options', 'Opções de Exportação')}</label>
+              <label htmlFor="settings-export-option" className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.export_options', 'Opções de Exportação')}</label>
               <select
+                id="settings-export-option"
                 className="input-field text-[14px]"
                 value={exportOption}
                 onChange={(e) => setExportOption(e.target.value)}

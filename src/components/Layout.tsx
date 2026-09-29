@@ -135,6 +135,22 @@ export default function Layout() {
 
   return (
     <div className="flex min-h-screen bg-bg relative">
+      {/* Skip to main content link */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 z-50 px-4 py-2 bg-primary-custom text-white rounded-lg font-medium transition-colors"
+      >
+        {t('common.skip_to_content', 'Skip to main content')}
+      </a>
+
+      {/* Live region for screen reader announcements */}
+      <div
+        id="live-region"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      />
+
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
       {/* Mobile Backdrop */}
@@ -148,7 +164,7 @@ export default function Layout() {
         {authError && (
           <div className="bg-amber-50 border-b border-amber-200 px-8 py-2.5 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+              <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 shrink-0" aria-hidden="true">
                 <AlertTriangle className="w-4 h-4" />
               </div>
               <div>
@@ -171,14 +187,14 @@ export default function Layout() {
                 onClick={() => setAuthError(null)}
               >
                 Configurações
-                <ExternalLink className="w-3 h-3" />
+                <ExternalLink className="w-3 h-3" aria-hidden="true" />
               </Link>
               <button
                 onClick={() => setAuthError(null)}
                 className="p-1.5 hover:bg-amber-100 rounded-lg text-amber-600"
                 aria-label={t('common.close', 'Close')}
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -186,7 +202,7 @@ export default function Layout() {
         {retentionReminder && (
           <div className="bg-blue-50 border-b border-blue-200 px-8 py-2.5 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0" aria-hidden="true">
                 <Clock className="w-4 h-4" />
               </div>
               <div>
@@ -211,7 +227,7 @@ export default function Layout() {
                 className="p-1.5 hover:bg-blue-100 rounded-lg text-blue-600"
                 aria-label={t('common.close', 'Close')}
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -222,9 +238,10 @@ export default function Layout() {
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className="lg:hidden p-2 hover:bg-bg rounded-lg text-text-muted transition-colors"
-              aria-label="Toggle Menu"
+              aria-label={isSidebarOpen ? t('common.close_menu', 'Close menu') : t('common.open_menu', 'Open menu')}
+              aria-controls="sidebar-nav"
             >
-              {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {isSidebarOpen ? <X className="w-6 h-6" aria-hidden="true" /> : <Menu className="w-6 h-6" aria-hidden="true" />}
             </button>
 
             <div className="flex flex-col">
@@ -277,7 +294,7 @@ export default function Layout() {
             )}
           </div>
         </header>
-        <main className="flex-1 p-4 sm:p-8 overflow-y-auto">
+        <main id="main-content" className="flex-1 p-4 sm:p-8 overflow-y-auto">
           <div className="max-w-7xl mx-auto">
             <Outlet />
           </div>

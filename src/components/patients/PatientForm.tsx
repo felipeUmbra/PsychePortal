@@ -1,4 +1,4 @@
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, FormEvent, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
 import { Lock } from 'lucide-react';
@@ -59,6 +59,8 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
   const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cpfError, setCpfError] = useState<string | null>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const previousActiveElement = useRef<HTMLElement | null>(null);
   
   // ESC key closes the form
   useEffect(() => {
@@ -72,6 +74,63 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
       return () => document.removeEventListener('keydown', handleKeyDown);
     }
   }, [isOpen, onClose]);
+
+  // Focus management for modal accessibility
+  useEffect(() => {
+    if (isOpen && modalRef.current) {
+      // Store the previously focused element
+      previousActiveElement.current = document.activeElement as HTMLElement;
+      
+      // Focus the first focusable element in the modal
+      const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusableElements.length > 0) {
+        focusableElements[0].focus();
+      }
+    } else if (!isOpen && previousActiveElement.current) {
+      // Restore focus to the element that opened the modal
+      previousActiveElement.current.focus();
+      previousActiveElement.current = null;
+    }
+  }, [isOpen]);
+
+  // Focus trap for modal
+  useEffect(() => {
+    if (!isOpen || !modalRef.current) return;
+
+    const handleTabKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+
+      const focusableElements = modalRef.current!.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      
+      if (focusableElements.length === 0) return;
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (e.shiftKey) {
+        // Shift + Tab: going backwards
+        if (document.activeElement === firstElement) {
+          e.preventDefault();
+          lastElement.focus();
+        }
+      } else {
+        // Tab: going forwards
+        if (document.activeElement === lastElement) {
+          e.preventDefault();
+          firstElement.focus();
+        }
+      }
+    };
+
+    modalRef.current.addEventListener('keydown', handleTabKey);
+    return () => {
+      modalRef.current?.removeEventListener('keydown', handleTabKey);
+    };
+  }, [isOpen]);
   
   const { isUnlocked } = useEncryption();
   const [formData, setFormData] = useState({
@@ -180,12 +239,16 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
           />
           <motion.div 
+            ref={modalRef}
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl p-8 max-h-[90vh] overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="patient-form-title"
           >
-            <h2 className="text-2xl font-bold text-slate-900 mb-6">{title}</h2>
+            <h2 id="patient-form-title" className="text-2xl font-bold text-slate-900 mb-6">{title}</h2>
             <form onSubmit={handleSubmit} className="space-y-6">
               
               {/* Basic Info */}
@@ -193,8 +256,9 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                 <h3 className="text-sm font-bold text-text-muted uppercase tracking-wider border-b border-border-custom pb-2">{t('patients.basic_info')}</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('patients.full_name')} *</label>
+                    <label htmlFor="patient-name" className="block text-sm font-medium text-slate-700 mb-1">{t('patients.full_name')} *</label>
                     <input 
+                      id="patient-name"
                       required
                       type="text" 
                       className="input-field" 
@@ -203,8 +267,9 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('patients.cpf.label', 'CPF')}</label>
+                    <label htmlFor="patient-cpf" className="block text-sm font-medium text-slate-700 mb-1">{t('patients.cpf.label', 'CPF')}</label>
                     <input 
+                      id="patient-cpf"
                       type="text" 
                       className={`input-field ${cpfError ? 'border-red-500 focus:ring-red-500' : ''}`} 
                       value={formData.cpf}
@@ -232,16 +297,18 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                       }}
                       placeholder="000.000.000-00"
                       maxLength={14}
+                      aria-describedby={cpfError ? "patient-cpf-error" : undefined}
                     />
                     {cpfError && (
-                      <p className="text-red-500 text-xs mt-1">{cpfError}</p>
+                      <p id="patient-cpf-error" className="text-red-700 text-xs mt-1" role="alert">{cpfError}</p>
                     )}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('patients.email')}</label>
+                    <label htmlFor="patient-email" className="block text-sm font-medium text-slate-700 mb-1">{t('patients.email')}</label>
                     <input 
+                      id="patient-email"
                       type="email" 
                       className="input-field" 
                       value={formData.email}
@@ -249,8 +316,9 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('patients.phone')}</label>
+                    <label htmlFor="patient-phone" className="block text-sm font-medium text-slate-700 mb-1">{t('patients.phone')}</label>
                     <input 
+                      id="patient-phone"
                       type="tel" 
                       className="input-field" 
                       value={formData.phone}
@@ -260,8 +328,9 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('patients.dob')}</label>
+                    <label htmlFor="patient-dob" className="block text-sm font-medium text-slate-700 mb-1">{t('patients.dob')}</label>
                     <input 
+                      id="patient-dob"
                       type="date" 
                       className="input-field" 
                       value={formData.dateOfBirth}
@@ -269,8 +338,9 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('patients.gender')}</label>
+                    <label htmlFor="patient-gender" className="block text-sm font-medium text-slate-700 mb-1">{t('patients.gender')}</label>
                     <select 
+                      id="patient-gender"
                       className="input-field"
                       value={formData.gender}
                       onChange={(e) => setFormData({...formData, gender: e.target.value})}
@@ -289,8 +359,9 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                 <h3 className="text-sm font-bold text-text-muted uppercase tracking-wider border-b border-border-custom pb-2">{t('patients.address.title')}</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('patients.address.country')}</label>
+                    <label htmlFor="patient-country" className="block text-sm font-medium text-slate-700 mb-1">{t('patients.address.country')}</label>
                     <input 
+                      id="patient-country"
                       type="text" 
                       className="input-field" 
                       value={formData.address.country}
@@ -298,8 +369,9 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('patients.address.zipCode')}</label>
+                    <label htmlFor="patient-zipcode" className="block text-sm font-medium text-slate-700 mb-1">{t('patients.address.zipCode')}</label>
                     <input 
+                      id="patient-zipcode"
                       type="text" 
                       className="input-field" 
                       value={formData.address.zipCode}
@@ -313,8 +385,9 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('patients.address.state')}</label>
+                    <label htmlFor="patient-state" className="block text-sm font-medium text-slate-700 mb-1">{t('patients.address.state')}</label>
                     <input 
+                      id="patient-state"
                       type="text" 
                       className="input-field" 
                       value={formData.address.state}
@@ -322,8 +395,9 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('patients.address.city')}</label>
+                    <label htmlFor="patient-city" className="block text-sm font-medium text-slate-700 mb-1">{t('patients.address.city')}</label>
                     <input 
+                      id="patient-city"
                       type="text" 
                       className="input-field" 
                       value={formData.address.city}
@@ -333,8 +407,9 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('patients.address.neighborhood')}</label>
+                    <label htmlFor="patient-neighborhood" className="block text-sm font-medium text-slate-700 mb-1">{t('patients.address.neighborhood')}</label>
                     <input 
+                      id="patient-neighborhood"
                       type="text" 
                       className="input-field" 
                       value={formData.address.neighborhood}
@@ -342,8 +417,9 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('patients.address.street')}</label>
+                    <label htmlFor="patient-street" className="block text-sm font-medium text-slate-700 mb-1">{t('patients.address.street')}</label>
                     <input 
+                      id="patient-street"
                       type="text" 
                       className="input-field" 
                       value={formData.address.street}
@@ -353,8 +429,9 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('patients.address.number')}</label>
+                    <label htmlFor="patient-number" className="block text-sm font-medium text-slate-700 mb-1">{t('patients.address.number')}</label>
                     <input 
+                      id="patient-number"
                       type="text" 
                       className="input-field" 
                       value={formData.address.number}
@@ -362,8 +439,9 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('patients.address.complement')}</label>
+                    <label htmlFor="patient-complement" className="block text-sm font-medium text-slate-700 mb-1">{t('patients.address.complement')}</label>
                     <input 
+                      id="patient-complement"
                       type="text" 
                       className="input-field" 
                       value={formData.address.complement}
@@ -378,8 +456,9 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                 <h3 className="text-sm font-bold text-text-muted uppercase tracking-wider border-b border-border-custom pb-2">{t('patients.additional_data.title')}</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('patients.additional_data.education')}</label>
+                    <label htmlFor="patient-education" className="block text-sm font-medium text-slate-700 mb-1">{t('patients.additional_data.education')}</label>
                     <select 
+                      id="patient-education"
                       className="input-field"
                       value={formData.education}
                       onChange={(e) => setFormData({...formData, education: e.target.value})}
@@ -398,8 +477,9 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('patients.additional_data.ethnicity')}</label>
+                    <label htmlFor="patient-ethnicity" className="block text-sm font-medium text-slate-700 mb-1">{t('patients.additional_data.ethnicity')}</label>
                     <select 
+                      id="patient-ethnicity"
                       className="input-field"
                       value={formData.ethnicity}
                       onChange={(e) => setFormData({...formData, ethnicity: e.target.value})}
@@ -421,8 +501,9 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                 <h3 className="text-sm font-bold text-text-muted uppercase tracking-wider border-b border-border-custom pb-2">{t('patients.financial.title')}</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('patients.financial.plan')}</label>
+                    <label htmlFor="patient-financial-plan" className="block text-sm font-medium text-slate-700 mb-1">{t('patients.financial.plan')}</label>
                     <select 
+                      id="patient-financial-plan"
                       className="input-field"
                       value={formData.financialPlan}
                       onChange={(e) => setFormData({...formData, financialPlan: e.target.value})}
@@ -435,10 +516,11 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                   </div>
                   {(formData.financialPlan === 'per_session' || formData.financialPlan === 'monthly') && (
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label htmlFor="patient-financial-value" className="block text-sm font-medium text-slate-700 mb-1">
                         {formData.financialPlan === 'per_session' ? t('patients.financial.session_value') : t('patients.financial.monthly_value')}
                       </label>
                       <input 
+                        id="patient-financial-value"
                         type="number" 
                         step="0.01"
                         className="input-field" 
@@ -456,8 +538,9 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                 <h3 className="text-sm font-bold text-text-muted uppercase tracking-wider border-b border-border-custom pb-2">{t('anamnesis.title')}</h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.chief_complaint')}</label>
+                    <label htmlFor="patient-chief-complaint" className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.chief_complaint')}</label>
                     <textarea 
+                      id="patient-chief-complaint"
                       className="input-field h-20 resize-none" 
                       value={formData.anamnesis.chiefComplaint}
                       onChange={(e) => setFormData(prev => ({...prev, anamnesis: {...prev.anamnesis, chiefComplaint: e.target.value}}))}
@@ -465,16 +548,18 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.medical_history')}</label>
+                      <label htmlFor="patient-medical-history" className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.medical_history')}</label>
                       <textarea 
+                        id="patient-medical-history"
                         className="input-field h-20 resize-none" 
                         value={formData.anamnesis.medicalHistory}
                         onChange={(e) => setFormData(prev => ({...prev, anamnesis: {...prev.anamnesis, medicalHistory: e.target.value}}))}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.psychiatric_history')}</label>
+                      <label htmlFor="patient-psychiatric-history" className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.psychiatric_history')}</label>
                       <textarea 
+                        id="patient-psychiatric-history"
                         className="input-field h-20 resize-none" 
                         value={formData.anamnesis.psychiatricHistory}
                         onChange={(e) => setFormData(prev => ({...prev, anamnesis: {...prev.anamnesis, psychiatricHistory: e.target.value}}))}
@@ -483,16 +568,18 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.family_history')}</label>
+                      <label htmlFor="patient-family-history" className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.family_history')}</label>
                       <textarea 
+                        id="patient-family-history"
                         className="input-field h-20 resize-none" 
                         value={formData.anamnesis.familyHistory}
                         onChange={(e) => setFormData(prev => ({...prev, anamnesis: {...prev.anamnesis, familyHistory: e.target.value}}))}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.medications')}</label>
+                      <label htmlFor="patient-medications" className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.medications')}</label>
                       <textarea 
+                        id="patient-medications"
                         className="input-field h-20 resize-none" 
                         value={formData.anamnesis.medications}
                         onChange={(e) => setFormData(prev => ({...prev, anamnesis: {...prev.anamnesis, medications: e.target.value}}))}
@@ -501,8 +588,9 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.substance_use', 'Substance Use')}</label>
+                      <label htmlFor="patient-substance-use" className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.substance_use', 'Substance Use')}</label>
                       <textarea 
+                        id="patient-substance-use"
                         className="input-field h-20 resize-none" 
                         value={formData.anamnesis.substanceUse || ''}
                         onChange={(e) => setFormData(prev => ({...prev, anamnesis: {...prev.anamnesis, substanceUse: e.target.value}}))}
@@ -513,48 +601,54 @@ export function PatientForm({ isOpen, onClose, onSubmit, initialData, title }: P
                   
                   <div className="grid grid-cols-1 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.family_structure')}</label>
+                      <label htmlFor="patient-family-structure" className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.family_structure')}</label>
                       <textarea 
+                        id="patient-family-structure"
                         className="input-field h-20 resize-none" 
                         value={formData.anamnesis.familyStructure}
                         onChange={(e) => setFormData(prev => ({...prev, anamnesis: {...prev.anamnesis, familyStructure: e.target.value}}))}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.work_studies')}</label>
+                      <label htmlFor="patient-work-studies" className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.work_studies')}</label>
                       <textarea 
+                        id="patient-work-studies"
                         className="input-field h-20 resize-none" 
                         value={formData.anamnesis.workStudies}
                         onChange={(e) => setFormData(prev => ({...prev, anamnesis: {...prev.anamnesis, workStudies: e.target.value}}))}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.social_habits')}</label>
+                      <label htmlFor="patient-social-habits" className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.social_habits')}</label>
                       <textarea 
+                        id="patient-social-habits"
                         className="input-field h-20 resize-none" 
                         value={formData.anamnesis.socialHabits}
                         onChange={(e) => setFormData(prev => ({...prev, anamnesis: {...prev.anamnesis, socialHabits: e.target.value}}))}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.psychiatric_history_detailed')}</label>
+                      <label htmlFor="patient-psychiatric-detailed" className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.psychiatric_history_detailed')}</label>
                       <textarea 
+                        id="patient-psychiatric-detailed"
                         className="input-field h-24 resize-none" 
                         value={formData.anamnesis.psychiatricHistoryDetailed}
                         onChange={(e) => setFormData(prev => ({...prev, anamnesis: {...prev.anamnesis, psychiatricHistoryDetailed: e.target.value}}))}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.recurrent_symptoms')}</label>
+                      <label htmlFor="patient-recurrent-symptoms" className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.recurrent_symptoms')}</label>
                       <textarea 
+                        id="patient-recurrent-symptoms"
                         className="input-field h-20 resize-none" 
                         value={formData.anamnesis.recurrentSymptoms}
                         onChange={(e) => setFormData(prev => ({...prev, anamnesis: {...prev.anamnesis, recurrentSymptoms: e.target.value}}))}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.predominant_emotions')}</label>
+                      <label htmlFor="patient-predominant-emotions" className="block text-sm font-medium text-slate-700 mb-1">{t('anamnesis.predominant_emotions')}</label>
                       <textarea 
+                        id="patient-predominant-emotions"
                         className="input-field h-20 resize-none" 
                         value={formData.anamnesis.predominantEmotions}
                         onChange={(e) => setFormData(prev => ({...prev, anamnesis: {...prev.anamnesis, predominantEmotions: e.target.value}}))}

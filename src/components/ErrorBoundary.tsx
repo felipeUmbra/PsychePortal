@@ -46,7 +46,7 @@ export class ErrorBoundary extends Component<Props, State> {
                             onClick={this.handleReload}
                             className="btn-primary inline-flex items-center gap-2"
                         >
-                            <RotateCcw className="w-4 h-4" />
+                            <RotateCcw className="w-4 h-4" aria-hidden="true" />
                             Recarregar página
                         </button>
                     </div>
