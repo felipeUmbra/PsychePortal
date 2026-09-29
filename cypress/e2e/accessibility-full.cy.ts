@@ -316,7 +316,7 @@ describe('Accessibility - Keyboard Navigation', () => {
     cy.tabForward();
     cy.focused().invoke('text').should('match', /Forçar Recarregamento|Force Reload/i);
     cy.tabForward();
-    cy.focused().invoke('text').should('match', /Re-?autorizar|Reauthorize/i);
+    cy.focused().invoke('text').should('match', /Re[- ]?(?:authori[sz]e|autorizar)/i);
     cy.tabForward();
     cy.focused().should('have.id', 'settings-auto-lock');
     
