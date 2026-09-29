@@ -308,7 +308,7 @@ describe('Accessibility - Keyboard Navigation', () => {
     cy.tabForward();
     cy.focused().should('have.id', 'settings-dpo-email');
     cy.tabForward();
-    cy.focused().invoke('text').should('match', /Alterar Foto|Change Photo/i);
+    cy.focused().invoke('text').should('match', /Alterar Foto(?: do Perfil)?|Change (?:Profile )?Photo/i);
     cy.tabForward();
     cy.focused().should('have.id', 'settings-specializations');
     cy.tabForward();
