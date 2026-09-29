@@ -108,9 +108,10 @@ export function SessionForm({
       )}
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-          <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('common.date_time')}</label>
+          <label htmlFor="session-date" className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('common.date_time')}</label>
           <input 
             required
+            id="session-date"
             type="datetime-local"
             className="input-field text-[14px]"
             value={formData.date}
@@ -120,8 +121,9 @@ export function SessionForm({
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('patient_detail.session_type')}</label>
+            <label htmlFor="session-type" className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('patient_detail.session_type')}</label>
             <select 
+              id="session-type"
               className="input-field text-[14px]"
               value={formData.type}
               onChange={(e) => setFormData({...formData, type: e.target.value})}
@@ -133,8 +135,9 @@ export function SessionForm({
             </select>
           </div>
           <div>
-            <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('common.status')}</label>
+            <label htmlFor="session-status" className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('common.status')}</label>
             <select 
+              id="session-status"
               className="input-field text-[14px]"
               value={formData.status}
               onChange={(e) => setFormData({...formData, status: e.target.value})}
@@ -147,11 +150,13 @@ export function SessionForm({
         </div>
 
         <div>
-          <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">
+          <label id="session-notes-label" htmlFor="session-notes" className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">
             {t('patient_detail.observations')}
-            {isUnlocked && <Lock className="w-3 h-3 inline ml-1 text-success-custom" />}
+            {isUnlocked && <Lock className="w-3 h-3 inline ml-1 text-success-custom" aria-hidden="true" />}
           </label>
           <RichTextEditor
+            id="session-notes"
+            labelledBy="session-notes-label"
             value={formData.notes}
             onChange={(val) => setFormData({...formData, notes: val})}
             height={300}
@@ -164,14 +169,16 @@ export function SessionForm({
           <div className="flex flex-wrap gap-3 mb-3">
             {formData.attachments.map((att, idx) => (
               <div key={idx} className="flex items-center gap-2 px-3 py-1.5 bg-surface border border-border-custom rounded-lg text-[12px]">
-                <Paperclip className="w-3.5 h-3.5 text-text-muted" />
+                <Paperclip className="w-3.5 h-3.5 text-text-muted" aria-hidden="true" />
                 <span className="font-medium text-text-main truncate max-w-[150px]">{att.name}</span>
                 <button 
                   type="button" 
+                  id={`remove-attachment-${idx}`}
                   onClick={() => removeAttachment(idx)}
                   className="ml-1 text-text-muted hover:text-red-500"
+                  aria-label={t('patient_detail.remove_attachment', 'Remove attachment')}
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-3.5 h-3.5" aria-hidden="true" />
                 </button>
               </div>
             ))}
@@ -179,7 +186,7 @@ export function SessionForm({
           {onUploadFile && (
             <div className="flex items-center gap-3">
               <label className="btn-secondary cursor-pointer flex items-center gap-2">
-                {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
+                {isUploading ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Paperclip className="w-4 h-4" aria-hidden="true" />}
                 {isUploading ? t('common.uploading', 'Uploading...') : t('patient_detail.add_file', 'Add File')}
                 <input 
                   type="file" 

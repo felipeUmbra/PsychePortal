@@ -94,7 +94,7 @@ describe('Accessibility', () => {
     cy.viewport(390, 844);
     cy.loginWithGoogle();
 
-    cy.get('button[aria-label="Toggle Menu"]')
+    cy.get('button[aria-label="Open menu"]')
       .should('be.visible')
       .focus()
       .should('have.focus');

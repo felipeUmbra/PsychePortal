@@ -91,7 +91,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-bg p-4 font-sans">
+    <main className="min-h-screen flex items-center justify-center bg-bg p-4 font-sans">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -107,7 +107,7 @@ export default function Login() {
         <p className="text-text-muted text-[15px] mb-8">{t('login.title')}</p>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded text-red-600 text-sm font-medium" role="alert">
+          <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded text-red-700 text-sm font-medium" role="alert">
             {error}
           </div>
         )}
@@ -133,12 +133,12 @@ export default function Login() {
         <div className="mt-10 pt-8 border-t border-border-custom">
           <p className="text-[12px] text-text-muted font-medium leading-relaxed">
             {t('login.secure_text_1')}
-            <Link to="/terms" className="text-primary-custom hover:underline">{t('login.terms')}</Link>
+            <Link to="/terms" className="text-primary-custom underline hover:underline">{t('login.terms')}</Link>
             {t('login.secure_text_2')}
           </p>
         </div>
 
       </motion.div>
-    </div>
+    </main>
   );
 }

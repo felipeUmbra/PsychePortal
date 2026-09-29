@@ -28,7 +28,7 @@ export default function Privacy() {
   }, [user]);
 
   return (
-    <div className="min-h-screen bg-bg py-12 px-4 sm:px-6 lg:px-8 font-sans">
+    <main className="min-h-screen bg-bg py-12 px-4 sm:px-6 lg:px-8 font-sans">
       <div className="max-w-3xl mx-auto">
         <button 
           onClick={() => navigate('/')} 
@@ -183,6 +183,6 @@ export default function Privacy() {
           </div>
         </motion.div>
       </div>
-    </div>
+    </main>
   );
 }

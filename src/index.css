@@ -8,8 +8,8 @@
   --color-surface: #ffffff;
   --color-primary-custom: #4338CA;
   --color-text-main: #0F172A;
-  --color-text-muted: #475569;
-  --color-border-custom: #CBD5E1;
+  --color-text-muted: #334155; /* Updated from #475569 for WCAG AA contrast (4.5:1 minimum for normal text) */
+  --color-border-custom: #94A3B8; /* Updated from #CBD5E1 for WCAG AA contrast (3:1 minimum for UI elements) */
   --color-accent-custom: #EEF2FF;
   --color-success-custom: #0891B2;
 }
@@ -20,6 +20,18 @@
   }
   a {
     @apply text-primary-custom transition-all hover:underline decoration-primary-custom/30;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
@@ -74,6 +86,9 @@
   }
   .rbc-off-range-bg {
     @apply bg-bg/50;
+  }
+  .rbc-off-range {
+    color: #334155 !important;
   }
   .rbc-time-header-content {
     @apply border-border-custom;

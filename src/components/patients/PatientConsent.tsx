@@ -261,7 +261,7 @@ export function PatientConsent({
               {isSubmitting ? (
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
-                <ShieldCheck className="w-4 h-4" />
+                <ShieldCheck className="w-4 h-4" aria-hidden="true" />
               )}
               {t('consent.accept_button', 'I Accept')}
             </button>
@@ -282,7 +282,7 @@ export function PatientConsent({
             disabled={isSubmitting}
             className="btn-secondary text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 flex items-center gap-2 text-[13px]"
           >
-            <XCircle className="w-4 h-4" />
+            <XCircle className="w-4 h-4" aria-hidden="true" />
             {t('consent.revoke_button', 'Revoke Consent')}
           </button>
         </div>
@@ -305,7 +305,7 @@ export function PatientConsent({
               className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6"
             >
               <div className="mb-6">
-                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4" aria-hidden="true">
                   <AlertTriangle className="w-6 h-6 text-red-600" />
                 </div>
                 <h2 className="text-xl font-bold text-slate-900 text-center mb-2">
@@ -331,7 +331,7 @@ export function PatientConsent({
                   {isSubmitting ? (
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
-                    <XCircle className="w-4 h-4" />
+                    <XCircle className="w-4 h-4" aria-hidden="true" />
                   )}
                   {t('consent.revoke_button', 'Revoke Consent')}
                 </button>

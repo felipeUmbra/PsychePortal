@@ -27,10 +27,13 @@ export default function CookieConsentBanner() {
   if (!visible) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-border-custom shadow-lg px-4 py-3 sm:px-8">
+    <aside
+      aria-label={t('cookies.title', 'Cookie consent')}
+      className="fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-border-custom shadow-lg px-4 py-3 sm:px-8"
+    >
       <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center gap-3 sm:gap-6">
         <div className="flex items-center gap-3 flex-1">
-          <div className="w-8 h-8 rounded-full bg-primary-custom/10 flex items-center justify-center text-primary-custom shrink-0">
+          <div className="w-8 h-8 rounded-full bg-primary-custom/10 flex items-center justify-center text-primary-custom shrink-0" aria-hidden="true">
             <Cookie className="w-4 h-4" />
           </div>
           <p className="text-[13px] text-text-main">
@@ -55,6 +58,6 @@ export default function CookieConsentBanner() {
           </button>
         </div>
       </div>
-    </div>
+    </aside>
   );
 }

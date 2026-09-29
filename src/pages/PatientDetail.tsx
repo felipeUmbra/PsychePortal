@@ -229,6 +229,7 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
           <button
             onClick={() => navigate('/app/patients')}
             className="p-2 hover:bg-surface rounded-lg text-text-muted transition-colors border border-transparent hover:border-border-custom"
+            aria-label={t('common.back', 'Back to patients')}
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
@@ -271,7 +272,7 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
           <button
             onClick={() => { setDeleteAllConfirmName(''); setShowDeleteAllModal(true); }}
             disabled={deleteAllLoading}
-            className="text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-2 rounded-lg text-[13px] sm:text-[14px] font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
+            className="text-red-700 hover:text-red-800 hover:bg-red-50 px-3 py-2 rounded-lg text-[13px] sm:text-[14px] font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
           >
             <Trash2 className="w-4 h-4" />
             {t('data_deletion.button_label', 'Delete All Patient Data')}

@@ -55,11 +55,11 @@ export default function Dashboard() {
         </div>
         <div className="flex flex-wrap gap-3 w-full sm:w-auto">
           <Link to="/app/calendar" className="btn-secondary flex items-center gap-2 text-[14px]">
-            <CalendarIcon className="w-4 h-4" />
+            <CalendarIcon className="w-4 h-4" aria-hidden="true" />
             <span className="truncate">{t('dashboard.view_calendar')}</span>
           </Link>
           <Link to="/app/calendar" className="btn-primary flex items-center gap-2 text-[14px]">
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4" aria-hidden="true" />
             <span className="truncate">{t('dashboard.new_session')}</span>
           </Link>
         </div>

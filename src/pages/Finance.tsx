@@ -185,7 +185,7 @@ export default function Finance() {
             </div>
             <div>
               <p className="text-[12px] font-bold text-text-muted uppercase tracking-wider">{t('finance.expected_sessions')}</p>
-              <h3 className="text-2xl font-bold text-text-main mt-1">{formatCurrency(periodExpectedSessions)}</h3>
+              <p className="text-2xl font-bold text-text-main mt-1">{formatCurrency(periodExpectedSessions)}</p>
             </div>
           </div>
         </div>
@@ -196,7 +196,7 @@ export default function Finance() {
             </div>
             <div>
               <p className="text-[12px] font-bold text-text-muted uppercase tracking-wider">{t('finance.expected_monthly')}</p>
-              <h3 className="text-2xl font-bold text-text-main mt-1">{formatCurrency(globalExpectedMonthly)}</h3>
+              <p className="text-2xl font-bold text-text-main mt-1">{formatCurrency(globalExpectedMonthly)}</p>
             </div>
           </div>
         </div>
@@ -207,7 +207,7 @@ export default function Finance() {
             </div>
             <div>
               <p className="text-[12px] font-bold text-text-muted uppercase tracking-wider">{t('finance.total_paid')}</p>
-              <h3 className="text-2xl font-bold text-text-main mt-1">{formatCurrency(periodPaidSessions)}</h3>
+              <p className="text-2xl font-bold text-text-main mt-1">{formatCurrency(periodPaidSessions)}</p>
             </div>
           </div>
         </div>
@@ -218,7 +218,7 @@ export default function Finance() {
             </div>
             <div>
               <p className="text-[12px] font-bold text-text-muted uppercase tracking-wider">{t('finance.pending_payments')}</p>
-              <h3 className="text-2xl font-bold text-text-main mt-1">{formatCurrency(periodPendingPayments)}</h3>
+              <p className="text-2xl font-bold text-text-main mt-1">{formatCurrency(periodPendingPayments)}</p>
             </div>
           </div>
         </div>
@@ -321,11 +321,13 @@ export default function Finance() {
         <div className="lg:col-span-1">
           <div className="card">
             <div className="flex flex-col gap-4 mb-6">
-              <h3 className="text-[16px] font-bold text-text-main flex items-center gap-2">
+              <h2 className="text-[16px] font-bold text-text-main flex items-center gap-2">
                 <Users className="w-5 h-5 text-primary-custom" />
                 {t('finance.patient_summary')} ({t(`finance.period.${period}`, { defaultValue: period })})
-              </h3>
+              </h2>
+              <label htmlFor="finance-patient-filter" className="sr-only">{t('finance.patient_summary')}</label>
               <select
+                id="finance-patient-filter"
                 value={filterPatientId}
                 onChange={(e) => setFilterPatientId(e.target.value)}
                 className="input-field text-[13px] py-2 bg-surface"

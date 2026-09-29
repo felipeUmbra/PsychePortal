@@ -235,8 +235,9 @@ export function EncryptionSetupModal({
                       type="button"
                       onClick={() => setShowPassphrase(!showPassphrase)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      aria-label={showPassphrase ? t('encryption.hide_passphrase', 'Hide passphrase') : t('encryption.show_passphrase', 'Show passphrase')}
                     >
-                      {showPassphrase ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showPassphrase ? <EyeOff className="w-4 h-4" aria-hidden="true" /> : <Eye className="w-4 h-4" aria-hidden="true" />}
                     </button>
                   </div>
                 </div>

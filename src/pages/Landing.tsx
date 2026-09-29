@@ -82,6 +82,7 @@ export default function Landing() {
         </div>
       </header>
 
+      <main>
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(45rem_50rem_at_top,theme(colors.indigo.100),theme(colors.transparent))]" />
@@ -240,6 +241,8 @@ export default function Landing() {
           </motion.div>
         </div>
       </section>
+
+      </main>
 
       {/* Footer */}
       <footer className="bg-surface border-t border-border-custom py-12 px-4 sm:px-6 lg:px-8">

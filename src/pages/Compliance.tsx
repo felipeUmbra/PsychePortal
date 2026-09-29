@@ -277,7 +277,7 @@ export default function Compliance() {
             <Scale className="w-5 h-5 text-primary-custom" />
             {t('compliance.status_panel', 'Compliance Status')}
           </h2>
-          <span className={"text-[13px] font-bold px-3 py-1 rounded-lg " + (allCompliant ? 'bg-success-custom/10 text-success-custom' : 'bg-amber-100 text-amber-700')}>
+          <span className={"text-[13px] font-bold px-3 py-1 rounded-lg " + (allCompliant ? 'bg-success-custom/10 text-[#155e75]' : 'bg-amber-100 text-amber-700')}>
             {compliantCount}/{complianceItems.length} {t('compliance.compliant', 'Compliant')}
           </span>
         </div>
@@ -292,7 +292,7 @@ export default function Compliance() {
                   <p className="font-bold text-[14px] text-text-main">{item.label} <span className="text-text-muted font-normal text-[12px] italic">({item.article})</span></p>
                   <p className="text-[12px] text-text-muted">{item.description}</p>
                 </div>
-                <span className={"status-badge " + (item.compliant ? 'bg-success-custom/10 text-success-custom' : 'bg-red-50 text-red-600')}>
+                <span className={"status-badge " + (item.compliant ? 'bg-success-custom/10 text-[#155e75]' : 'bg-red-50 text-red-700')}>
                   {item.compliant ? t('compliance.compliant', 'Compliant') : t('compliance.non_compliant', 'Non-Compliant')}
                 </span>
               </div>
@@ -395,7 +395,7 @@ export default function Compliance() {
             )}
           </AnimatePresence>
           <button onClick={handleSaveAttestation} disabled={saving} className="btn-primary flex items-center gap-2 text-[13px]">
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" aria-hidden="true" />}
             {t('compliance.save_attestation', 'Save Attestation')}
           </button>
         </div>
@@ -408,21 +408,21 @@ export default function Compliance() {
         </h2>
         <div className="space-y-4">
           <button onClick={handleExportHTMLReport} className="btn-secondary w-full flex items-center justify-center gap-2 text-[14px]">
-            <Download className="w-4 h-4" />
+            <Download className="w-4 h-4" aria-hidden="true" />
             {t('compliance.export_report', 'Export Compliance Report')}
           </button>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.start_date', 'Start Date')}</label>
-              <input type="date" className="input-field text-[14px]" value={reportFrom} onChange={(e) => setReportFrom(e.target.value)} />
+              <label htmlFor="compliance-report-start" className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.start_date', 'Start Date')}</label>
+              <input id="compliance-report-start" type="date" className="input-field text-[14px]" value={reportFrom} onChange={(e) => setReportFrom(e.target.value)} />
             </div>
             <div>
-              <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.end_date', 'End Date')}</label>
-              <input type="date" className="input-field text-[14px]" value={reportTo} onChange={(e) => setReportTo(e.target.value)} />
+              <label htmlFor="compliance-report-end" className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('settings.end_date', 'End Date')}</label>
+              <input id="compliance-report-end" type="date" className="input-field text-[14px]" value={reportTo} onChange={(e) => setReportTo(e.target.value)} />
             </div>
           </div>
           <button onClick={handleExportAuditCSV} className="btn-secondary w-full flex items-center justify-center gap-2 text-[14px]">
-            <Download className="w-4 h-4" />
+            <Download className="w-4 h-4" aria-hidden="true" />
             {t('compliance.export_audit_csv', 'Export Audit Log (CSV)')}
           </button>
         </div>
@@ -449,7 +449,7 @@ export default function Compliance() {
             <p className="text-[11px] text-text-muted mt-2 font-medium">{t('compliance.secondary_account_hint')}</p>
           </div>
           <button type="button" onClick={handleForceBackup} disabled={backupLoading || !driveToken} className="btn-primary flex items-center justify-center gap-2 w-full text-[14px] disabled:opacity-50">
-            {backupLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <HardDrive className="w-4 h-4" />}
+            {backupLoading ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <HardDrive className="w-4 h-4" aria-hidden="true" />}
             {t('compliance.force_backup', 'Force Full Backup')}
           </button>
           {backupResult && (
@@ -465,28 +465,28 @@ export default function Compliance() {
         </h2>
         <div className="space-y-4">
           <div>
-            <label className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('compliance.dsr_patient_select', 'Select Patient')}</label>
-            <select className="input-field text-[14px]" value={selectedPatient} onChange={(e) => setSelectedPatient(e.target.value)}>
+            <label htmlFor="compliance-dsr-patient" className="block text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('compliance.dsr_patient_select', 'Select Patient')}</label>
+            <select id="compliance-dsr-patient" className="input-field text-[14px]" value={selectedPatient} onChange={(e) => setSelectedPatient(e.target.value)}>
               <option value="">-</option>
               {patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
           <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />
               <p className="text-[13px] text-amber-800 font-medium">{t('compliance.dsr_warning', 'This will export all data for this patient including decrypted clinical notes. Handle with care.')}</p>
             </div>
           </div>
           {dsrError && <p className="text-[13px] text-red-600 font-medium">{dsrError}</p>}
           <button onClick={handleGenerateDSR} disabled={dsrLoading || !selectedPatient} className="btn-primary flex items-center justify-center gap-2 w-full text-[14px] disabled:opacity-50">
-            {dsrLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            {dsrLoading ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Download className="w-4 h-4" aria-hidden="true" />}
             {t('compliance.dsr_generate', 'Generate Signed Data Bundle')}
           </button>
 
           <div className="pt-4 mt-4 border-t border-border-custom">
             <div className="p-4 bg-red-50 border border-red-200 rounded-xl mb-4">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" aria-hidden="true" />
                 <p className="text-[13px] text-red-800 font-medium">{t('data_deletion.dsr_delete_warning', 'This will permanently delete all data for this patient. This action cannot be undone.')}</p>
               </div>
             </div>
@@ -502,7 +502,7 @@ export default function Compliance() {
               </div>
             )}
             <button onClick={handleOpenDeleteModal} disabled={dsrDeleteLoading || !selectedPatient} className="btn-secondary w-full flex items-center justify-center gap-2 text-[14px] text-red-600 hover:bg-red-50 hover:border-red-300 disabled:opacity-50">
-              {dsrDeleteLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+              {dsrDeleteLoading ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Trash2 className="w-4 h-4" aria-hidden="true" />}
               {t('data_deletion.dsr_button_label', 'Delete All Patient Data')}
             </button>
           </div>

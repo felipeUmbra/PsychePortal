@@ -376,7 +376,7 @@ export default function Sessions() {
             <div className="w-16 h-16 bg-surface rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
               <History className="text-text-muted w-8 h-8 opacity-30" />
             </div>
-            <h3 className="text-[16px] font-bold text-text-main">{t('sessions.no_sessions')}</h3>
+            <h2 className="text-[16px] font-bold text-text-main">{t('sessions.no_sessions')}</h2>
             <p className="text-text-muted text-[14px] mt-1">{t('sessions.no_sessions_hint')}</p>
           </div>
         )}
