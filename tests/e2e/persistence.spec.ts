@@ -51,7 +51,8 @@ test.describe('Persistence & Sync', () => {
       await page.locator('button[aria-controls="sidebar-nav"]').click();
     }
     await page.getByRole('navigation').getByRole('link', { name: /Pacientes|Patients/i }).click();
-    await patientsPage.goto();
+    await page.waitForURL(/\/patients/);
+    await page.locator('main').getByText(/Diretório de Pacientes|Patients/i).first().waitFor({ state: 'visible' });
     await patientsPage.expectPatientVisible('Nav Patient');
   });
 });

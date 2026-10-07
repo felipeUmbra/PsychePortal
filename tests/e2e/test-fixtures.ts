@@ -31,6 +31,34 @@ async function injectPlaywrightFlag(page: Page) {
 async function mockDriveApiImpl(page: Page) {
   let savedDriveContent: any = null;
 
+  try {
+    await page.exposeFunction('__playwright_saveDriveContent', (jsonString: string) => {
+      try {
+        savedDriveContent = JSON.parse(jsonString);
+      } catch (e) {
+        console.error('[MOCK DRIVE] Error parsing exposed drive content:', e);
+      }
+    });
+  } catch {
+    // exposeFunction throws if already registered on the page
+  }
+
+  await page.addInitScript(() => {
+    const origFetch = window.fetch;
+    window.fetch = async function(input: any, init?: any) {
+      if (init && init.body instanceof FormData && typeof input === 'string' && input.includes('/drive/v3/files')) {
+        const file = init.body.get('file');
+        if (file instanceof Blob && typeof (window as any).__playwright_saveDriveContent === 'function') {
+          try {
+            const text = await file.text();
+            await (window as any).__playwright_saveDriveContent(text);
+          } catch {}
+        }
+      }
+      return origFetch.apply(this, arguments as any);
+    };
+  });
+
   await page.route(/\/drive\/v3\/files/, async route => {
     const method = route.request().method();
     const url = route.request().url();
@@ -53,7 +81,10 @@ async function mockDriveApiImpl(page: Page) {
         }
       }
     } else if (method === 'POST' || method === 'PATCH') {
-      const postData = route.request().postData();
+      const req = route.request();
+      const pData = req.postData();
+      const pBuf = req.postDataBuffer();
+      const postData = pData || pBuf?.toString('utf-8');
       if (postData) {
         try {
           const filePart = postData.includes('name="file"') ? postData.split('name="file"')[1] : postData;
@@ -63,7 +94,7 @@ async function mockDriveApiImpl(page: Page) {
             savedDriveContent = JSON.parse(filePart.substring(jsonStart, jsonEnd + 1));
           }
         } catch (e) {
-          console.error('Error parsing mock drive postData:', e);
+          console.error('[MOCK DRIVE] Error parsing mock drive postData:', e);
         }
       }
       await route.fulfill({ status: 200, json: { id: 'mock-drive-file' } });
