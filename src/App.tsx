@@ -1,4 +1,4 @@
-﻿import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import Layout from './components/Layout';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -52,7 +52,10 @@ export default function App() {
                 <Route path="sessions" element={<Sessions />} />
                 <Route path="finance" element={<Finance />} />
                 <Route path="settings" element={<Settings />} />
+                <Route path="dashboard" element={<Dashboard />} />
                 <Route path="audit" element={<AuditLog />} />
+                <Route path="audit-log" element={<AuditLog />} />
+                <Route path="encryption" element={<Navigate to="/app/settings" replace />} />
                 <Route path="compliance" element={<Compliance />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />

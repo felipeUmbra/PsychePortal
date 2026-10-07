@@ -85,13 +85,14 @@ class MockAuth {
 
 const app = initializeApp(firebaseConfig);
 
-// Substitute real auth with MockAuth when running in Cypress
-export const auth: Auth = ((typeof window !== 'undefined' && (window as any).Cypress)
+// Substitute real auth with MockAuth when running in Cypress or Playwright
+const isE2E = typeof window !== 'undefined' && ((window as any).Cypress || (window as any).playwright);
+export const auth: Auth = (isE2E
   ? (function () {
-    const mockAuth = new MockAuth();
-    (window as any).mockAuth = mockAuth;
-    return mockAuth;
-  })()
+      const mockAuth = new MockAuth();
+      (window as any).mockAuth = mockAuth;
+      return mockAuth;
+    })()
   : getAuth(app)) as Auth;
 
 // @ts-ignore getFirestore may accept optional second arg depending on SDK version

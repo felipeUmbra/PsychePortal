@@ -824,7 +824,6 @@ export default function Settings() {
               <div className="p-4 bg-surface border border-border-custom rounded-xl space-y-2">
                 <p className="text-[14px] font-bold text-text-main">{t('settings.retention_result_title')}</p>
                 <p className="text-[12px] text-text-muted">{t('settings.retention_result_sessions')}: <span className="font-bold text-text-main">{retentionResult.sessionsDeleted}</span></p>
-                <p className="text-[12px] text-text-muted">{t('settings.retention_result_consents')}: <span className="font-bold text-text-main">{retentionResult.consentsAffected}</span></p>
                 <p className="text-[12px] text-text-muted">{t('settings.retention_result_executed_at')}: {format(new Date(retentionResult.executedAt), 'yyyy-MM-dd HH:mm:ss')}</p>
               </div>
             )}

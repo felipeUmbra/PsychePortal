@@ -99,33 +99,6 @@ describe('enforceRetentionPolicy', () => {
     expect(result.sessionsDeleted).toBe(1);
   });
 
-  it('deletes orphaned consents when a patient loses all sessions', async () => {
-    await seedPsychologist(PSYCH);
-    await seedSession({ psychologistId: PSYCH, patientId: 'p-orphan', date: new Date(OLD_MS).toISOString() });
-    await seedConsent({ patientId: 'p-orphan' });
-
-    const result = await enforceRetentionPolicy(PSYCH, 5);
-
-    expect(result.sessionsDeleted).toBe(1);
-    expect(result.consentsAffected).toBe(1);
-    const consents = (await firestoreMock.getDocs(
-      firestoreMock.query(firestoreMock.collection({}, 'patient_consents'), firestoreMock.where('patientId', '==', 'p-orphan'))
-    )).docs;
-    expect(consents).toHaveLength(0);
-  });
-
-  it('keeps consents when the patient still has a recent session', async () => {
-    await seedPsychologist(PSYCH);
-    await seedSession({ psychologistId: PSYCH, patientId: 'p-keep', date: new Date(OLD_MS).toISOString() });
-    await seedSession({ psychologistId: PSYCH, patientId: 'p-keep', date: new Date(RECENT_MS).toISOString() });
-    await seedConsent({ patientId: 'p-keep' });
-
-    const result = await enforceRetentionPolicy(PSYCH, 5);
-
-    expect(result.sessionsDeleted).toBe(1);
-    expect(result.consentsAffected).toBe(0);
-  });
-
   it('logs a delete audit event per deleted session (via logDelete)', async () => {
     await seedPsychologist(PSYCH);
     await seedSession({ psychologistId: PSYCH, patientId: 'p-log', date: new Date(OLD_MS).toISOString() });
@@ -145,6 +118,5 @@ describe('enforceRetentionPolicy', () => {
 
     const result = await enforceRetentionPolicy(PSYCH, 5);
     expect(result.sessionsDeleted).toBe(0);
-    expect(result.consentsAffected).toBe(0);
   });
 });

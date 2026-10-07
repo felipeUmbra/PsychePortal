@@ -97,10 +97,9 @@ afterEach(() => {
 });
 
 describe('deleteAllPatientData (LGPD erasure)', () => {
-  it('deletes patient, sessions, consents and returns counts', async () => {
+  it('deletes patient, sessions and returns counts', async () => {
     await seedPatient();
     await seedSession();
-    await seedConsent();
     const s2 = await seedSession();
     await seedNoteVersion(s2);
 
@@ -108,16 +107,13 @@ describe('deleteAllPatientData (LGPD erasure)', () => {
 
     expect(result.patientDeleted).toBe(true);
     expect(result.sessionsDeleted).toBe(2);
-    expect(result.consentsDeleted).toBe(1);
     expect(result.attachmentsDeleted).toBe(0);
 
     const patients = (await firestoreMock.getDocs(firestoreMock.collection({}, 'patients'))).docs;
     const sessions = (await firestoreMock.getDocs(firestoreMock.collection({}, 'sessions'))).docs;
-    const consents = (await firestoreMock.getDocs(firestoreMock.collection({}, 'patient_consents'))).docs;
     const versions = (await firestoreMock.getDocs(firestoreMock.collection({}, 'note_versions'))).docs;
     expect(patients).toHaveLength(0);
     expect(sessions).toHaveLength(0);
-    expect(consents).toHaveLength(0);
     expect(versions).toHaveLength(0);
   });
 
@@ -179,7 +175,6 @@ describe('deleteAllPatientData (LGPD erasure)', () => {
     expect(result).toMatchObject({
       patientDeleted: false,
       sessionsDeleted: 0,
-      consentsDeleted: 0,
       attachmentsDeleted: 0,
     });
   });

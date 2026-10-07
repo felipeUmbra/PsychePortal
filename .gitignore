@@ -15,5 +15,6 @@ gh-report/
 Claude.md
 e2e.md
 .clinerules
-
-
+playwright-report/
+test-results/
+.vscode/

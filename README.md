@@ -31,19 +31,19 @@ Portal Psis is a modern, secure, and clinical-grade web application designed spe
 - **PWA:** `vite-plugin-pwa` (Service Workers, Manifest, Offline support)
 - **Styling:** Tailwind CSS v4, Motion (Animations), Lucide React (Icons)
 - **Routing:** React Router (HashRouter for GitHub Pages)
-- **Backend:** Firebase (Authentication, Firestore Database), Google Drive API (data backup & file storage), Google Calendar API (event sync)
+- **Backend:** Firebase Authentication; a Firestore-shaped mock adapter for app data, synchronized to Google Drive `appDataFolder`; Google Calendar API for event sync
 - **Date Utilities:** `date-fns`
 - **i18n:** i18next & react-i18next
 - **Charts:** Recharts
-- **Testing:** Cypress 15 with a custom MockAuth implementation, Google Drive/Calendar API intercepts, and `cypress-mochawesome-reporter` for HTML/JSON test reports
-- **CI/CD:** GitHub Actions pipeline (type check → E2E tests → build → artifacts)
+- **Testing:** Cypress 15 for E2E and accessibility tests, Vitest for unit tests, and `cypress-mochawesome-reporter` for HTML/JSON test reports
+- **CI/CD:** GitHub Actions pipeline (type check → unit tests → E2E → axe accessibility → build/artifacts); Pages deploys on successful pushes to `main`
 - **Deployment:** GitHub Pages (`gh-pages`)
 
 ## 🚀 Getting Started Locally
 
 ### Prerequisites
 - Node.js (v18 or higher recommended)
-- A Firebase Project (with Firestore and Google Authentication enabled)
+- A Firebase project with Google Authentication enabled; enable Google Drive and Calendar APIs for live integrations
 
 ### Installation
 
@@ -58,10 +58,10 @@ Portal Psis is a modern, secure, and clinical-grade web application designed spe
    npm install
    ```
 
-3. **Environment Setup:**
-   Create a `.env` file in the root directory and add your Firebase configuration (e.g., API keys, auth domain, project ID).
-   
-   *Optional: For local development without a live Firebase project, the app includes a sophisticated mock data layer (`firestore-mock.ts`) that simulates Firestore operations, persists to `localStorage`, and can sync to Google Drive when authenticated.*
+3. **Firebase Configuration:**
+   The app loads its Firebase client configuration from `firebase-applet-config.json`. Use a Firebase project with Google Authentication enabled for live sign-in; the app does not currently reference Firebase settings from `.env` variables.
+
+   App collections do not use Cloud Firestore: Vite aliases `firebase/firestore` to `src/lib/firestore-mock.ts`, which provides the Firestore-shaped API and syncs workspace data to the signed-in user's Google Drive. The adapter also reads the legacy `localStorage` cache as a fallback.
 
 4. **Run the development server:**
    ```bash
@@ -71,11 +71,24 @@ Portal Psis is a modern, secure, and clinical-grade web application designed spe
 
 ## 🧪 Testing
 
-The project ships with a comprehensive end-to-end test suite (13 specs, 54 tests) covering authentication, patient management, scheduling, sessions, finance, compliance, audit logs, settings, and data persistence (browser cache, Google Drive sync, and Google Calendar sync).
+The project uses Vitest for unit tests and Cypress for end-to-end and accessibility coverage. Cypress specs cover authentication, patients, scheduling, sessions, finance, compliance, audit logs, settings, encryption, persistence, and accessibility.
 
 ```bash
-# Run all E2E tests headlessly (requires the dev server or use the CI workflow)
-npx cypress run --browser chrome
+# Type-check
+npm run lint
+
+# Run unit tests
+npm run test:unit
+
+# Start `npm run dev` separately, then run Cypress against http://localhost:5173
+npx cypress run
+
+# Run the focused accessibility specs
+npx cypress run --spec "cypress/e2e/accessibility.cy.ts"
+npx cypress run --spec "cypress/e2e/accessibility-full.cy.ts"
+
+# Build the production bundle
+npm run build
 
 # Open the Cypress interactive runner
 npx cypress open
@@ -83,17 +96,23 @@ npx cypress open
 
 - **MockAuth:** A custom mock replaces Firebase Auth during Cypress runs, simulating the Google OAuth flow without live credentials.
 - **API intercepts:** All Google Drive and Calendar network calls are stubbed, so tests run fully offline.
+- **Axe/WCAG checks:** `accessibility-full.cy.ts` audits public and authenticated routes and checks forms, landmarks, keyboard navigation, color contrast, reduced motion, and error states. `checkA11yCustom` waits for finite animations, runs axe, and fails with rule IDs and affected selectors. `checkWCAG` runs selected axe tags, such as `wcag2aa` and `wcag21aa`.
+- **Accessibility behavior:** `src/index.css` honors `prefers-reduced-motion`; keyboard tests use the shared commands in `cypress/support/accessibility.ts`.
 - **Reports:** `cypress-mochawesome-reporter` generates HTML + JSON reports under `cypress/reports/html/` after each run.
 
 ## 🤖 CI/CD
 
-A GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push and pull request to `main`:
+A GitHub Actions workflow (`.github/workflows/ci.yml`) runs on pushes and pull requests targeting `main`:
 
 1. Install dependencies (`npm ci`)
-2. Type check (`npm run lint`)
-3. Run the full Cypress E2E suite against the Vite dev server
-4. Build the production bundle (**only if all tests pass**)
-5. Upload the `dist/` build and the mochawesome test reports as artifacts
+2. Type check (`npm run typecheck`)
+3. Run unit tests (`npm run test:unit`)
+4. Run the Cypress E2E suite against the Vite dev server
+5. Run the full axe accessibility spec (`cypress/e2e/accessibility-full.cy.ts`)
+6. Build the production bundle (**only if all checks pass**)
+7. Upload the `dist/` build and Cypress reports as artifacts
+
+The GitHub Pages deploy job runs only after a successful `push` to `main`; it is skipped for pull requests.
 
 ## 🌐 Deployment to GitHub Pages
 
@@ -118,7 +137,7 @@ If you encounter the "Unverified App" warning during login:
 1. Ensure the app domain (`github.io`) is added to the **Authorized Domains** in the Firebase Console and Google Cloud Console.
 2. Verify ownership of your GitHub Pages URL via **Google Search Console**.
 3. Ensure the Application Home Page is set to the root URL (e.g., `https://username.github.io/PsychePortal/`).
-4. Ensure the Privacy Policy link points to the public terms page (e.g., `https://username.github.io/PsychePortal/#/terms`).
+4. Ensure the Privacy Policy link points to the public privacy page (e.g., `https://username.github.io/PsychePortal/#/privacy`).
 5. Submit the application for verification in the Google Cloud Console.
 
 ## 📄 Disclaimer

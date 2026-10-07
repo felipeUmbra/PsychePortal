@@ -1,62 +1,157 @@
-name: CI
-
-# Full no-merge/no-deploy quality gate (QA_PLAN §4)
-# Every push/PR to main must pass: typecheck → unit tests → E2E → build.
-# Production deploy happens ONLY on a green `push` to main.
+name: Quality gates (PR)
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
+  push:
+    branches: [main]
 
+permissions:
+  contents: read
+
+# Superseded PR runs waste minutes; newer results are the ones that matter.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: pr-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
 jobs:
-  test-and-build:
+  typecheck:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
+          node-version: 22
+      - run: node --version && npm --version
+      - run: npm ci
+      - run: npm run typecheck
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Typecheck (lint)
-        run: npm run typecheck
-
-      - name: Run unit tests (Vitest)
-        run: npm run test:unit
-
-      - name: Run E2E tests (Cypress)
-        uses: cypress-io/github-action@v6
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          start: npm run dev
-          wait-on: "http://localhost:5173"
-          wait-on-timeout: 120
-          browser: chrome
+          node-version: 22
+      - run: node --version && npm --version
+      - run: npm ci
+      - run: npm run test:unit
 
-      - name: Run Accessibility tests (Cypress + axe)
-        uses: cypress-io/github-action@v6
+  accessibility:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          start: npm run dev
-          wait-on: "http://localhost:5173"
-          wait-on-timeout: 120
-          browser: chrome
-          spec: cypress/e2e/accessibility-full.cy.ts
+          node-version: 22
+      - run: node --version && npm --version
+      - run: npm ci
+      - name: Install Playwright Chromium
+        run: |
+          for i in {1..3}; do npx playwright install --with-deps chromium && break || sleep 10; done
+      - run: npm run test:e2e -- --project=chromium --grep "@accessibility"
 
-      # Reached only if typecheck, unit, E2E and accessibility tests passed.
-      - name: Build
-        run: npm run build
+  e2e-chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --version && npm --version
+      - run: npm ci
+      - name: Install Playwright Chromium
+        run: |
+          for i in {1..3}; do npx playwright install --with-deps chromium && break || sleep 10; done
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright-chromium
+          key: ${{ runner.os }}-pw-chromium-${{ hashFiles('package-lock.json') }}
+      - run: npm run test:e2e -- --project=chromium --grep-invert "@accessibility"
+
+  e2e-firefox:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --version && npm --version
+      - run: npm ci
+      - name: Install Playwright Firefox
+        run: |
+          for i in {1..3}; do npx playwright install --with-deps firefox && break || sleep 10; done
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright-firefox
+          key: ${{ runner.os }}-pw-firefox-${{ hashFiles('package-lock.json') }}
+      - run: npm run test:e2e -- --project=firefox --grep-invert "@accessibility"
+
+  e2e-webkit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --version && npm --version
+      - run: npm ci
+      - name: Install Playwright WebKit
+        run: |
+          for i in {1..3}; do npx playwright install --with-deps webkit && break || sleep 10; done
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright-webkit
+          key: ${{ runner.os }}-pw-webkit-${{ hashFiles('package-lock.json') }}
+      - run: npm run test:e2e -- --project=webkit --grep-invert "@accessibility"
+
+  e2e-mobile-chrome:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --version && npm --version
+      - run: npm ci
+      - name: Install Playwright Chromium
+        run: |
+          for i in {1..3}; do npx playwright install --with-deps chromium && break || sleep 10; done
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright-chromium
+          key: ${{ runner.os }}-pw-chromium-${{ hashFiles('package-lock.json') }}
+      - run: npm run test:e2e -- --project=mobile-chrome --grep-invert "@accessibility"
+
+  e2e-mobile-safari:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --version && npm --version
+      - run: npm ci
+      - name: Install Playwright WebKit
+        run: |
+          for i in {1..3}; do npx playwright install --with-deps webkit && break || sleep 10; done
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright-webkit
+          key: ${{ runner.os }}-pw-webkit-${{ hashFiles('package-lock.json') }}
+      - run: npm run test:e2e -- --project=mobile-safari --grep-invert "@accessibility"
+
+  build:
+    needs: [typecheck, unit, accessibility, e2e-chromium, e2e-firefox, e2e-webkit, e2e-mobile-chrome, e2e-mobile-safari]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --version && npm --version
+      - run: npm ci
+      - run: npm run build
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -66,21 +161,20 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
-      - name: Upload test reports (mochawesome)
+      - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: cypress-test-reports
+          name: playwright-test-reports
           path: |
-            cypress/reports/
-            cypress/screenshots/
-            cypress/videos/
+            playwright-report/
+            test-results/
           retention-days: 7
 
-  # NEW — production deploy, gated on the whole test-and-build job.
+  # Production deploy, gated on the whole test-and-build job.
   # Runs only on a green `push` to main; skipped for PRs.
   deploy:
-    needs: [test-and-build]
+    needs: [build]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
@@ -95,11 +189,12 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
+          node-version: 22
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          node --version && npm --version
+          npm ci
 
       - name: Download build artifact
         uses: actions/download-artifact@v4

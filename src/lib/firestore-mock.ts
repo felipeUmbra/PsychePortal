@@ -25,7 +25,6 @@ let state: Record<string, any[]> = {
   sessions: [],
   psychologists: [],
   audit_logs: [],
-  patient_consents: [],
   note_versions: []
 };
 

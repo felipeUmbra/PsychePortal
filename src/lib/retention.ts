@@ -13,7 +13,6 @@ import { logDelete } from './audit';
 
 export interface RetentionResult {
   sessionsDeleted: number;
-  consentsAffected: number;
   executedAt: string;
 }
 
@@ -33,7 +32,6 @@ export async function enforceRetentionPolicy(
 ): Promise<RetentionResult> {
   const result: RetentionResult = {
     sessionsDeleted: 0,
-    consentsAffected: 0,
     executedAt: new Date().toISOString(),
   };
 
@@ -54,16 +52,7 @@ export async function enforceRetentionPolicy(
     return sessionDate.getTime() < cutoffMs;
   });
 
-  // 3. Collect patient IDs that will lose all their sessions
-  const affectedPatientIds = new Set<string>();
-  for (const sessionDoc of expiredSessions) {
-    const data = sessionDoc.data();
-    if (data.patientId) {
-      affectedPatientIds.add(data.patientId);
-    }
-  }
-
-  // 4. Delete expired sessions and log to audit trail
+  // 3. Delete expired sessions and log to audit trail
   for (const sessionDoc of expiredSessions) {
     try {
       const data = sessionDoc.data();
@@ -79,40 +68,7 @@ export async function enforceRetentionPolicy(
     }
   }
 
-  // 5. Check for orphaned consents (patients with no remaining sessions)
-  for (const patientId of affectedPatientIds) {
-    try {
-      const remainingSessionsSnap = await getDocs(
-        query(
-          collection(db, 'sessions'),
-          where('patientId', '==', patientId),
-          where('psychologistId', '==', psychologistId)
-        )
-      );
-      if (remainingSessionsSnap.empty) {
-        // Patient has no remaining sessions — delete orphaned consents
-        const consentsSnap = await getDocs(
-          query(collection(db, 'patient_consents'), where('patientId', '==', patientId))
-        );
-        for (const consentDoc of consentsSnap.docs) {
-          try {
-            await deleteDoc(doc(db, 'patient_consents', consentDoc.id));
-            await logDelete(psychologistId, 'consent', consentDoc.id, {
-              context: 'retention_policy',
-              patientId,
-            });
-            result.consentsAffected++;
-          } catch (err) {
-            console.error(`Failed to delete orphaned consent ${consentDoc.id}:`, err);
-          }
-        }
-      }
-    } catch (err) {
-      console.error(`Failed to check remaining sessions for patient ${patientId}:`, err);
-    }
-  }
-
-  // 6. Update the psychologist's lastRetentionRun timestamp
+  // 4. Update the psychologist's lastRetentionRun timestamp
   try {
     await updateDoc(doc(db, 'psychologists', psychologistId), {
       lastRetentionRun: result.executedAt,

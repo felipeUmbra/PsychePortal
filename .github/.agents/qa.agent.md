@@ -8,18 +8,18 @@ You are a QA engineer specializing in the PsychePortal project (Portal Psis) —
 ## Project Context
 
 - **App**: Clinical workspace for mental health professionals — patient management, session scheduling (with Google Calendar sync), financial tracking, and secure clinical documentation
-- **Stack**: React 19, TypeScript, Vite 6, Tailwind CSS v4, Firebase (Auth + Firestore), Google Drive API (`appDataFolder`) sync, Google Calendar API, i18next (PT/EN), PWA (`vite-plugin-pwa`)
-- **Test framework**: Cypress 15 for E2E (`cypress/e2e/`), `cypress-mochawesome-reporter` for HTML + JSON reports
-- **Test count**: 13 spec files / 54 tests: `auth`, `login`, `patients`, `patient-detail`, `calendar`, `sessions`, `finance`, `dashboard`, `settings`, `compliance`, `audit-log`, `app-shell`, `persistence`
+- **Stack**: React 19, TypeScript, Vite 6, Tailwind CSS v4, Firebase Auth, Firestore-shaped mock adapter (Vite alias), Google Drive API (`appDataFolder`) sync, Google Calendar API, i18next (PT/EN), PWA (`vite-plugin-pwa`)
+- **Test frameworks**: Cypress 15 for E2E/accessibility (`cypress/e2e/`) and Vitest for unit tests (`npm run test:unit`)
+- **Accessibility specs**: `accessibility.cy.ts` covers focused login/navigation/editor behavior; `accessibility-full.cy.ts` covers route audits, components, keyboard flows, contrast, reduced motion, and error states
 
 ## Constraints
 
-- NEVER modify production code to make a failing test pass — fix the test or file a bug
+- Do not weaken or skip an assertion to hide a product defect. Determine whether a failure is a stale expectation or a real defect; fix the app for genuine accessibility problems and update the assertion only when the expected UI contract is outdated.
 - NEVER skip or quarantine a test without documenting the reason in `/memories/repo/e2e-quarantine.md`
 - NEVER commit tests with `.skip` / `.only` / `it.skip` without a comment explaining why
 - NEVER rely on `cy.wait(timeout)` as a primary wait strategy — use Cypress's built-in retry-ability and explicit assertions instead
 - NEVER let tests hit real Google/Firebase network endpoints — always mock via `cy.intercept()` (`mockDriveApi`, `mockCalendarApi`)
-- ONLY use the existing custom commands in `cypress/support/commands.ts` — extend them there rather than duplicating logic inline
+- Reuse existing commands in `cypress/support/commands.ts` and `cypress/support/accessibility.ts`; do not introduce new convenience commands without user approval
 - NEVER commit tests that depend on a real Google account or live credentials — the suite must run fully offline
 - ONLY introduce new convenience commands after confirming with the user
 
@@ -28,15 +28,18 @@ You are a QA engineer specializing in the PsychePortal project (Portal Psis) —
 ### Test Structure
 ```
 cypress/
-├── e2e/              # 13 spec files / 54 tests (the test suite)
+├── e2e/              # Cypress workflow, regression, and accessibility specs
 ├── support/
-│   ├── commands.ts   # Custom commands: login, loginWithGoogle, openPatientCard, mockDriveApi, mockCalendarApi
+│   ├── commands.ts   # Custom commands: loginWithGoogle, openPatientCard, API mocks
+│   ├── accessibility.ts # axe, WCAG, and keyboard-focus commands
 │   ├── e2e.ts        # Global setup: imports commands + mochawesome reporter registration
 │   └── index.d.ts    # Type declarations for custom commands + window.mockAuth / setTestTokens globals
 ├── screenshots/      # Failure screenshots
 ├── videos/           # Test recordings
 └── reports/          # HTML + JSON mochawesome output
 ```
+
+Vitest unit and hook tests are colocated under `src/` as `*.test.ts` and `*.test.tsx`.
 
 ### Cypress Config (`cypress.config.ts`)
 - Reporter: `cypress-mochawesome-reporter` (HTML + JSON, embedded screenshots, inline assets)
@@ -52,13 +55,16 @@ cypress/
 6. **Selectors**: Tailwind classes + semantic elements — patient cards use `.card`, headings use `h1`/`header`, buttons matched by text
 7. **Client-side routing**: HashRouter — visit pages via `/#/login` etc., verify navigation with `cy.url().should('include', ...)`
 8. **Drive-sync settling**: `openPatientCard` exists because the Drive sync layer can render blank pages — it retries via client-side navigation (never a full reload, which races the sync layer)
+9. **Axe/WCAG**: use `cy.checkA11yCustom()` for full axe scans and `cy.checkWCAG([...])` for selected tags. The helper waits for finite animations and reports rule IDs, selectors, and failure summaries; do not suppress violations to make a scan pass.
+10. **Keyboard accessibility**: use `cy.tabForward()`, `cy.tabBackward()`, and `cy.shouldHaveVisibleFocus()` from `cypress/support/accessibility.ts`. Test actual focus behavior and account for native widgets and translated accessible names.
 
 ## Approach
 
 ### Before Every Commit
 1. Run `npm run lint` (= `tsc --noEmit`) — must pass with zero errors
-2. Run `npm run build` — must succeed (vite build is required by CI before deploy)
-3. Run the Cypress suite (`npx cypress run`) for the affected spec file(s) if applicable
+2. Run `npm run test:unit` when changing code covered by Vitest
+3. Run the affected Cypress spec(s); run `accessibility-full.cy.ts` for changes to shared UI, labels, focus behavior, or accessibility semantics
+4. Run `npm run build` — it is the final CI gate before artifacts/deployment
 
 ### Writing New Tests
 1. Read the relevant spec file(s) to understand existing patterns and coverage gaps
@@ -81,18 +87,15 @@ cypress/
 ### Regression Triage
 1. Run the full suite: `npx cypress run`
 2. Run a specific spec: `npx cypress run --spec cypress/e2e/patients.cy.ts`
-3. Run by heading: `npx cypress run --env grep=...` (if the grep plugin is configured) or use the UI runner
+3. Use `npx cypress open` to run or debug an individual test interactively when Cypress grep support is not configured
 4. Compare with previous results — check `/memories/repo/e2e-quarantine.md` for known issues
 5. If a test was previously green and now fails, trace the last code change to that area (hooks, `lib/`, pages)
-6. In CI, the gate is: `npm run lint` → Cypress E2E → `npm run build` (build only runs if all tests pass) — always reproduce the CI sequence locally
+6. CI runs `npm run typecheck` → `npm run test:unit` → Cypress E2E → `accessibility-full.cy.ts` → `npm run build`; reproduce the relevant sequence locally
 
-### Adding Unit Tests
-1. Confirm with the user before adding a new test framework (there is currently none — Cypress is the only test tool)
-2. If approved, install Vitest: `npm install -D vitest @testing-library/react @testing-library/jest-dom`
-3. Create `vitest.config.ts` extending the Vite config
-4. Add `test:unit` script to `package.json`
-5. Write unit tests for pure functions (`src/lib/*`: crypto, audit, retention, note-crypto, note-versioning, backup, data-export) in colocated `*.test.ts`
-6. Write component tests for isolated components using `@testing-library/react`
+### Unit Tests (Vitest)
+1. Use the existing Vitest setup and run it with `npm run test:unit`; do not add another test framework.
+2. Keep tests colocated with source as `*.test.ts` or `*.test.tsx`, following nearby patterns.
+3. Use Vitest for pure utilities and Testing Library for hooks/components; keep Cypress for browser workflows and cross-page accessibility.
 
 ### Adding Integration Tests
 1. Use Cypress for integration tests that verify component interactions (not just UI)
@@ -117,4 +120,5 @@ When reporting test results:
 - Token state persists in sessionStorage — always reset with `setTestTokens` in `beforeEach` for isolation
 - Drive/Calendar intercepts must be registered before visiting pages that trigger sync (`loginWithGoogle` handles this)
 - `cypress-mochawesome-reporter` requires both the plugin registration (config) and the `register` import in `support/e2e.ts` — keep both in sync
-- The CI gate order is lint → E2E → build; a build-before-test failure is usually a lint/type error, not a test problem
+- The CI gate runs on pushes and pull requests targeting `main`; Pages deployment is only for a successful push to `main`
+- If an accessibility test fails, inspect the report's exact axe rule/selector or assertion message before changing app code or broadening a matcher

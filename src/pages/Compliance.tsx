@@ -496,7 +496,6 @@ export default function Compliance() {
                 <p className="text-[14px] font-bold text-text-main">{t('data_deletion.deletion_success', 'Data Deletion Complete')}</p>
                 <p className="text-[12px] text-text-muted">{t('data_deletion.result_patient_deleted', 'Patient record deleted')}: {dsrDeleteResult.patientDeleted ? 'Yes' : 'No'}</p>
                 <p className="text-[12px] text-text-muted">{t('data_deletion.result_sessions_deleted', 'Sessions deleted')}: {dsrDeleteResult.sessionsDeleted}</p>
-                <p className="text-[12px] text-text-muted">{t('data_deletion.result_consents_deleted', 'Consents deleted')}: {dsrDeleteResult.consentsDeleted}</p>
                 <p className="text-[12px] text-text-muted">{t('data_deletion.result_attachments_deleted', 'Attachments deleted')}: {dsrDeleteResult.attachmentsDeleted}</p>
                 <p className="text-[12px] text-text-muted">{t('data_deletion.result_executed_at', 'Executed at')}: {new Date(dsrDeleteResult.executedAt).toLocaleString()}</p>
               </div>

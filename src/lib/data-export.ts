@@ -22,7 +22,6 @@ export interface DataBundle {
   };
   patient: object | null;
   sessions: object[];
-  consents: object[];
   integrity: {
     algorithm: string;
     hash: string;
@@ -70,18 +69,16 @@ export async function generateDataBundle(patientId: string, psychologistId: stri
     }
     sessions.push(data);
   }
-  const consentsSnap = await getDocs(query(collection(db, 'patient_consents'), where('patientId', '==', patientId)));
-  const consents = consentsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
   const bundle: DataBundle = {
     metadata: { exportedAt: new Date().toISOString(), exportedBy: psychologistId, patientId, version: '1.0' },
-    patient, sessions, consents,
+    patient, sessions,
     integrity: { algorithm: 'SHA-256', hash: '' }
   };
-  const canonical = JSON.stringify(bundle.patient) + JSON.stringify(bundle.sessions) + JSON.stringify(bundle.consents);
+  const canonical = JSON.stringify(bundle.patient) + JSON.stringify(bundle.sessions);
   bundle.integrity.hash = await sha256(canonical);
   await logEvent({
     actorId: psychologistId, action: 'export', entity: 'patient', entityId: patientId,
-    afterData: { exportType: 'data_subject_request', sessionCount: sessions.length, consentCount: consents.length, bundleHash: bundle.integrity.hash }
+    afterData: { exportType: 'data_subject_request', sessionCount: sessions.length, bundleHash: bundle.integrity.hash }
   });
   return bundle;
 }

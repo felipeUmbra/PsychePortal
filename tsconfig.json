@@ -26,15 +26,12 @@
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "types": [
-      "cypress",
       "node",
       "react"
     ]
   },
   "include": [
     "src",
-    "cypress",
-    "**/*.cy.ts",
-    "**/*.cy.tsx"
+    "tests"
   ]
 }

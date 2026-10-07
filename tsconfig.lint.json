@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/test/**",
+    "tests/**",
+    "node_modules",
+    "dist"
+  ]
+}

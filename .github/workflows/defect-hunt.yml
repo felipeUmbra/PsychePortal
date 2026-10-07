@@ -1,0 +1,134 @@
+name: Defect hunt (QA agent)
+
+on:
+  workflow_dispatch:
+    inputs:
+      focus:
+        description: "What to hunt (blank = full sweep)"
+        required: false
+        type: string
+      base_ref:
+        description: "Hunt the diff since this ref"
+        required: false
+        type: string
+  schedule:
+    - cron: "17 3 * * *"   # off the hour: :00 is contended
+  workflow_run:
+    workflows: ["Quality gates (PR)"]
+    types: [completed]
+
+permissions:
+  contents: read
+  issues: write          # it must file; it must NOT push
+
+concurrency:
+  group: defect-hunt-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  hunt:
+    if: github.event_name != 'workflow_run'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # Build BEFORE hunting. An unbuilt or stale bundle is the single most
+      # common false bug: the agent reports defects in code that is not the
+      # code being served.
+      - run: npm run build
+
+      - name: Confirm gh is authenticated
+        run: gh auth status
+
+      - name: Exploratory hunt
+        env:
+          COPILOT_ALLOW_ALL: "true"
+        run: |
+          FOCUS="${{ inputs.focus }}"
+          BASE="${{ inputs.base_ref }}"
+
+          # Single-line assignments on purpose: a multi-line double-quoted
+          # scalar breaks the YAML block parser, and this is already inside a
+          # block scalar.
+          if [ -n "$BASE" ]; then
+            SCOPE="Hunt for product defects introduced by the diff $BASE...HEAD. Focus on what changed and on what that change broke indirectly."
+          elif [ -n "$FOCUS" ]; then
+            SCOPE="Hunt for product defects in: $FOCUS Read the relevant spec first, then probe the risky paths."
+          else
+            SCOPE="Full exploratory sweep of the risky areas: responsive layout, popovers and sheets, drag and drop, persistence and debounce, offline and sync."
+          fi
+
+          # The heredoc body MUST be indented to this block's level. A body at
+          # column 0 silently terminates the `run: |` block and the workflow
+          # fails to parse.
+          cat > prompt.md <<PROMPT_EOF
+          $SCOPE
+
+          1. This is DISCOVERY. Measure before judging: a finding you cannot
+             state as "expected X, measured Y" is not confirmed.
+          2. Do NOT edit product code and do NOT fix anything on this run.
+          3. File every confirmed Medium/High defect with gh. Ask "which
+             devices?" BEFORE "how bad?" - device scope separates the bands.
+          4. Search for an existing issue first; comment rather than duplicate.
+          5. Do not close or reopen anything.
+          6. Finding nothing is a real result. Say so and list what you probed.
+          PROMPT_EOF
+
+          npx --yes @github/copilot@latest \
+            -p "$(cat prompt.md)" \
+            --agent qa-agent \
+            --allow-all-tools \
+            --silent
+
+  triage-ci-failure:
+    # Only on an actual failure. On a green run there is nothing to triage, so
+    # this must no-op rather than burn minutes re-reading a passing suite.
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      issues: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Triage the failure
+        env:
+          COPILOT_ALLOW_ALL: "true"
+        run: |
+          cat > prompt.md <<PROMPT_EOF
+          A CI run failed: ${{ github.event.workflow_run.html_url }}
+
+          Decide which, and show the evidence:
+          (a) PRODUCT defect - the app behaves wrongly. File it (Medium/High).
+          (b) HARNESS problem - stale build output, a route-mock bypassed by CI
+              mode, a debounce window, resource contention, or a flaky test.
+              Do NOT file these.
+
+          Rule out (b) FIRST. This repo has a documented history of mistaking
+          (b) for (a).
+          PROMPT_EOF
+
+          npx --yes @github/copilot@latest \
+            -p "$(cat prompt.md)" \
+            --agent qa-agent \
+            --allow-all-tools \
+            --silent
