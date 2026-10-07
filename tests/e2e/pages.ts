@@ -63,12 +63,11 @@ export class PatientsPage extends BasePage {
   }
 
   async fillPatientForm(data: { name: string; email: string; phone: string; birthDate?: string }) {
-    const modal = this.page.locator('div.fixed.inset-0.z-50');
-    await modal.locator('input').nth(0).fill(data.name);
-    await modal.locator('input').nth(2).fill(data.email);
-    await modal.locator('input').nth(3).fill(data.phone);
+    await this.page.locator('#patient-name').fill(data.name);
+    await this.page.locator('#patient-email').fill(data.email);
+    await this.page.locator('#patient-phone').fill(data.phone);
     if (data.birthDate) {
-      await modal.locator('input[type="date"]').first().fill(data.birthDate);
+      await this.page.locator('#patient-dob').fill(data.birthDate);
     }
   }
 
@@ -93,7 +92,7 @@ export class PatientsPage extends BasePage {
     await this.getByRole('button', { name: /Filtros|Filters/i }).click();
   }
 
-  async expectFilterOption(text: string) {
+  async expectFilterOption(text: string | RegExp) {
     await expect(this.getByText(text)).toBeVisible();
   }
 
@@ -105,17 +104,15 @@ export class PatientsPage extends BasePage {
     const card = this.page.locator('.card', { hasText: name }).first();
     await card.locator('button').last().click();
     await this.getByText(/Editar|Edit/i).click();
-    await this.getByText(/Editar Paciente|Edit Patient/i).first().waitFor({ state: 'visible' });
-    const modal = this.page.locator('div.fixed.inset-0.z-50');
-    await modal.locator('input').nth(0).fill(newName);
+    await this.getByText(/Editar Paciente|Edit Patient|Editar Perfil/i).first().waitFor({ state: 'visible' });
+    await this.page.locator('#patient-name').fill(newName);
     await this.save();
   }
 
   async deletePatient(name: string) {
     const card = this.page.locator('.card', { hasText: name }).first();
+    this.page.once('dialog', dialog => dialog.accept());
     await card.locator('button').last().click();
-    // Handle confirmation dialog
-    this.page.on('dialog', dialog => dialog.accept());
     await this.getByText(/Excluir|Delete/i).click();
     // Wait for patient to be removed
     await this.expectPatientNotVisible(name);
@@ -131,8 +128,7 @@ export class SessionsPage extends BasePage {
 
 export class DashboardPage extends BasePage {
   async goto() {
-    await this.page.goto('/#/app/dashboard');
-    await this.page.waitForURL(/\/app\/dashboard/);
+    await this.page.goto('/#/app');
     await this.page.waitForLoadState('networkidle');
     // Wait for the h1 title to be visible
     await this.getByRole('heading', { level: 1 }).waitFor({ state: 'visible', timeout: 15000 });
@@ -149,7 +145,7 @@ export class CalendarPage extends BasePage {
 export class FinancePage extends BasePage {
   async goto() {
     await this.page.goto('/#/app/finance');
-    await this.getByText(/Financeiro|Finance/i).first().waitFor({ state: 'visible' });
+    await this.getByRole('heading', { name: /Financeiro|Financial|Finance/i, level: 1 }).waitFor({ state: 'visible' });
   }
 }
 
@@ -162,8 +158,8 @@ export class SettingsPage extends BasePage {
 
 export class AuditLogPage extends BasePage {
   async goto() {
-    await this.page.goto('/#/app/audit-log');
-    await this.getByText(/Log de Auditoria|Audit Log/i).first().waitFor({ state: 'visible' });
+    await this.page.goto('/#/app/audit');
+    await this.getByText(/Audit Trail|Audit Log|Rastro de Auditoria|Log de Auditoria/i).first().waitFor({ state: 'visible' });
   }
 }
 
@@ -176,7 +172,7 @@ export class CompliancePage extends BasePage {
 
 export class EncryptionPage extends BasePage {
   async goto() {
-    await this.page.goto('/#/app/encryption');
+    await this.page.goto('/#/app/settings');
     await this.getByText(/Criptografia|Encryption/i).first().waitFor({ state: 'visible' });
   }
 }

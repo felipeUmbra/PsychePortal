@@ -10,7 +10,7 @@ test.describe('Calendar', () => {
     await calendarPage.goto();
   });
 
-  test('loads calendar page', async () => {
-    await expect(test.page.getByText(/Calendário|Calendar/i).first()).toBeVisible();
+  test('loads calendar page', async ({ page }) => {
+    await expect(page.getByText(/Calendário|Calendar/i).first()).toBeVisible();
   });
 });

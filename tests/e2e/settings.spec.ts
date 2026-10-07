@@ -10,7 +10,7 @@ test.describe('Settings', () => {
     await settingsPage.goto();
   });
 
-  test('loads settings page', async () => {
-    await expect(test.page.getByText(/Configurações|Settings/i).first()).toBeVisible();
+  test('loads settings page', async ({ page }) => {
+    await expect(page.getByText(/Configurações|Settings/i).first()).toBeVisible();
   });
 });

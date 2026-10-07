@@ -10,7 +10,7 @@ test.describe('Audit Log', () => {
     await auditLogPage.goto();
   });
 
-  test('loads audit log page', async () => {
-    await expect(test.page.getByText(/Log de Auditoria|Audit Log/i).first()).toBeVisible();
+  test('loads audit log page', async ({ page }) => {
+    await expect(page.getByText(/Audit Trail|Audit Log|Rastro de Auditoria|Log de Auditoria/i).first()).toBeVisible();
   });
 });

@@ -10,7 +10,7 @@ test.describe('Finance', () => {
     await financePage.goto();
   });
 
-  test('loads finance page', async () => {
-    await expect(test.page.getByText(/Financeiro|Finance/i).first()).toBeVisible();
+  test('loads finance page', async ({ page }) => {
+    await expect(page.getByRole('heading', { name: /Financeiro|Financial|Finance/i, level: 1 })).toBeVisible();
   });
 });

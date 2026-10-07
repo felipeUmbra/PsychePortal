@@ -10,7 +10,7 @@ test.describe('Compliance', () => {
     await compliancePage.goto();
   });
 
-  test('loads compliance page', async () => {
-    await expect(test.page.getByText(/Conformidade|Compliance/i).first()).toBeVisible();
+  test('loads compliance page', async ({ page }) => {
+    await expect(page.getByText(/Conformidade|Compliance/i).first()).toBeVisible();
   });
 });

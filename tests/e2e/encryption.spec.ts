@@ -10,7 +10,7 @@ test.describe('Encryption', () => {
     await encryptionPage.goto();
   });
 
-  test('loads encryption page', async () => {
-    await expect(test.page.getByText(/Criptografia|Encryption/i).first()).toBeVisible();
+  test('loads encryption section', async ({ page }) => {
+    await expect(page.getByText(/Criptografia|Encryption/i).first()).toBeVisible();
   });
 });

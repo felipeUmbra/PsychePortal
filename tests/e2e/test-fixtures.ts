@@ -21,18 +21,52 @@ type TestFixtures = {
 async function injectPlaywrightFlag(page: Page) {
   await page.addInitScript(() => {
     (window as any).playwright = true;
+    try {
+      localStorage.setItem('cookie_consent', 'accepted');
+    } catch {}
   });
 }
 
 // Helper functions
 async function mockDriveApiImpl(page: Page) {
-  await page.route('**/drive/v3/files**', async route => {
-    if (route.request().method() === 'GET') {
-      await route.fulfill({ json: { files: [] } });
-    } else if (route.request().method() === 'POST') {
-      await route.fulfill({ json: { id: 'mock-drive-file' } });
-    } else if (route.request().method() === 'PATCH') {
-      await route.fulfill({ json: { id: 'mock-drive-file' } });
+  let savedDriveContent: any = null;
+
+  await page.route(/\/drive\/v3\/files/, async route => {
+    const method = route.request().method();
+    const url = route.request().url();
+
+    if (method === 'GET') {
+      if (url.includes('alt=media')) {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(savedDriveContent || { patients: [], sessions: [], psychologists: [], audit_logs: [] })
+        });
+      } else {
+        if (savedDriveContent) {
+          await route.fulfill({
+            status: 200,
+            json: { files: [{ id: 'mock-drive-file', name: 'workspace.json' }] }
+          });
+        } else {
+          await route.fulfill({ status: 200, json: { files: [] } });
+        }
+      }
+    } else if (method === 'POST' || method === 'PATCH') {
+      const postData = route.request().postData();
+      if (postData) {
+        try {
+          const filePart = postData.includes('name="file"') ? postData.split('name="file"')[1] : postData;
+          const jsonStart = filePart.indexOf('{');
+          const jsonEnd = filePart.lastIndexOf('}');
+          if (jsonStart !== -1 && jsonEnd !== -1) {
+            savedDriveContent = JSON.parse(filePart.substring(jsonStart, jsonEnd + 1));
+          }
+        } catch (e) {
+          console.error('Error parsing mock drive postData:', e);
+        }
+      }
+      await route.fulfill({ status: 200, json: { id: 'mock-drive-file' } });
     } else {
       await route.continue();
     }

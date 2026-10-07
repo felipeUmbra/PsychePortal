@@ -21,13 +21,16 @@ test.describe('Persistence & Sync', () => {
     await patientsPage.save();
     await patientsPage.expectPatientVisible('Persistent Patient');
 
+    // Wait for debounced Drive sync (500ms) to persist
+    await page.waitForTimeout(1000);
+
     // Reload the page
     await page.reload();
     await patientsPage.goto();
     await patientsPage.expectPatientVisible('Persistent Patient');
   });
 
-  test('patient data persists after navigation', async ({ page }) => {
+  test('patient data persists after navigation', async ({ page, isMobile }) => {
     await patientsPage.openAddForm();
     await patientsPage.fillPatientForm({
       name: 'Nav Patient',
@@ -39,9 +42,15 @@ test.describe('Persistence & Sync', () => {
     await patientsPage.expectPatientVisible('Nav Patient');
 
     // Navigate away and back
-    await page.getByRole('link', { name: /Dashboard/i }).click();
-    await page.waitForURL(/\/dashboard/);
-    await page.getByRole('link', { name: /Pacientes|Patients/i }).click();
+    if (isMobile) {
+      await page.locator('button[aria-controls="sidebar-nav"]').click();
+    }
+    await page.getByRole('navigation').getByRole('link', { name: /Dashboard/i }).click();
+    await page.waitForURL(/\/app(\/|$)/);
+    if (isMobile) {
+      await page.locator('button[aria-controls="sidebar-nav"]').click();
+    }
+    await page.getByRole('navigation').getByRole('link', { name: /Pacientes|Patients/i }).click();
     await patientsPage.goto();
     await patientsPage.expectPatientVisible('Nav Patient');
   });
