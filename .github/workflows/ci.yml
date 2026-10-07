@@ -37,34 +37,6 @@ jobs:
       - run: npm ci
       - run: npm run test:unit
 
-  cypress-e2e:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: node --version && npm --version
-      - run: npm ci
-      - uses: cypress-io/github-action@v6
-        with:
-          start: npm run dev
-          wait-on: "http://localhost:5173"
-          wait-on-timeout: 120
-          browser: chrome
-          record: false
-
-      - name: Upload Cypress test reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: cypress-test-reports
-          path: |
-            cypress/reports/
-            cypress/screenshots/
-            cypress/videos/
-          retention-days: 7
-
   accessibility:
     runs-on: ubuntu-latest
     steps:
@@ -170,7 +142,7 @@ jobs:
       - run: npm run test:e2e -- --project=mobile-safari --grep-invert "@accessibility"
 
   build:
-    needs: [typecheck, unit, cypress-e2e, accessibility, e2e-chromium, e2e-firefox, e2e-webkit, e2e-mobile-chrome, e2e-mobile-safari]
+    needs: [typecheck, unit, accessibility, e2e-chromium, e2e-firefox, e2e-webkit, e2e-mobile-chrome, e2e-mobile-safari]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
