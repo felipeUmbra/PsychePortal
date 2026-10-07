@@ -74,7 +74,7 @@ jobs:
           node-version: 22
       - run: node --version && npm --version
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install chromium
       - run: npm run test:e2e -- --project=chromium --grep "@accessibility"
 
   e2e-chromium:
@@ -91,7 +91,7 @@ jobs:
           path: ~/.cache/ms-playwright-chromium
           key: ${{ runner.os }}-pw-chromium-${{ hashFiles('package-lock.json') }}
       - name: Install browsers
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
       - run: npm run test:e2e -- --project=chromium --grep-invert "@accessibility"
 
   e2e-firefox:
@@ -108,7 +108,7 @@ jobs:
           path: ~/.cache/ms-playwright-firefox
           key: ${{ runner.os }}-pw-firefox-${{ hashFiles('package-lock.json') }}
       - name: Install browsers
-        run: npx playwright install --with-deps firefox
+        run: npx playwright install firefox
       - run: npm run test:e2e -- --project=firefox --grep-invert "@accessibility"
 
   e2e-webkit:
@@ -125,7 +125,7 @@ jobs:
           path: ~/.cache/ms-playwright-webkit
           key: ${{ runner.os }}-pw-webkit-${{ hashFiles('package-lock.json') }}
       - name: Install browsers
-        run: npx playwright install --with-deps webkit
+        run: npx playwright install webkit
       - run: npm run test:e2e -- --project=webkit --grep-invert "@accessibility"
 
   e2e-mobile-chrome:
@@ -142,7 +142,7 @@ jobs:
           path: ~/.cache/ms-playwright-chromium
           key: ${{ runner.os }}-pw-chromium-${{ hashFiles('package-lock.json') }}
       - name: Install browsers
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
       - run: npm run test:e2e -- --project=mobile-chrome --grep-invert "@accessibility"
 
   e2e-mobile-safari:
@@ -159,7 +159,7 @@ jobs:
           path: ~/.cache/ms-playwright-webkit
           key: ${{ runner.os }}-pw-webkit-${{ hashFiles('package-lock.json') }}
       - name: Install browsers
-        run: npx playwright install --with-deps webkit
+        run: npx playwright install webkit
       - run: npm run test:e2e -- --project=mobile-safari --grep-invert "@accessibility"
 
   build:

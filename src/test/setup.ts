@@ -5,6 +5,9 @@
 import '@testing-library/jest-dom/vitest';
 import { afterEach, vi } from 'vitest';
 
+// Mock global fetch for tests that need it (e.g., backup.ts)
+vi.stubGlobal('fetch', vi.fn());
+
 // Some lib modules (firestore-mock) touch localStorage even in node env.
 // Provide a tiny in-memory shim so node-env tests don't crash.
 function makeMemoryStorage(): Storage {
