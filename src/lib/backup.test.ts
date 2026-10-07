@@ -13,7 +13,7 @@ import {
 import {
   createMockDocSnapshot,
   createMockQuerySnapshot,
-} from '@/src/test/test-utils';
+} from '../test/test-utils';
 
 vi.mock('../firebase', () => ({
   db: {},
