@@ -11,7 +11,6 @@ export default defineConfig({
     alias: {
       // '@' maps to project root (same as vite.config.ts)
       '@': path.resolve(__dirname, '.'),
-      'src': path.resolve(__dirname, 'src'),
     },
   },
   test: {
