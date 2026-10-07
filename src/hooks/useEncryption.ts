@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -26,6 +26,10 @@ import {
 } from '../lib/note-crypto';
 
 let cachedMasterKey: CryptoKey | null = null;
+
+export function resetCachedMasterKeyForTesting() {
+  cachedMasterKey = null;
+}
 
 export interface UseEncryptionReturn {
   isUnlocked: boolean;

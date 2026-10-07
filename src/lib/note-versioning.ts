@@ -34,7 +34,7 @@ export interface NoteVersion {
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-async function getLatestVersionNumber(
+export async function getLatestVersionNumber(
   sessionId: string,
   psychologistId: string,
 ): Promise<number> {

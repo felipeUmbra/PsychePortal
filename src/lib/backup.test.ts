@@ -13,7 +13,7 @@ import {
 import {
   createMockDocSnapshot,
   createMockQuerySnapshot,
-} from '@/src/test/test-utils';
+} from '../test/test-utils';
 
 vi.mock('../firebase', () => ({
   db: {},
@@ -65,12 +65,12 @@ describe('backup', () => {
     vi.mocked(where).mockReturnValue({ type: 'where', field: 'psychologistId', op: '==', val: mockPsychologistId });
     vi.mocked(getDocs).mockResolvedValue(createMockQuerySnapshot([]));
     
-    global.fetch = vi.fn();
+    global.fetch = mockFetch;
   });
 
   afterEach(() => {
     vi.resetAllMocks();
-    delete (global as any).fetch;
+    mockFetch.mockReset();
   });
 
   describe('buildBackupFileName', () => {
@@ -239,9 +239,9 @@ describe('backup', () => {
     });
     it('uploads to primary and prunes', async () => {
       mockFetch
-        .mockResolvedValueOnce(createMockResponse({ files: [] })) // list for prune
         .mockResolvedValueOnce(createMockResponse({ files: [] })) // search for upload
         .mockResolvedValueOnce(createMockResponse(undefined)) // create upload
+        .mockResolvedValueOnce(createMockResponse({ files: [] })) // list for prune
         .mockResolvedValueOnce(createMockResponse({ files: [{ id: 'f1', name: 'backup.json' }] })); // list after prune
 
       const mockPatients = [createMockDocSnapshot('p1', { psychologistId: mockPsychologistId })];
@@ -258,9 +258,9 @@ describe('backup', () => {
 
     it('uploads to secondary when token provided', async () => {
       mockFetch
-        .mockResolvedValueOnce(createMockResponse({ files: [] })) // list for prune
         .mockResolvedValueOnce(createMockResponse({ files: [] })) // search primary
         .mockResolvedValueOnce(createMockResponse(undefined)) // create primary
+        .mockResolvedValueOnce(createMockResponse({ files: [] })) // list for prune
         .mockResolvedValueOnce(createMockResponse({ files: [{ id: 'f1' }] })) // list after prune
         .mockResolvedValueOnce(createMockResponse({ files: [] })) // search secondary
         .mockResolvedValueOnce(createMockResponse(undefined)); // create secondary
@@ -278,12 +278,12 @@ describe('backup', () => {
 
     it('handles secondary backup failure gracefully', async () => {
       mockFetch
-        .mockResolvedValueOnce(createMockResponse({ files: [] }))
-        .mockResolvedValueOnce(createMockResponse({ files: [] }))
-        .mockResolvedValueOnce(createMockResponse(undefined))
-        .mockResolvedValueOnce(createMockResponse({ files: [{ id: 'f1' }] }))
-        .mockResolvedValueOnce(createMockResponse({ files: [] }))
-        .mockResolvedValueOnce(createMockResponse(null, false, 500));
+        .mockResolvedValueOnce(createMockResponse({ files: [] })) // search primary
+        .mockResolvedValueOnce(createMockResponse(undefined)) // create primary
+        .mockResolvedValueOnce(createMockResponse({ files: [] })) // list for prune
+        .mockResolvedValueOnce(createMockResponse({ files: [{ id: 'f1' }] })) // list after prune
+        .mockResolvedValueOnce(createMockResponse({ files: [] })) // search secondary
+        .mockResolvedValueOnce(createMockResponse(null, false, 500)); // create secondary failure
 
       const mockPatients = [createMockDocSnapshot('p1', { psychologistId: mockPsychologistId })];
       vi.mocked(getDocs)
