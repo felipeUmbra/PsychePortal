@@ -27,14 +27,14 @@ const BACKUP_PREFIX = 'workspace-backup-';
 const MAX_DAILY_SNAPSHOTS = 30;
 const APP_DATA_FOLDER = 'appDataFolder';
 
-function buildBackupFileName(): string {
+export function buildBackupFileName(): string {
   const now = new Date();
   const datePart = now.toISOString().slice(0, 10);
   const timePart = now.toISOString().slice(11, 19).replace(/:/g, '');
   return BACKUP_PREFIX + datePart + '-' + timePart + '.json';
 }
 
-async function listBackupFiles(token: string): Promise<BackupFile[]> {
+export async function listBackupFiles(token: string): Promise<BackupFile[]> {
   const res = await fetch(
     'https://www.googleapis.com/drive/v3/files?spaces=' + APP_DATA_FOLDER + '&q=name contains "' + BACKUP_PREFIX + '" and trashed=false&fields=files(id,name,createdTime)&orderBy=createdTime desc',
     { headers: { Authorization: 'Bearer ' + token } },
@@ -44,14 +44,14 @@ async function listBackupFiles(token: string): Promise<BackupFile[]> {
   return (data.files || []) as BackupFile[];
 }
 
-async function deleteDriveFile(fileId: string, token: string): Promise<void> {
+export async function deleteDriveFile(fileId: string, token: string): Promise<void> {
   await fetch('https://www.googleapis.com/drive/v3/files/' + fileId, {
     method: 'DELETE',
     headers: { Authorization: 'Bearer ' + token },
   });
 }
 
-async function uploadToDrive(fileName: string, content: string, token: string): Promise<void> {
+export async function uploadToDrive(fileName: string, content: string, token: string): Promise<void> {
   const metadata = { name: fileName, parents: [APP_DATA_FOLDER] };
   const form = new FormData();
   form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
@@ -80,7 +80,7 @@ async function uploadToDrive(fileName: string, content: string, token: string): 
   }
 }
 
-async function pruneOldBackups(token: string): Promise<number> {
+export async function pruneOldBackups(token: string): Promise<number> {
   const files = await listBackupFiles(token);
   const byDate = new Map<string, BackupFile[]>();
   for (const f of files) {
@@ -104,19 +104,16 @@ async function pruneOldBackups(token: string): Promise<number> {
   return deleted;
 }
 
-async function buildSnapshot(psychologistId: string): Promise<object> {
+export async function buildSnapshot(psychologistId: string): Promise<object> {
   const patientsSnap = await getDocs(query(collection(db, 'patients'), where('psychologistId', '==', psychologistId)));
   const patients = patientsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
   const sessionsSnap = await getDocs(query(collection(db, 'sessions'), where('psychologistId', '==', psychologistId)));
   const sessions = sessionsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
   const auditSnap = await getDocs(query(collection(db, 'audit_logs'), where('actorId', '==', psychologistId)));
   const audit_logs = auditSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-  const consentsSnap = await getDocs(collection(db, 'patient_consents'));
-  const patientIds = new Set(patients.map((p: any) => p.id));
-  const patient_consents = consentsSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter((c: any) => patientIds.has(c.patientId));
   const psychSnap = await getDocs(query(collection(db, 'psychologists'), where('__name__', '==', psychologistId)));
   const psychologists = psychSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-  return { patients, sessions, audit_logs, patient_consents, psychologists, _meta: { exportedAt: new Date().toISOString(), exportedBy: psychologistId, version: '1.0' } };
+  return { patients, sessions, audit_logs, psychologists, _meta: { exportedAt: new Date().toISOString(), exportedBy: psychologistId, version: '1.0' } };
 }
 
 export async function triggerFullBackup(primaryToken: string, psychologistId: string, secondaryToken?: string): Promise<BackupResult> {

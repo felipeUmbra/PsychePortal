@@ -15,7 +15,6 @@ import { deleteObject } from './firestore-mock';
 export interface DeletionResult {
   patientDeleted: boolean;
   sessionsDeleted: number;
-  consentsDeleted: number;
   attachmentsDeleted: number;
   executedAt: string;
 }
@@ -27,7 +26,6 @@ export async function deleteAllPatientData(
   const result: DeletionResult = {
     patientDeleted: false,
     sessionsDeleted: 0,
-    consentsDeleted: 0,
     attachmentsDeleted: 0,
     executedAt: new Date().toISOString(),
   };
@@ -92,26 +90,7 @@ export async function deleteAllPatientData(
     });
   }
 
-  // 5. Delete all consents
-  const consentsSnap = await getDocs(
-    query(collection(db, 'patient_consents'), where('patientId', '==', patientId))
-  );
-  for (const consentDoc of consentsSnap.docs) {
-    try {
-      await deleteDoc(doc(db, 'patient_consents', consentDoc.id));
-      result.consentsDeleted++;
-    } catch (err) {
-      console.error(`Failed to delete consent ${consentDoc.id}:`, err);
-    }
-  }
-  if (result.consentsDeleted > 0) {
-    await logDelete(psychologistId, 'consent', patientId, {
-      count: result.consentsDeleted,
-      context: 'erasure_request',
-    });
-  }
-
-  // 6. Delete note_versions snapshots of the deleted sessions' notes
+  // 5. Delete note_versions snapshots of the deleted sessions' notes
   // (pre-edit note bodies must not survive a legally mandated erasure).
   for (const session of sessions) {
     try {
@@ -126,7 +105,7 @@ export async function deleteAllPatientData(
     }
   }
 
-  // 7. Browser-storage hygiene: remove unsaved note drafts belonging to the
+  // 6. Browser-storage hygiene: remove unsaved note drafts belonging to the
   // erased sessions and any legacy plaintext localStorage mirror remnants.
   if (typeof window !== 'undefined') {
     try {

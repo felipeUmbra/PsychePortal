@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, FileText, Plus, Clock, Edit3, Trash2, X, ClipboardCheck, AlertTriangle, Loader2, History, Lock, ExternalLink } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ArrowLeft, Calendar, FileText, Plus, Clock, Edit3, Trash2, X, AlertTriangle, Loader2, History, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format, isPast } from 'date-fns';
 import { ptBR, enUS } from 'date-fns/locale';
@@ -14,13 +13,11 @@ import { SessionForm } from '../components/sessions/SessionForm';
 import { PatientInfoCard } from '../components/patients/PatientInfoCard';
 import { usePatient } from '../hooks/usePatients';
 import { useSessions } from '../hooks/useSessions';
-import { doc, getDoc } from 'firebase/firestore';
-import { db, auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
+import { db, auth } from '../firebase';
 import { logView, logEditCompleted } from '../lib/audit';
 import { deleteAllPatientData } from '../lib/data-deletion';
-import { PatientConsent } from '../components/patients/PatientConsent';
-import { usePatientConsent } from '../hooks/usePatientConsent';
+
 import { useEncryption } from '../hooks/useEncryption';
 import { getNoteVersions, type NoteVersion } from '../lib/note-versioning';
 
@@ -45,8 +42,6 @@ export default function PatientDetail() {
 const [showEditWarningModal, setShowEditWarningModal] = useState(false);
 const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(null);
   const [editJustification, setEditJustification] = useState('');
-  const [activeTab, setActiveTab] = useState<'sessions' | 'consent'>('sessions');
-  const [psychologistConsentText, setPsychologistConsentText] = useState<string | null>(null);
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
   const [deleteAllConfirmName, setDeleteAllConfirmName] = useState('');
   const [deleteAllLoading, setDeleteAllLoading] = useState(false);
@@ -60,31 +55,12 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
   const [decryptedVersionNotes, setDecryptedVersionNotes] = useState<string | null>(null);
   const { isUnlocked, decrypt } = useEncryption();
 
-  const { consents, hasActiveConsent, acceptConsent, revokeConsent } = usePatientConsent(id);
 // Log patient view
   useEffect(() => {
     if (user && patient) {
       logView(user.uid, 'patient', patient.id);
     }
   }, [user, patient]);
-
-  // Fetch psychologist profile for consentText
-  useEffect(() => {
-    if (!user) return;
-    (async () => {
-      try {
-        const snap = await getDoc(doc(db, 'psychologists', user.uid));
-        if (snap.exists()) {
-          const data = snap.data() as any;
-          if (data.consentText && data.consentText.trim().length > 0) {
-            setPsychologistConsentText(data.consentText);
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch psychologist profile:', err);
-      }
-    })();
-  }, [user]);
 
   const getSessionDate = (s: any) => s?.date ? ((s.date as any).toDate ? (s.date as any).toDate() : new Date(s.date)) : new Date(NaN);
 
@@ -98,11 +74,7 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
       await addSession(data);
       setIsAddingSession(false);
     } catch (err: any) {
-      if (err.message === 'CONSENT_REQUIRED') {
-        alert(t('consent.required_before_session'));
-      } else {
-        console.error('Failed to add session:', err);
-      }
+      console.error('Failed to add session:', err);
     }
   };
 
@@ -112,11 +84,7 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
       setEditingSessionId(null);
       setRegisteringSessionId(null);
     } catch (err: any) {
-      if (err.message === 'CONSENT_REQUIRED') {
-        alert(t('consent.required_before_session'));
-      } else {
-        console.error('Failed to update session:', err);
-      }
+      console.error('Failed to update session:', err);
     }
   };
 
@@ -254,19 +222,10 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
             {t('calendar.schedule_session', 'Schedule Appointment')}
           </button>
           <button
-            onClick={() => {
-              if (!hasActiveConsent) {
-                setActiveTab('consent');
-                return;
-              }
-              setIsAddingSession(true);
-            }}
-            disabled={!hasActiveConsent}
-            className={`btn-primary flex items-center gap-2 text-[13px] sm:text-[14px] flex-1 sm:flex-none justify-center ${
-              !hasActiveConsent ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
+            onClick={() => setIsAddingSession(true)}
+            className="btn-primary flex items-center gap-2 text-[13px] sm:text-[14px] flex-1 sm:flex-none justify-center"
           >
-            {!hasActiveConsent ? <Lock className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+            <Plus className="w-4 h-4" />
             {t('patient_detail.log_session')}
           </button>
           <button
@@ -299,72 +258,6 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
         title={t('patient_detail.edit_profile')}
       />
 
-      <div className="flex gap-1 border-b border-border-custom mb-6">
-        <button
-          onClick={() => setActiveTab('sessions')}
-          className={`px-4 py-2 text-[13px] font-bold border-b-2 transition-colors ${
-            activeTab === 'sessions' ? 'border-primary-custom text-primary-custom' : 'border-transparent text-text-muted hover:text-text-main'
-          }`}
-        >
-          {t('patient_detail.session_history', 'Session History')}
-        </button>
-        <button
-          onClick={() => setActiveTab('consent')}
-          className={`px-4 py-2 text-[13px] font-bold border-b-2 transition-colors flex items-center gap-2 ${
-            activeTab === 'consent' ? 'border-primary-custom text-primary-custom' : 'border-transparent text-text-muted hover:text-text-main'
-          }`}
-        >
-          <ClipboardCheck className="w-4 h-4" />
-          {t('consent.title', 'Consent')}
-        </button>
-      </div>
-
-      {activeTab === 'sessions' && !psychologistConsentText && (
-        <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg mb-6">
-          <AlertTriangle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="text-[13px] text-blue-800 font-medium">{t('consent.config_required', 'Consent text not configured. Please configure the consent text in Settings before collecting patient consent.')}</p>
-            <Link
-              to="/app/settings"
-              className="mt-2 text-[13px] font-bold text-blue-700 underline hover:text-blue-900 transition-colors inline-flex items-center gap-1"
-            >
-              {t('consent.go_to_settings', 'Go to Settings')}
-              <ExternalLink className="w-3 h-3" />
-            </Link>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'consent' ? (
-        <PatientConsent
-          consentText={psychologistConsentText || (consents && consents.length > 0 ? consents[0].text : t('consent.default_text', 'Please configure consent text in Settings.'))}
-          consentVersion={consents && consents.length > 0 ? consents[0].version : '1.0'}
-          currentConsent={consents && consents.length > 0 ? consents[0] : undefined}
-          hasActiveConsent={hasActiveConsent}
-          onAccept={async (data) => {
-            await acceptConsent(data);
-            setActiveTab('sessions');
-          }}
-          onRevoke={async () => {
-            await revokeConsent();
-            return Promise.resolve();
-          }}
-        />
-      ) : (<>
-      {!hasActiveConsent && (
-        <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg mb-6">
-          <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="text-[13px] text-amber-800 font-medium">{t('consent.banner_required')}</p>
-            <button
-              onClick={() => setActiveTab('consent')}
-              className="mt-2 text-[13px] font-bold text-amber-700 underline hover:text-amber-900 transition-colors"
-            >
-              {t('consent.title', 'Consent')}
-            </button>
-          </div>
-        </div>
-      )}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="space-y-8">
           <PatientInfoCard patient={patient} />
@@ -415,7 +308,6 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
                 onCancel={() => setIsAddingSession(false)}
                 onUploadFile={(file) => uploadFile(file, id!)}
                 isUploading={isUploading}
-                consentRequired={!hasActiveConsent}
               />
             </div>
           )}
@@ -449,8 +341,7 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
                           return uploadFile(file, session.id);
                         }}
                         isUploading={isUploading}
-                        consentRequired={!hasActiveConsent}
-                      />
+                       />
                     </div>
                   ) : (
                     <>
@@ -581,7 +472,6 @@ const [pendingEditSessionId, setPendingEditSessionId] = useState<string | null>(
           </div>
         </div>
       </div>
-      </>)}
 
             <AnimatePresence>
         {showEditWarningModal && (

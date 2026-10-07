@@ -93,7 +93,6 @@ describe('generateDataBundle', () => {
   it('produces the full bundle shape with patient, sessions and integrity', async () => {
     await seedPatient();
     await seedSession({ notes: 'plaintext note' });
-    await seedConsent();
 
     const bundle = await generateDataBundle(PATIENT, PSYCH);
 
@@ -101,7 +100,6 @@ describe('generateDataBundle', () => {
     expect(bundle.metadata.exportedBy).toBe(PSYCH);
     expect(bundle.patient).toMatchObject({ id: PATIENT, name: 'Ana DSR' });
     expect(bundle.sessions).toHaveLength(1);
-    expect(bundle.consents).toHaveLength(1);
     expect(bundle.integrity.algorithm).toBeTruthy();
     expect(bundle.integrity.hash).toMatch(/^[0-9a-f]{64}$/);
   });
