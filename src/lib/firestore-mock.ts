@@ -1,10 +1,18 @@
 // Mock Firestore implementation using localStorage and generic events to simulate Firebase syncing locally
 import { v4 as uuidv4 } from 'uuid';
+import { offlineStorage } from './offline-storage';
 
 // SECURITY (CWE-311): OAuth tokens are never persisted to web storage.
 // They live in module memory only and are re-provisioned by the auth layer
 // after a page reload.
 let driveToken: string | null = null;
+let isLoaded = false;
+let loadPromise: Promise<void> | null = null;
+let isLoading = false; // Mutex flag to prevent concurrent loads
+
+// Pending operations queue to prevent data loss when Drive is loading
+let pendingOperations: Array<() => void> = [];
+let isQueueProcessing = false;
 
 export const setDriveToken = (token: string | null) => {
   // Skip redundant syncs (e.g. token restored twice on page reload).
@@ -14,7 +22,59 @@ export const setDriveToken = (token: string | null) => {
   // data leakage between different user sessions on the same machine.
   if (token) {
     forceSync().catch(console.error);
+    // Also trigger offline-to-Drive sync
+    syncOfflineToDrive().catch(console.error);
   }
+};
+
+// Sync offline storage to Drive when token becomes available
+async function syncOfflineToDrive(): Promise<void> {
+  try {
+    await offlineStorage.init();
+    const meta = await offlineStorage.getSyncMetadata();
+    
+    if (meta.pendingOperations > 0 || meta.driveTokenPresent === false) {
+      console.log(`Syncing offline data to Drive (${meta.pendingOperations} pending operations)...`);
+      
+      // Load all offline data
+      const offlineData = await offlineStorage.getAllCollections();
+      
+      // Replace state with offline data (merge strategy)
+      state = {
+        patients: offlineData.patients || [],
+        sessions: offlineData.sessions || [],
+        psychologists: offlineData.psychologists || [],
+        audit_logs: offlineData.audit_logs || [],
+        patient_consents: offlineData.patient_consents || [],
+        note_versions: offlineData.note_versions || [],
+      };
+      notify();
+      
+      // Force sync to Drive
+      await forceSync();
+      
+      // Clear offline storage after successful sync
+      await offlineStorage.clearAll();
+      await offlineStorage.setSyncMetadata({ 
+        pendingOperations: 0, 
+        lastSynced: Date.now(),
+        driveTokenPresent: true 
+      });
+      
+      console.log('Offline data synced to Drive successfully');
+    }
+  } catch (err) {
+    console.error('Failed to sync offline data to Drive:', err);
+  }
+}
+
+// Check if we're in offline mode (no Drive token but data loaded)
+export const isOfflineMode = () => !driveToken && isLoaded;
+
+// Get sync status for UI
+export const getSyncStatus = async () => {
+  await offlineStorage.init();
+  return offlineStorage.getSyncMetadata();
 };
 
 export const getFirestore = () => ({});
@@ -25,7 +85,8 @@ let state: Record<string, any[]> = {
   sessions: [],
   psychologists: [],
   audit_logs: [],
-  note_versions: []
+  note_versions: [],
+  patient_consents: []
 };
 
 // Setup internal events for onSnapshot
@@ -122,34 +183,66 @@ const applyConditions = (items: any[], conditions: any[]) => {
     } else if (cond.type === 'limit') {
       filtered = filtered.slice(0, cond.num);
     }
-  }
-  return filtered;
-};
-
-let isLoaded = false;
-let loadPromise: Promise<void> | null = null;
-let isLoading = false; // Mutex flag to prevent concurrent loads
-
-export const loadFromDrive = async () => {
-  if (loadPromise) return loadPromise;
-  if (isLoaded && driveToken) return;
-
-  isLoading = true;
-  loadPromise = (async () => {
-    // NOTE: `state` is intentionally NOT reset here. It is replaced
-    // atomically once the Drive/localStorage data arrives. Wiping it up
-    // front opened a window where the UI (and a debounced saveToDrive)
-    // could observe/persist an empty database, losing user data.
-    try {
-      const token = driveToken;
-      if (!token) {
-        // SECURITY (CWE-312): no plaintext localStorage mirror of clinical data.
-        // Without a Drive token there is no persistence layer; state stays in memory.
-        return;
       }
+      return filtered;
+    };
 
-      console.log('Loading state from Google Drive...');
-      const searchRes = await fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name="workspace.json"', {
+    export const loadFromDrive = async () => {
+      if (loadPromise) return loadPromise;
+      if (isLoaded && driveToken) return;
+
+      isLoading = true;
+      loadPromise = (async () => {
+        // NOTE: `state` is intentionally NOT reset here. It is replaced
+        // atomically once the Drive/localStorage data arrives. Wiping it up
+        // front opened a window where the UI (and a debounced saveToDrive)
+        // could observe/persist an empty database, losing user data.
+        try {
+          const token = driveToken;
+      
+          // If no Drive token, try loading from offline storage (IndexedDB)
+          if (!token) {
+            console.log('No Drive token, attempting to load from offline storage...');
+            await offlineStorage.init();
+            const hasOfflineData = await offlineStorage.hasEncryptionKey();
+        
+            if (hasOfflineData) {
+              console.log('Loading state from offline storage (IndexedDB)...');
+              const offlineData = await offlineStorage.getAllCollections();
+              state = {
+                patients: offlineData.patients || [],
+                sessions: offlineData.sessions || [],
+                psychologists: offlineData.psychologists || [],
+                audit_logs: offlineData.audit_logs || [],
+                  patient_consents: offlineData.patient_consents || [],
+                  note_versions: offlineData.note_versions || [],
+                };
+                notify();
+          
+                // Migrate legacy localStorage if present
+                const legacyCache = localStorage.getItem('mock_db_cache');
+                if (legacyCache) {
+                  try {
+                    const data = JSON.parse(legacyCache);
+                    for (const col of ['patients', 'sessions', 'psychologists', 'audit_logs', 'patient_consents', 'note_versions']) {
+                      if (Array.isArray(data[col]) && data[col].length > 0) {
+                        await offlineStorage.replaceAll(col as any, data[col]);
+                      }
+                    }
+                    localStorage.removeItem('mock_db_cache');
+                    console.log('Migrated legacy localStorage cache to offline storage');
+                  } catch (err) {
+                    console.error('Failed to migrate legacy cache:', err);
+                  }
+                }
+              }
+        
+              isLoaded = true;
+                            isLoading = false;
+                            return;
+                          }
+
+                    const searchRes = await fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name="workspace.json"', {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -214,35 +307,58 @@ export const loadFromDrive = async () => {
         }
       } else {
         console.log('No workspace file found in Google Drive appDataFolder.');
-        // Fallback to local cache if drive is fresh but we have something in localStorage
-        const localCache = localStorage.getItem('mock_db_cache');
-        if (localCache) {
-          state = JSON.parse(localCache);
-          notify();
-        }
-      }
+              // Fallback to offline storage if available
+              await offlineStorage.init();
+              const hasOfflineData = await offlineStorage.hasEncryptionKey();
+              if (hasOfflineData) {
+                console.log('Loading state from offline storage (fallback)...');
+                const offlineData = await offlineStorage.getAllCollections();
+                state = {
+                  patients: offlineData.patients || [],
+                  sessions: offlineData.sessions || [],
+                  psychologists: offlineData.psychologists || [],
+                  audit_logs: offlineData.audit_logs || [],
+                  patient_consents: offlineData.patient_consents || [],
+                  note_versions: offlineData.note_versions || [],
+                };
+                notify();
+              }
+            }
 
-      // Process any pending operations before marking as loaded
-      // This ensures user changes are not lost
-      processPendingOperations();
+            // Process any pending operations before marking as loaded
+            // This ensures user changes are not lost
+            processPendingOperations();
 
-      isLoaded = true; // Only mark as loaded if we successfully communicated with drive
-    } catch (err) {
-      console.error('Failed to load from Drive:', err);
-      isLoaded = true; // Permite salvar mesmo que a carga inicial da nuvem falhe
-      // Fallback to local cache on general errors
-      const localCache = localStorage.getItem('mock_db_cache');
-      if (localCache) {
-        state = JSON.parse(localCache);
-        notify();
-      }
-    } finally {
-      isLoading = false;
-    }
-  })();
+            isLoaded = true; // Only mark as loaded if we successfully communicated with drive
+          } catch (err) {
+            console.error('Failed to load from Drive:', err);
+            isLoaded = true; // Permite salvar mesmo que a carga inicial da nuvem falhe
+            // Fallback to offline storage on general errors
+            try {
+              await offlineStorage.init();
+              const hasOfflineData = await offlineStorage.hasEncryptionKey();
+              if (hasOfflineData) {
+                const offlineData = await offlineStorage.getAllCollections();
+                state = {
+                  patients: offlineData.patients || [],
+                  sessions: offlineData.sessions || [],
+                  psychologists: offlineData.psychologists || [],
+                  audit_logs: offlineData.audit_logs || [],
+                  patient_consents: offlineData.patient_consents || [],
+                  note_versions: offlineData.note_versions || [],
+                };
+                notify();
+              }
+            } catch (offlineErr) {
+              console.error('Failed to load from offline storage:', offlineErr);
+            }
+          } finally {
+            isLoading = false;
+          }
+        })();
 
-  return loadPromise;
-};
+        return loadPromise;
+      };
 
 export const ensureLoaded = () => {
   return loadPromise || loadFromDrive();
@@ -257,10 +373,6 @@ export const forceSync = async () => {
 
 let syncTimer: any;
 let isSyncing = false;
-
-// Pending operations queue to prevent data loss when Drive is loading
-let pendingOperations: Array<() => void> = [];
-let isQueueProcessing = false;
 
 const processPendingOperations = () => {
   if (isQueueProcessing || pendingOperations.length === 0) return;
@@ -442,18 +554,29 @@ export const addDoc = async (colRef: any, data: any) => {
     }
   }
 
+  const record = { id, ...processedData };
+
   // If not loaded yet, queue this operation to prevent data loss
   if (!isLoaded) {
     console.log('Queueing addDoc operation until Drive loads...');
     pendingOperations.push(() => {
-      state[colRef.path].push({ id, ...processedData });
+      state[colRef.path].push(record);
       notify();
     });
     // Still return the ID so the caller can use it
     return { id };
   }
 
-  state[colRef.path].push({ id, ...processedData });
+  state[colRef.path].push(record);
+  
+  // Persist to offline storage (encrypted IndexedDB)
+  try {
+    await offlineStorage.put(colRef.path, record);
+    await offlineStorage.incrementPendingOperations();
+  } catch (err) {
+    console.error('Failed to persist to offline storage:', err);
+  }
+  
   saveToDrive();
   notify();
   return { id };
@@ -471,15 +594,17 @@ export const setDoc = async (docRef: any, data: any) => {
     }
   }
 
+  const record = { id: docRef.id, ...processedData };
+
   // If not loaded yet, queue this operation to prevent data loss
   if (!isLoaded) {
     console.log('Queueing setDoc operation until Drive loads...');
     pendingOperations.push(() => {
       const currentIdx = state[docRef.path].findIndex(i => i.id === docRef.id);
       if (currentIdx >= 0) {
-        state[docRef.path][currentIdx] = { id: docRef.id, ...processedData };
+        state[docRef.path][currentIdx] = record;
       } else {
-        state[docRef.path].push({ id: docRef.id, ...processedData });
+        state[docRef.path].push(record);
       }
       notify();
     });
@@ -487,10 +612,19 @@ export const setDoc = async (docRef: any, data: any) => {
   }
 
   if (idx >= 0) {
-    state[docRef.path][idx] = { id: docRef.id, ...processedData };
+    state[docRef.path][idx] = record;
   } else {
-    state[docRef.path].push({ id: docRef.id, ...processedData });
+    state[docRef.path].push(record);
   }
+  
+  // Persist to offline storage (encrypted IndexedDB)
+  try {
+    await offlineStorage.put(docRef.path, record);
+    await offlineStorage.incrementPendingOperations();
+  } catch (err) {
+    console.error('Failed to persist to offline storage:', err);
+  }
+  
   saveToDrive();
   notify();
 };
@@ -521,6 +655,15 @@ export const updateDoc = async (docRef: any, data: any) => {
     }
 
     state[docRef.path][idx] = { ...state[docRef.path][idx], ...processedData };
+    
+    // Persist to offline storage (encrypted IndexedDB)
+    try {
+      await offlineStorage.put(docRef.path, state[docRef.path][idx]);
+      await offlineStorage.incrementPendingOperations();
+    } catch (err) {
+      console.error('Failed to persist to offline storage:', err);
+    }
+    
     saveToDrive();
     notify();
   }
@@ -540,6 +683,15 @@ export const deleteDoc = async (docRef: any) => {
   }
 
   state[docRef.path] = state[docRef.path].filter(i => i.id !== docRef.id);
+  
+  // Persist to offline storage (encrypted IndexedDB)
+  try {
+    await offlineStorage.deleteRecord(docRef.path, docRef.id);
+    await offlineStorage.incrementPendingOperations();
+  } catch (err) {
+    console.error('Failed to persist to offline storage:', err);
+  }
+  
   saveToDrive();
   notify();
 };
