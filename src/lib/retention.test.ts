@@ -120,4 +120,55 @@ describe('enforceRetentionPolicy', () => {
     const result = await enforceRetentionPolicy(PSYCH, 5);
     expect(result.sessionsDeleted).toBe(0);
   });
-});
+
+    it('handles deleteDoc failure gracefully and continues', async () => {
+      await seedPsychologist(PSYCH);
+      await seedSession({ psychologistId: PSYCH, patientId: 'p-fail', date: new Date(OLD_MS).toISOString() });
+
+      // Mock deleteDoc to throw via the mockFstore delegates
+      const originalDeleteDoc = mockFstore.delegates.deleteDoc;
+      mockFstore.delegates.deleteDoc = vi.fn().mockRejectedValue(new Error('Delete failed'));
+
+      const result = await enforceRetentionPolicy(PSYCH, 5);
+
+      // Should not throw, should continue and report 0 deletions
+      expect(result.sessionsDeleted).toBe(0);
+
+      // Restore
+      mockFstore.delegates.deleteDoc = originalDeleteDoc;
+    });
+
+    it('handles updateDoc failure gracefully', async () => {
+      await seedPsychologist(PSYCH);
+      await seedSession({ psychologistId: PSYCH, patientId: 'p-old2', date: new Date(OLD_MS).toISOString() });
+
+      // Mock updateDoc to throw via the mockFstore delegates
+      const originalUpdateDoc = mockFstore.delegates.updateDoc;
+      mockFstore.delegates.updateDoc = vi.fn().mockRejectedValue(new Error('Update failed'));
+
+      const result = await enforceRetentionPolicy(PSYCH, 5);
+
+      // Should still delete the session but not update lastRetentionRun
+      expect(result.sessionsDeleted).toBe(1);
+
+      // Restore
+      mockFstore.delegates.updateDoc = originalUpdateDoc;
+    });
+
+    it('handles logDelete failure gracefully', async () => {
+      await seedPsychologist(PSYCH);
+      await seedSession({ psychologistId: PSYCH, patientId: 'p-log-fail', date: new Date(OLD_MS).toISOString() });
+
+      // Mock logDelete to throw
+      const originalLogDelete = mockAudit.logDelete;
+      mockAudit.logDelete = vi.fn().mockRejectedValue(new Error('Log failed'));
+
+      const result = await enforceRetentionPolicy(PSYCH, 5);
+
+      // Should still delete the session but not log the audit event
+      expect(result.sessionsDeleted).toBe(1);
+
+      // Restore
+      mockAudit.logDelete = originalLogDelete;
+    });
+  });

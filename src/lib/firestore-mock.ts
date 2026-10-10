@@ -1,4 +1,4 @@
-// Mock Firestore implementation using localStorage and generic events to simulate Firebase syncing locally
+﻿// Mock Firestore implementation using localStorage and generic events to simulate Firebase syncing locally
 import { v4 as uuidv4 } from 'uuid';
 import { offlineStorage } from './offline-storage';
 
@@ -6,6 +6,19 @@ import { offlineStorage } from './offline-storage';
 // They live in module memory only and are re-provisioned by the auth layer
 // after a page reload.
 let driveToken: string | null = null;
+
+// Emit sync status events for UI
+const emitSyncStatus = (status: 'idle' | 'pending' | 'syncing' | 'synced' | 'error', error?: string) => {
+  if (typeof window !== 'undefined') {
+    const meta = {
+      status,
+      pendingCount: pendingOperations.length,
+      lastSynced: null,
+      error,
+    };
+    window.dispatchEvent(new CustomEvent('sync-status-changed', { detail: meta }));
+  }
+};
 let isLoaded = false;
 let loadPromise: Promise<void> | null = null;
 let isLoading = false; // Mutex flag to prevent concurrent loads
@@ -404,7 +417,7 @@ const saveToDrive = () => {
     const token = driveToken;
 
     // SECURITY (CWE-312): the previous plaintext localStorage "safety net"
-    // mirror (mock_db_cache) was removed — it persisted unencrypted clinical
+    // mirror (mock_db_cache) was removed â€” it persisted unencrypted clinical
     // PII to disk bypassing the app's opt-in encryption. Drive is the only
     // persistence target.
 
@@ -412,6 +425,7 @@ const saveToDrive = () => {
       return;
     }
     isSyncing = true;
+    emitSyncStatus('syncing');
     try {
       console.log('Syncing state to Google Drive...');
       const searchRes = await fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name="workspace.json"', {
@@ -498,7 +512,7 @@ const saveToDrive = () => {
 if (typeof window !== 'undefined') {
   window.addEventListener('beforeunload', () => {
     // SECURITY (CWE-312): previously flushed the full clinical dataset into
-    // localStorage ('mock_db_cache') in plaintext. Removed — no web-storage
+    // localStorage ('mock_db_cache') in plaintext. Removed â€” no web-storage
     // mirror of regulated data.
   });
 }
@@ -800,3 +814,16 @@ export const deleteObject = async (storageRef: any) => {
     console.error('Error deleting file from Drive:', error);
   }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
