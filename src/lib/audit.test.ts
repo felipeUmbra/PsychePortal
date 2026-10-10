@@ -34,7 +34,7 @@ vi.mock('../firebase', () => ({
 
 import * as firestoreMock from './firestore-mock';
 import { setDriveToken } from './firestore-mock';
-import { getLastAuditHash, logEvent, logView, logDelete, verifyAuditChain } from './audit';
+import { getLastAuditHash, logEvent, logView, logDelete, verifyAuditChain, logExport, logAuth } from './audit';
 
 async function boot() {
   // Build the delegating firebase/firestore proxy from the real firestore-mock.
@@ -152,4 +152,34 @@ describe('convenience loggers', () => {
     expect(dels[0].action).toBe('delete');
     expect(dels[0].beforeHash).toBeTruthy();
   });
-});
+
+    it('logExport writes export event with correct action and afterHash', async () => {
+      await logExport('psych-export', 'patient', ['p1', 'p2'], 'csv');
+
+      const exports = (await firestoreMock.getDocs(
+        firestoreMock.query(firestoreMock.collection({}, 'audit_logs'), firestoreMock.where('actorId', '==', 'psych-export'))
+      )).docs.map((d) => d.data());
+
+      expect(exports).toHaveLength(1);
+      expect(exports[0].action).toBe('export');
+      expect(exports[0].entity).toBe('patient');
+      expect(exports[0].entityId).toBe('p1,p2');
+      // afterData is not stored directly; only its hash (afterHash) is stored
+      expect(exports[0].afterHash).toBeTruthy();
+    });
+
+    it('logAuth writes login/logout events', async () => {
+      await logAuth('psych-auth', 'login');
+      await logAuth('psych-auth', 'logout');
+
+      const auths = (await firestoreMock.getDocs(
+        firestoreMock.query(firestoreMock.collection({}, 'audit_logs'), firestoreMock.where('actorId', '==', 'psych-auth'))
+      )).docs.map((d) => d.data());
+
+      expect(auths).toHaveLength(2);
+      expect(auths[0].action).toBe('login');
+      expect(auths[1].action).toBe('logout');
+      expect(auths[0].entity).toBe('psychologist');
+      expect(auths[0].entityId).toBe('psych-auth');
+    });
+  });

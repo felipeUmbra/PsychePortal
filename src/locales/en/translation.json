@@ -142,6 +142,27 @@
         "retention_reminder_title": "Retention policy pending",
         "retention_reminder_message": "Data retention has not been run for over 30 days. Run now to maintain compliance."
     },
+        "sync": {
+            "status": "Sync status",
+            "synced": "Synced",
+            "pending": "Pending",
+            "syncing": "Syncing...",
+            "error": "Error",
+            "offline": "Offline",
+            "all_changes_synced": "All changes synced to Google Drive",
+            "pending_changes": "{{count}} changes pending sync",
+            "sync_in_progress": "Sync in progress...",
+            "sync_failed": "Sync failed",
+            "changes_saved_locally": "Changes saved locally (no Drive connection)",
+            "last_sync": "Last sync",
+            "never_synced": "Never synced",
+            "just_now": "Just now",
+            "minutes_ago": "{{count}} min ago",
+            "hours_ago": "{{count}} hours ago",
+            "days_ago": "{{count}} days ago",
+            "force_sync": "Force sync now",
+            "view_details": "View sync details"
+        },
     "finance": {
         "title": "Financial",
         "subtitle": "Manage payments",

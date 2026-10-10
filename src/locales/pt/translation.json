@@ -70,6 +70,27 @@
         "retention_reminder_title": "Política de retenção pendente",
         "retention_reminder_message": "A retenção de dados não foi executada há mais de 30 dias. Execute agora para manter a conformidade."
     },
+        "sync": {
+            "status": "Status de sincronização",
+            "synced": "Sincronizado",
+            "pending": "Pendente",
+            "syncing": "Sincronizando...",
+            "error": "Erro",
+            "offline": "Offline",
+            "all_changes_synced": "Todas as alterações sincronizadas com o Google Drive",
+            "pending_changes": "{{count}} alterações pendentes de sincronização",
+            "sync_in_progress": "Sincronização em andamento...",
+            "sync_failed": "Falha na sincronização",
+            "changes_saved_locally": "Alterações salvas localmente (sem conexão com o Drive)",
+            "last_sync": "Última sincronização",
+            "never_synced": "Nunca sincronizado",
+            "just_now": "Agora mesmo",
+            "minutes_ago": "{{count}} min atrás",
+            "hours_ago": "{{count}} horas atrás",
+            "days_ago": "{{count}} dias atrás",
+            "force_sync": "Forçar sincronização agora",
+            "view_details": "Ver detalhes da sincronização"
+        },
     "finance": {
         "title": "Financeiro",
         "subtitle": "Gerencie e acompanhe os pagamentos das sessões.",

@@ -111,6 +111,25 @@ describe('backup', () => {
     });
   });
 
+  describe('listBackupFiles - error handling', () => {
+    it('throws on network error', async () => {
+      mockFetch.mockRejectedValue(new Error('Network error'));
+
+      await expect(listBackupFiles(mockPrimaryToken)).rejects.toThrow('Network error');
+    });
+
+    it('throws on non-JSON response', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+        json: () => Promise.reject(new Error('Invalid JSON')),
+      } as unknown as Response);
+
+      await expect(listBackupFiles(mockPrimaryToken)).rejects.toThrow();
+    });
+  });
+
   describe('deleteDriveFile', () => {
     it('deletes file successfully', async () => {
       mockFetch.mockResolvedValue(createMockResponse(undefined));
