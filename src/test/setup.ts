@@ -21,95 +21,57 @@ vi.stubGlobal('IDBDatabase', IDBDatabase);
 vi.stubGlobal('IDBRequest', IDBRequest);
 vi.stubGlobal('IDBOpenDBRequest', IDBOpenDBRequest);
 
-// Mock window for tests that need it
-const mockWindow = {
-  location: { origin: 'http://localhost:5173' },
-  navigator: { userAgent: 'test-agent' },
-  dispatchEvent: vi.fn(),
-  addEventListener: vi.fn(),
-  removeEventListener: vi.fn(),
-  crypto: {
-    subtle: {
-      digest: vi.fn().mockResolvedValue(new ArrayBuffer(32)),
-      importKey: vi.fn().mockResolvedValue({}),
-      deriveKey: vi.fn().mockResolvedValue({}),
-      generateKey: vi.fn().mockResolvedValue({}),
-      encrypt: vi.fn().mockImplementation(async (algorithm: any, key: any, data: ArrayBuffer) => {
-        const ciphertext = new Uint8Array(data.byteLength + 16);
-        ciphertext.set(new Uint8Array(data));
-        for (let i = data.byteLength; i < ciphertext.length; i++) {
-          ciphertext[i] = i % 256;
-        }
-        return ciphertext.buffer;
-      }),
-      decrypt: vi.fn().mockImplementation(async (algorithm: any, key: any, data: ArrayBuffer) => {
-        const plaintext = new Uint8Array(data.byteLength - 16);
-        const dataView = new Uint8Array(data);
-        plaintext.set(dataView.slice(0, -16));
-        return plaintext.buffer;
-      }),
-      wrapKey: vi.fn().mockResolvedValue(new ArrayBuffer(32)),
-      unwrapKey: vi.fn().mockResolvedValue({}),
-    },
+// Use the REAL WebCrypto (Node >= 19 ships globalThis.crypto with subtle).
+// The previous fake crypto.subtle mocks broke sha256 known-vector tests and
+// made AES-GCM decrypt never reject on wrong keys / tampered payloads.
+// Only fall back to a mock when real WebCrypto is unavailable.
+const hasRealWebCrypto =
+  typeof globalThis.crypto === 'object' &&
+  globalThis.crypto !== null &&
+  typeof (globalThis.crypto as any).subtle === 'object' &&
+  (globalThis.crypto as any).subtle !== null;
+
+if (!hasRealWebCrypto) {
+  const mockCryptoSubtle = {
+    digest: vi.fn().mockResolvedValue(new ArrayBuffer(32)),
+    importKey: vi.fn().mockResolvedValue({}),
+    deriveKey: vi.fn().mockResolvedValue({}),
+    generateKey: vi.fn().mockResolvedValue({}),
+    encrypt: vi.fn().mockResolvedValue(new ArrayBuffer(32)),
+    decrypt: vi.fn().mockResolvedValue(new ArrayBuffer(16)),
+    wrapKey: vi.fn().mockResolvedValue(new ArrayBuffer(32)),
+    unwrapKey: vi.fn().mockResolvedValue({}),
+  };
+  vi.stubGlobal('crypto', {
+    subtle: mockCryptoSubtle,
     getRandomValues: vi.fn((arr: any) => {
       for (let i = 0; i < arr.length; i++) {
         arr[i] = Math.floor(Math.random() * 256);
       }
       return arr;
     }),
-  },
-};
+  });
+}
 
-vi.stubGlobal('window', mockWindow);
-vi.stubGlobal('navigator', { userAgent: 'test-agent' });
+// Mock window for tests that need it — but ONLY in node env.
+// In jsdom env, `window` already exists with a real `document`,
+// `addEventListener`, etc. Replacing it breaks @testing-library/react
+// (renderHook needs window.document). In node env there is no window,
+// so provide a minimal shim.
+const isJsdom = typeof (globalThis as any).document === 'object' && (globalThis as any).document !== null;
 
-// Mock crypto.subtle for tests that need encryption (e.g., offline-storage, firestore-mock)
-// Provide real SHA-256 for digest, mock others
-const mockCryptoSubtle = {
-  digest: vi.fn().mockImplementation(async (algorithm: string, data: ArrayBuffer) => {
-    if (algorithm === 'SHA-256') {
-      // Simple SHA-256 implementation for testing
-      const msgUint8 = new Uint8Array(data);
-      const hashBuffer = new ArrayBuffer(32);
-      const hashView = new Uint8Array(hashBuffer);
-      // Simple hash for testing - just use first 32 bytes of data or zeros
-      for (let i = 0; i < 32; i++) {
-        hashView[i] = msgUint8[i % msgUint8.length] || 0;
-      }
-      return hashBuffer;
-    }
-    return new ArrayBuffer(32);
-  }),
-  importKey: vi.fn().mockResolvedValue({}),
-  deriveKey: vi.fn().mockResolvedValue({}),
-  generateKey: vi.fn().mockResolvedValue({}),
-  encrypt: vi.fn().mockImplementation(async (algorithm: any, key: any, data: ArrayBuffer) => {
-    const ciphertext = new Uint8Array(data.byteLength + 16);
-    ciphertext.set(new Uint8Array(data));
-    for (let i = data.byteLength; i < ciphertext.length; i++) {
-      ciphertext[i] = i % 256;
-    }
-    return ciphertext.buffer;
-  }),
-  decrypt: vi.fn().mockImplementation(async (algorithm: any, key: any, data: ArrayBuffer) => {
-    const plaintext = new Uint8Array(data.byteLength - 16);
-    const dataView = new Uint8Array(data);
-    plaintext.set(dataView.slice(0, -16));
-    return plaintext.buffer;
-  }),
-  wrapKey: vi.fn().mockResolvedValue(new ArrayBuffer(32)),
-  unwrapKey: vi.fn().mockResolvedValue({}),
-};
-
-vi.stubGlobal('crypto', {
-  subtle: mockCryptoSubtle,
-  getRandomValues: vi.fn((arr: any) => {
-    for (let i = 0; i < arr.length; i++) {
-      arr[i] = Math.floor(Math.random() * 256);
-    }
-    return arr;
-  }),
-});
+if (!isJsdom) {
+  const mockWindow = {
+    location: { origin: 'http://localhost:5173' },
+    navigator: { userAgent: 'test-agent' },
+    dispatchEvent: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    crypto: hasRealWebCrypto ? globalThis.crypto : (globalThis as any).crypto,
+  };
+  vi.stubGlobal('window', mockWindow);
+  vi.stubGlobal('navigator', { userAgent: 'test-agent' });
+}
 
 // Some lib modules (firestore-mock) touch localStorage even in node env.
 // Provide a tiny in-memory shim so node-env tests don't crash.

@@ -40,6 +40,7 @@ async function boot() {
   mockDb.value = firestoreMock.getFirestore();
   firestoreMock.setDriveToken('test-token');
   await new Promise((r) => setTimeout(r, 15));
+  await firestoreMock.ensureLoaded();
 }
 
 async function seedSession(data: Record<string, unknown>) {

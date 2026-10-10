@@ -77,6 +77,9 @@ export const getSyncStatus = async () => {
   return offlineStorage.getSyncMetadata();
 };
 
+// Check if the initial load has completed
+export const isLoadedState = () => isLoaded;
+
 export const getFirestore = () => ({});
 
 // Setup mock state

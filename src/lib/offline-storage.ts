@@ -182,17 +182,26 @@ async function getDeviceMasterKey(): Promise<CryptoKey> {
 }
 
 async function wrapKey(key: CryptoKey, masterKey: CryptoKey): Promise<string> {
-  const wrapped = await crypto.subtle.wrapKey('raw', key, masterKey, { name: 'AES-GCM' });
-  return base64Encode(wrapped);
+  // AES-GCM wrap/unwrap requires an iv (AeadParams). Generate a random one
+  // per wrap; it is not secret and is prepended to the wrapped output.
+  const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
+  const wrapped = await crypto.subtle.wrapKey('raw', key, masterKey, { name: 'AES-GCM', iv });
+  // Prepend iv so unwrapKey can recover it
+  const combined = new Uint8Array(iv.length + wrapped.byteLength);
+  combined.set(iv, 0);
+  combined.set(new Uint8Array(wrapped), iv.length);
+  return base64Encode(combined);
 }
 
 async function unwrapKey(wrappedBase64: string, masterKey: CryptoKey): Promise<CryptoKey> {
-  const wrapped = base64Decode(wrappedBase64);
+  const combined = base64Decode(wrappedBase64);
+  const iv = combined.slice(0, IV_LENGTH);
+  const wrapped = combined.slice(IV_LENGTH);
   return crypto.subtle.unwrapKey(
     'raw',
     wrapped,
     masterKey,
-    { name: 'AES-GCM' },
+    { name: 'AES-GCM', iv },
     { name: 'AES-GCM', length: 256 },
     false,
     ['encrypt', 'decrypt'],
@@ -236,6 +245,30 @@ async function getDB(): Promise<IDBPDatabase<OfflineDBSchema>> {
   return dbInstance;
 }
 
+// Test-only reset: clears the module-level singletons AND the
+// IndexedDB so a vi.resetModules() re-import of firestore-mock
+// starts offline storage from a clean slate (otherwise dbInstance/
+// encryptionKey/isInitialized AND the encrypted data leak across tests).
+export async function __resetForTesting(): Promise<void> {
+  dbInstance = null;
+  encryptionKey = null;
+  isInitialized = false;
+  // Also clear the IndexedDB to avoid cross-test data leakage
+  // (data encrypted with old key would fail to decrypt with new key).
+  try {
+    const db = await openDB<OfflineDBSchema>(DB_NAME, DB_VERSION);
+    const tx = db.transaction([...COLLECTIONS, METADATA_STORE], 'readwrite');
+    for (const col of COLLECTIONS) {
+      await tx.objectStore(col).clear();
+    }
+    await tx.objectStore(METADATA_STORE).clear();
+    await tx.done;
+    db.close();
+  } catch {
+    // Ignore errors (DB might not exist yet)
+  }
+}
+
 // ============================================================================
 // Encryption Key Management
 // ============================================================================
@@ -267,7 +300,7 @@ async function ensureEncryptionKey(): Promise<CryptoKey> {
 
   // Wrap and store
   const wrapped = await wrapKey(encryptionKey, masterKey);
-  await db.put(METADATA_STORE, { key: 'device-master-key', wrappedKey: wrapped, algorithm: 'AES-GCM' });
+  await db.put(METADATA_STORE, { wrappedKey: wrapped, algorithm: 'AES-GCM' }, 'device-master-key');
 
   return encryptionKey;
 }
@@ -280,7 +313,7 @@ export async function setUserEncryptionKey(key: CryptoKey): Promise<void> {
   const db = await getDB();
   const masterKey = await getDeviceMasterKey();
   const wrapped = await wrapKey(key, masterKey);
-  await db.put(METADATA_STORE, { key: 'device-master-key', wrappedKey: wrapped, algorithm: 'AES-GCM' });
+  await db.put(METADATA_STORE, { wrappedKey: wrapped, algorithm: 'AES-GCM' }, 'device-master-key');
 }
 
 export async function clearEncryptionKey(): Promise<void> {
@@ -418,8 +451,11 @@ export async function getSyncMetadata(): Promise<SyncMetadata> {
 export async function setSyncMetadata(meta: Partial<SyncMetadata>): Promise<void> {
   const db = await getDB();
   const current = await getSyncMetadata();
-  const updated = { ...current, ...meta };
-  await db.put(METADATA_STORE, { ...updated, key: 'sync' });
+  const updated: SyncMetadata = { ...current, ...meta };
+  // METADATA_STORE has no keyPath, so the value must be a plain, structured-
+  // cloneable SyncMetadata (no extra `key` field). fake-indexeddb rejects
+  // puts whose value shape does not match the store schema.
+  await db.put(METADATA_STORE, updated, 'sync');
 }
 
 export async function incrementPendingOperations(): Promise<void> {

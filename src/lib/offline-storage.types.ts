@@ -43,7 +43,9 @@ export interface StoredRecord {
 }
 
 export interface DeviceKeyRecord {
-  key: 'device-master-key';
+  // `key` is the explicit IndexedDB key ('device-master-key'), not part of the
+  // stored value, so it is optional here.
+  key?: 'device-master-key';
   wrappedKey: string;   // base64 wrapped key
   algorithm: string;
 }
