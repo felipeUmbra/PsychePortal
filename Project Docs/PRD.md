@@ -1,7 +1,7 @@
 # Portal Psis Product Requirements Document
 
 **Status:** Current-product PRD (beta)  
-**Last updated:** 2026-09-25  
+**Last updated:** 2026-10-11  
 **Product:** Portal Psis
 
 ## 1. Product Summary

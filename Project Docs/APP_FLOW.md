@@ -1,7 +1,7 @@
 # Portal Psis App Flow
 
 **Status:** Current beta application flow
-**Last updated:** 2026-09-25
+**Last updated:** 2026-10-11
 
 This document maps the current browser routes and user journeys implemented in Portal Psis. It describes observed behavior, including known differences between entry points; it is not a target-state specification.
 

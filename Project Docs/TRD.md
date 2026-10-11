@@ -1,7 +1,7 @@
 # Portal Psis Technical Requirements Document
 
 **Status:** Current beta technical baseline and requirements
-**Last updated:** 2026-09-25
+**Last updated:** 2026-10-11
 **Related product document:** [PRD.md](PRD.md)
 
 ## 1. Purpose and Scope
@@ -259,12 +259,12 @@ Deletion requirements:
 
 ### 10.1 Existing CI pipeline
 
-On pushes and pull requests targeting `main`, GitHub Actions runs on Ubuntu with Node.js 20:
+On pushes and pull requests targeting `main`, GitHub Actions runs on Ubuntu with Node.js 22:
 
 1. `npm ci`
 2. `npm run typecheck`
 3. `npm run test:unit` (Vitest)
-4. Cypress E2E against `npm run dev` at `http://localhost:5173`
+4. Playwright E2E against `npm run dev` at `http://localhost:5173`
 5. `npm run build`
 6. Upload build and test-report artifacts
 
@@ -275,10 +275,20 @@ On a green push to `main`, a dependent job downloads the build and publishes it 
 - Unit-test persistence serialization/hydration for every collection and backward-compatible migrations.
 - Unit-test encryption setup, unlock, lock, recovery, encrypted-field coverage, and payload-version handling.
 - E2E-test patient/session/consent, finance, audit, backup, deletion, Calendar, and authorization-expiry workflows.
-- Keep Cypress MockAuth and intercepted Google API tests clearly classified as mocked integration tests; they do not prove Firebase rules, live OAuth consent, production headers, Google API behavior, or Drive restore.
+- Keep Playwright MockAuth and intercepted Google API tests clearly classified as mocked integration tests; they do not prove Firebase rules, live OAuth consent, production headers, Google API behavior, or Drive restore.
 - Add targeted tests for no-token startup, expired/revoked token, Drive failure, malformed workspace JSON, duplicate workspace files, partial writes, reload persistence, and multi-device conflicts.
 - Run production-host checks for headers, route reloads, OAuth redirect behavior, and PWA caching separately from local Vite tests.
 - Do not use real patient data or live clinical records in automated tests, screenshots, reports, or CI artifacts.
+
+### 10.3 Current Test Status (as of 2026-10-11)
+
+| Test Suite | Status | Details |
+| --- | --- | --- |
+| Unit Tests (Vitest) | ✅ **289/289 passing** | All hooks, lib utilities, and domain logic |
+| TypeScript Typecheck | ✅ **Passing** | `npm run lint` |
+| Production Build | ✅ **Successful** | `npm run build` |
+| E2E Tests (Playwright) | ✅ **223/225 passing** | 2 Firefox accessibility failures (pre-existing) |
+| Accessibility (Playwright) | ✅ **Passing** | Chromium, WebKit, Mobile Chrome, Mobile Safari |
 
 ## 11. Current Implementation Gaps and Decisions
 
@@ -296,7 +306,7 @@ On a green push to `main`, a dependent job downloads the build and publishes it 
 ## 12. Source Map
 
 - Application routes and providers: [src/App.tsx](src/App.tsx)
-- Firebase initialization and Cypress auth substitution: [src/firebase.ts](src/firebase.ts)
+- Firebase initialization and Playwright auth substitution: [src/firebase.ts](src/firebase.ts)
 - Google OAuth scopes and login flow: [src/pages/Login.tsx](src/pages/Login.tsx)
 - Google token lifecycle: [src/context/GoogleAuthContext.tsx](src/context/GoogleAuthContext.tsx)
 - Firestore-shaped adapter and Drive-backed persistence: [src/lib/firestore-mock.ts](src/lib/firestore-mock.ts)
@@ -308,7 +318,7 @@ On a green push to `main`, a dependent job downloads the build and publishes it 
 - Patient deletion: [src/lib/data-deletion.ts](src/lib/data-deletion.ts)
 - Build, PWA, aliases, and development headers: [vite.config.ts](vite.config.ts)
 - Dependencies and scripts: [package.json](package.json)
-- Cypress configuration: [cypress.config.ts](cypress.config.ts)
+- Playwright configuration: [playwright.config.ts](playwright.config.ts)
 - CI and GitHub Pages deployment: [.github/workflows/ci.yml](.github/workflows/ci.yml)
 - Firebase rules present in repository: [firestore.rules](firestore.rules), [storage.rules](storage.rules)
 - Static-host header file: [public/_headers](public/_headers)

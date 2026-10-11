@@ -1,7 +1,7 @@
 # Portal Psis Implementation Plan
 
 **Status:** Proposed delivery sequence based on current beta gaps
-**Last updated:** 2026-09-25
+**Last updated:** 2026-10-11
 
 Related documents: [PRD](PRD.md), [TRD](TRD.md), [UI/UX Design](UI_UX_DESIGN.md), [Backend Data Schema](BACKEND_DATA_SCHEMA.md), [App Flow](APP_FLOW.md).
 
