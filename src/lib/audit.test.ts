@@ -34,7 +34,18 @@ vi.mock('../firebase', () => ({
 
 import * as firestoreMock from './firestore-mock';
 import { setDriveToken } from './firestore-mock';
-import { getLastAuditHash, logEvent, logView, logDelete, verifyAuditChain, logExport, logAuth } from './audit';
+import {
+  getLastAuditHash,
+  logEvent,
+  logView,
+  logCreate,
+  logUpdate,
+  logDelete,
+  logEditCompleted,
+  verifyAuditChain,
+  logExport,
+  logAuth,
+} from './audit';
 
 async function boot() {
   // Build the delegating firebase/firestore proxy from the real firestore-mock.
@@ -168,6 +179,38 @@ describe('convenience loggers', () => {
     expect(exports[0].entityId).toBe('p1,p2');
     // afterData is not stored directly; only its hash (afterHash) is stored
     expect(exports[0].afterHash).toBeTruthy();
+  });
+
+  it('logCreate and logUpdate hash the relevant entity snapshots', async () => {
+    await logCreate('psych-create', 'patient', 'p1', { name: 'Ana' });
+    await logUpdate('psych-update', 'patient', 'p2', { name: 'Ana' }, { name: 'Beatriz' });
+
+    const created = (await firestoreMock.getDocs(
+      firestoreMock.query(firestoreMock.collection({}, 'audit_logs'), firestoreMock.where('actorId', '==', 'psych-create'))
+    )).docs.map((d) => d.data());
+    const updated = (await firestoreMock.getDocs(
+      firestoreMock.query(firestoreMock.collection({}, 'audit_logs'), firestoreMock.where('actorId', '==', 'psych-update'))
+    )).docs.map((d) => d.data());
+
+    expect(created[0].action).toBe('create');
+    expect(created[0].afterHash).toBeTruthy();
+    expect(updated[0].action).toBe('update');
+    expect(updated[0].beforeHash).toBeTruthy();
+    expect(updated[0].afterHash).toBeTruthy();
+  });
+
+  it('logEditCompleted records a session edit warning and optional justification', async () => {
+    await logEditCompleted('psych-edit', 's1', 's1', 'Corrected a typo');
+
+    const edits = (await firestoreMock.getDocs(
+      firestoreMock.query(firestoreMock.collection({}, 'audit_logs'), firestoreMock.where('actorId', '==', 'psych-edit'))
+    )).docs.map((d) => d.data());
+
+    expect(edits).toHaveLength(1);
+    expect(edits[0].entity).toBe('session');
+    expect(edits[0].entityId).toBe('s1');
+    expect(edits[0].sessionId).toBe('s1');
+    expect(edits[0].afterHash).toBeTruthy();
   });
 
   it('logAuth writes login/logout events', async () => {

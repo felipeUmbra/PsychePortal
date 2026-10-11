@@ -27,6 +27,10 @@ vi.mock('../firebase', () => ({
   get db() { return mockDb.value; },
   auth: { currentUser: { uid: 'hook-user', email: 'hook@test.com' } },
 }));
+vi.mock('../lib/error-handler', () => ({
+  handleFirestoreError: vi.fn(),
+  OperationType: { LIST: 'LIST' },
+}));
 
 // --- Mock react-firebase-hooks/auth ---
 const MOCK_USER = { uid: 'hook-user', email: 'hook@test.com' };
@@ -37,6 +41,7 @@ vi.mock('react-firebase-hooks/auth', () => ({
 
 import * as firestoreMock from '../lib/firestore-mock';
 import { useAllSessions } from './useAllSessions';
+import { handleFirestoreError, OperationType } from '../lib/error-handler';
 
 const PSYCH = 'hook-user';
 
@@ -105,5 +110,18 @@ describe('useAllSessions', () => {
     });
 
     expect(result.current.sessions).toEqual([]);
+  });
+
+  it('reports subscription errors and clears the loading state', async () => {
+    const error = new Error('subscription failed');
+    mockFstore.delegates.onSnapshot = vi.fn((_query, _onNext, onError) => {
+      onError(error);
+      return vi.fn();
+    });
+
+    const { result } = renderHook(() => useAllSessions());
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(handleFirestoreError).toHaveBeenCalledWith(error, OperationType.LIST, 'sessions');
   });
 });

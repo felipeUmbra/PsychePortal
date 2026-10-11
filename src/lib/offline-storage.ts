@@ -406,16 +406,15 @@ export async function clear(collection: CollectionName): Promise<void> {
 
 export async function replaceAll(collection: CollectionName, data: any[]): Promise<void> {
   const db = await getDB();
+  const records: StoredRecord[] = await Promise.all(data.map(async (item) => ({
+    id: item.id,
+    data: await encryptRecord(item),
+    updatedAt: Date.now(),
+  })));
   const tx = db.transaction(collection as CollectionStoreName, 'readwrite');
   await tx.store.clear();
   
-  for (const item of data) {
-    const encrypted = await encryptRecord(item);
-    const record: StoredRecord = {
-      id: item.id,
-      data: encrypted,
-      updatedAt: Date.now(),
-    };
+  for (const record of records) {
     await tx.store.put(record);
   }
   

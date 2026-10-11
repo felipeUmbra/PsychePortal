@@ -100,6 +100,26 @@ describe('enforceRetentionPolicy', () => {
     expect(result.sessionsDeleted).toBe(1);
   });
 
+  it('handles Firestore Timestamp-like dates', async () => {
+    await seedPsychologist(PSYCH);
+    mockFstore.delegates.getDocs = vi.fn().mockResolvedValue({
+      docs: [{
+        id: 'timestamp-session',
+        data: () => ({ date: { toDate: () => new Date(OLD_MS) } }),
+      }],
+    });
+
+    const result = await enforceRetentionPolicy(PSYCH, 5);
+
+    expect(result.sessionsDeleted).toBe(1);
+    expect(mockAudit.logDelete).toHaveBeenCalledWith(
+      PSYCH,
+      'session',
+      'timestamp-session',
+      expect.objectContaining({ context: 'retention_policy' }),
+    );
+  });
+
   it('logs a delete audit event per deleted session (via logDelete)', async () => {
     await seedPsychologist(PSYCH);
     await seedSession({ psychologistId: PSYCH, patientId: 'p-log', date: new Date(OLD_MS).toISOString() });

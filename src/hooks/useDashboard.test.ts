@@ -44,6 +44,7 @@ vi.mock('firebase/firestore', () => ({
 
 import { useDashboard } from './useDashboard';
 import * as firestore from 'firebase/firestore';
+import { handleFirestoreError, OperationType } from '../lib/error-handler';
 import { useAuthState } from 'react-firebase-hooks/auth';
 
 describe('useDashboard', () => {
@@ -261,6 +262,26 @@ describe('useDashboard', () => {
     });
 
     expect(firestore.onSnapshot).toHaveBeenCalledTimes(2); // today + recent
+  });
+
+  it('reports both realtime listener errors and resolves loading', async () => {
+    const todayError = new Error('today listener failed');
+    const recentError = new Error('recent listener failed');
+    mockOnSnapshot
+      .mockImplementationOnce((_query, _onNext, onError) => {
+        onError(todayError);
+        return vi.fn();
+      })
+      .mockImplementationOnce((_query, _onNext, onError) => {
+        onError(recentError);
+        return vi.fn();
+      });
+
+    const { result } = renderHook(() => useDashboard());
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(handleFirestoreError).toHaveBeenCalledWith(todayError, OperationType.LIST, 'sessions');
+    expect(handleFirestoreError).toHaveBeenCalledWith(recentError, OperationType.LIST, 'sessions');
   });
 
   it('cleans up listeners on unmount', async () => {

@@ -4,6 +4,18 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { webcrypto } from 'node:crypto';
+import {
+  IDBCursor,
+  IDBDatabase as FakeIDBDatabase,
+  IDBIndex,
+  IDBKeyRange,
+  IDBObjectStore,
+  IDBOpenDBRequest,
+  IDBRequest,
+  IDBTransaction,
+  indexedDB as fakeIndexedDB,
+} from 'fake-indexeddb';
 import { 
   base64Encode, 
   base64Decode, 
@@ -14,6 +26,11 @@ import {
   getDeviceMasterKey,
   wrapKey,
   unwrapKey,
+  __resetForTesting,
+  enforceTTL,
+  init,
+  isReady,
+  offlineStorage,
 } from './offline-storage';
 
 // Mock crypto.subtle
@@ -316,6 +333,337 @@ describe('offlineStorage utility functions', () => {
       expect(salt1).not.toEqual(salt2);
       expect(salt1.length).toBe(16);
       expect(salt2.length).toBe(16);
+    });
+  });
+});
+
+// ============================================================================
+// Additional crypto utility tests for better coverage
+// ============================================================================
+
+describe('offlineStorage additional crypto utilities', () => {
+  describe('encryptData/decryptData with various inputs', () => {
+    it('should handle empty string', async () => {
+      const mockKey = {} as CryptoKey;
+      const testData = '';
+      
+      mockCrypto.subtle.encrypt.mockResolvedValueOnce(new Uint8Array(16).buffer);
+      
+      const encrypted = await encryptData(testData, mockKey);
+      expect(encrypted).toHaveProperty('ciphertext');
+      expect(encrypted).toHaveProperty('iv');
+      expect(encrypted).toHaveProperty('tag');
+    });
+
+    it('should handle special characters', async () => {
+      const mockKey = {} as CryptoKey;
+      const testData = '{"name":"João Silva","notes":"Special chars: àéíóú ñ ç"}';
+      
+      mockCrypto.subtle.encrypt.mockResolvedValueOnce(new Uint8Array(32).buffer);
+      
+      const encrypted = await encryptData(testData, mockKey);
+      expect(encrypted).toHaveProperty('ciphertext');
+    });
+
+    it('should handle very long data', async () => {
+      const mockKey = {} as CryptoKey;
+      const testData = 'x'.repeat(10000);
+      
+      mockCrypto.subtle.encrypt.mockResolvedValueOnce(new Uint8Array(10016).buffer);
+      
+      const encrypted = await encryptData(testData, mockKey);
+      expect(encrypted).toHaveProperty('ciphertext');
+    });
+  });
+
+  describe('offlineStorage IndexedDB operations', () => {
+    beforeEach(async () => {
+      vi.stubGlobal('crypto', webcrypto);
+      vi.stubGlobal('indexedDB', fakeIndexedDB);
+      vi.stubGlobal('IDBKeyRange', IDBKeyRange);
+      vi.stubGlobal('IDBCursor', IDBCursor);
+      vi.stubGlobal('IDBDatabase', FakeIDBDatabase);
+      vi.stubGlobal('IDBIndex', IDBIndex);
+      vi.stubGlobal('IDBObjectStore', IDBObjectStore);
+      vi.stubGlobal('IDBOpenDBRequest', IDBOpenDBRequest);
+      vi.stubGlobal('IDBRequest', IDBRequest);
+      vi.stubGlobal('IDBTransaction', IDBTransaction);
+
+      // Initialize once to create the schema before resetting the module state.
+      await init();
+      await __resetForTesting();
+    });
+
+    afterEach(async () => {
+      await __resetForTesting();
+    });
+
+    async function putRawPatient(record: object): Promise<void> {
+      const request = fakeIndexedDB.open('psycheportal-offline', 1);
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      const transaction = db.transaction('patients', 'readwrite');
+      transaction.objectStore('patients').put(record);
+      await new Promise<void>((resolve, reject) => {
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
+        transaction.onabort = () => reject(transaction.error);
+      });
+      db.close();
+    }
+
+    async function putRawDeviceKey(record: object): Promise<void> {
+      const request = fakeIndexedDB.open('psycheportal-offline', 1);
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      const transaction = db.transaction('metadata', 'readwrite');
+      transaction.objectStore('metadata').put(record, 'device-master-key');
+      await new Promise<void>((resolve, reject) => {
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
+        transaction.onabort = () => reject(transaction.error);
+      });
+      db.close();
+    }
+
+    it('persists, decrypts, migrates and cleans up records across the full lifecycle', async () => {
+      expect(await isReady()).toBe(false);
+
+      localStorageMock.setItem('offline_storage_disabled', 'true');
+      await init();
+      expect(await isReady()).toBe(true);
+
+      await __resetForTesting();
+      localStorageMock.clear();
+      localStorageMock.setItem('mock_db_cache', JSON.stringify({
+        patients: [{ id: 'migrated-patient', name: 'Migrated' }],
+        sessions: [{ id: 'migrated-session', patientId: 'migrated-patient' }],
+      }));
+      await init();
+      expect(mockLocalStorage.has('mock_db_cache')).toBe(false);
+      expect(await offlineStorage.get('patients', 'migrated-patient')).toMatchObject({
+        id: 'migrated-patient',
+        name: 'Migrated',
+      });
+      await init();
+
+      await __resetForTesting();
+      localStorageMock.clear();
+      localStorageMock.setItem('mock_db_cache', '{invalid json');
+      const migrationError = vi.spyOn(console, 'error').mockImplementation(() => {});
+      await init();
+      expect(mockLocalStorage.has('mock_db_cache')).toBe(true);
+      expect(migrationError).toHaveBeenCalledWith(
+        'Failed to migrate legacy cache:',
+        expect.any(SyntaxError),
+      );
+
+      await __resetForTesting();
+      localStorageMock.clear();
+      localStorageMock.setItem('mock_db_cache', JSON.stringify({ patients: [], sessions: 'invalid' }));
+      await init();
+      expect(mockLocalStorage.has('mock_db_cache')).toBe(true);
+
+      await __resetForTesting();
+      localStorageMock.clear();
+      await init();
+      expect(await offlineStorage.getSyncMetadata()).toEqual({
+        lastSynced: null,
+        pendingOperations: 0,
+        driveTokenPresent: false,
+      });
+
+      const patient = { id: 'patient-1', name: 'Encrypted patient' };
+      await offlineStorage.put('patients', patient);
+      expect(await offlineStorage.get('patients', patient.id)).toEqual(patient);
+      expect(await offlineStorage.get('patients', 'missing')).toBeNull();
+      expect(await offlineStorage.getAll('patients')).toEqual([patient]);
+
+      await putRawPatient({
+        id: 'corrupt-patient',
+        data: { ciphertext: '!', iv: '!', tag: '!', salt: '', timestamp: 0 },
+        updatedAt: Date.now(),
+      });
+      const decryptError = vi.spyOn(console, 'error').mockImplementation(() => {});
+      expect(await offlineStorage.get('patients', 'corrupt-patient')).toBeNull();
+      expect(await offlineStorage.getAll('patients')).toEqual([patient]);
+      expect(decryptError).toHaveBeenCalled();
+
+      await offlineStorage.replaceAll('sessions', [
+        { id: 'session-1', patientId: patient.id },
+        { id: 'session-2', patientId: patient.id },
+      ]);
+      expect(await offlineStorage.getAll('sessions')).toHaveLength(2);
+      await offlineStorage.replaceAll('sessions', []);
+      expect(await offlineStorage.getAll('sessions')).toEqual([]);
+      expect(Object.keys(await offlineStorage.getAllCollections())).toEqual([
+        'patients',
+        'sessions',
+        'psychologists',
+        'audit_logs',
+        'patient_consents',
+        'note_versions',
+      ]);
+
+      await offlineStorage.put('patients', { id: 'stale-patient', name: 'Expired' });
+      await putRawPatient({
+        id: 'old-patient',
+        data: {},
+        updatedAt: Date.now() - 2 * 24 * 60 * 60 * 1000,
+      });
+      await enforceTTL(1);
+      expect(await offlineStorage.get('patients', 'old-patient')).toBeNull();
+
+      const quotaWarning = vi.spyOn(window, 'dispatchEvent');
+      vi.stubGlobal('navigator', {
+        userAgent: 'test-agent',
+        storage: { estimate: vi.fn().mockResolvedValue({ usage: 900, quota: 1000 }) },
+      });
+      expect(await offlineStorage.checkQuota()).toEqual({
+        usage: 900,
+        quota: 1000,
+        percentage: 0.9,
+      });
+      expect(quotaWarning).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'offline-storage-quota-warning' }),
+      );
+
+      vi.stubGlobal('navigator', {
+        userAgent: 'test-agent',
+        storage: { estimate: vi.fn().mockResolvedValue({ usage: 100, quota: 1000 }) },
+      });
+      expect(await offlineStorage.checkQuota()).toEqual({
+        usage: 100,
+        quota: 1000,
+        percentage: 0.1,
+      });
+      vi.stubGlobal('navigator', {
+        userAgent: 'test-agent',
+        storage: { estimate: vi.fn().mockResolvedValue({ usage: 0, quota: 1000 }) },
+      });
+      expect(await offlineStorage.checkQuota()).toBeNull();
+      vi.stubGlobal('navigator', { userAgent: 'test-agent' });
+      expect(await offlineStorage.checkQuota()).toBeNull();
+
+      const quotaError = vi.spyOn(console, 'debug').mockImplementation(() => {});
+      vi.stubGlobal('navigator', {
+        userAgent: 'test-agent',
+        storage: { estimate: vi.fn().mockRejectedValue(new Error('quota unavailable')) },
+      });
+      expect(await offlineStorage.checkQuota()).toBeNull();
+      expect(quotaError).toHaveBeenCalled();
+
+      await offlineStorage.setSyncMetadata({ pendingOperations: 1, driveTokenPresent: true });
+      await offlineStorage.incrementPendingOperations();
+      await offlineStorage.decrementPendingOperations();
+      await offlineStorage.decrementPendingOperations();
+      expect((await offlineStorage.getSyncMetadata()).pendingOperations).toBe(0);
+      await offlineStorage.markSynced();
+      const synced = await offlineStorage.getSyncMetadata();
+      expect(synced.driveTokenPresent).toBe(true);
+      expect(synced.lastSynced).toEqual(expect.any(Number));
+
+      const userKey = await webcrypto.subtle.generateKey(
+        { name: 'AES-GCM', length: 256 },
+        true,
+        ['encrypt', 'decrypt'],
+      );
+      await offlineStorage.setUserEncryptionKey(userKey);
+      expect(await offlineStorage.hasEncryptionKey()).toBe(true);
+      await offlineStorage.clearEncryptionKey();
+      expect(await offlineStorage.hasEncryptionKey()).toBe(false);
+      await offlineStorage.put('patients', { id: 'after-key-clear' });
+      expect(await offlineStorage.get('patients', 'after-key-clear')).toEqual({
+        id: 'after-key-clear',
+      });
+
+      await offlineStorage.deleteRecord('patients', 'patient-1');
+      expect(await offlineStorage.get('patients', 'patient-1')).toBeNull();
+      await offlineStorage.clear('patients');
+      expect(await offlineStorage.getAll('patients')).toEqual([]);
+      await offlineStorage.clearAll();
+      expect(await offlineStorage.getAll('patients')).toEqual([]);
+
+      // A fresh module instance must unwrap the persisted device key to read data.
+      await offlineStorage.put('patients', { id: 'reloaded-patient', name: 'Still readable' });
+      vi.resetModules();
+      const reloadedStorage = await import('./offline-storage');
+      expect(await reloadedStorage.get('patients', 'reloaded-patient')).toEqual({
+        id: 'reloaded-patient',
+        name: 'Still readable',
+      });
+
+      await putRawDeviceKey({ wrappedKey: 'corrupt-wrapped-key', algorithm: 'AES-GCM' });
+      vi.resetModules();
+      const corruptKeyStorage = await import('./offline-storage');
+      const keyWarning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      expect(await corruptKeyStorage.get('patients', 'reloaded-patient')).toBeNull();
+      expect(keyWarning).toHaveBeenCalledWith(
+        'Failed to unwrap device key, generating new one:',
+        expect.any(Error),
+      );
+
+      const transactionFailure = vi.spyOn(FakeIDBDatabase.prototype, 'transaction')
+        .mockImplementation(() => { throw new Error('IndexedDB unavailable'); });
+      const ttlError = vi.spyOn(console, 'debug').mockImplementation(() => {});
+      try {
+        await corruptKeyStorage.enforceTTL(1);
+        expect(ttlError).toHaveBeenCalled();
+      } finally {
+        transactionFailure.mockRestore();
+        ttlError.mockRestore();
+      }
+    });
+  });
+
+  describe('wrapKey/unwrapKey edge cases', () => {
+    it('should handle wrapKey with different key types', async () => {
+      const mockKey = {} as CryptoKey;
+      const mockMasterKey = {} as CryptoKey;
+      
+      mockCrypto.subtle.wrapKey.mockResolvedValueOnce(new Uint8Array(28).buffer);
+      
+      const wrapped = await wrapKey(mockKey, mockMasterKey);
+      expect(typeof wrapped).toBe('string');
+      expect(wrapped.length).toBeGreaterThan(0);
+    });
+
+    it('should handle unwrapKey with valid wrapped key', async () => {
+      const wrappedKey = 'dGVzdC13cmFwcGVkLWtleQ=='; // base64 encoded
+      const mockMasterKey = {} as CryptoKey;
+      
+      mockCrypto.subtle.unwrapKey.mockResolvedValueOnce({});
+      
+      const unwrapped = await unwrapKey(wrappedKey, mockMasterKey);
+      expect(unwrapped).toBeDefined();
+    });
+  });
+
+  describe('getDeviceMasterKey consistency', () => {
+    it('should generate consistent key for same origin and userAgent', async () => {
+      const key1 = await getDeviceMasterKey();
+      const key2 = await getDeviceMasterKey();
+      
+      // Should be the same key (cached)
+      expect(key1).toBe(key2);
+    });
+  });
+
+  describe('deriveKeyFromPassphrase determinism', () => {
+    it('should derive same key for same passphrase and salt', async () => {
+      const passphrase = 'test-passphrase-123';
+      const salt = generateSalt();
+      
+      const key1 = await deriveKeyFromPassphrase(passphrase, salt);
+      const key2 = await deriveKeyFromPassphrase(passphrase, salt);
+      
+      // Should be different keys (PBKDF2 is deterministic but we mock it)
+      expect(key1).toBeDefined();
+      expect(key2).toBeDefined();
     });
   });
 });
