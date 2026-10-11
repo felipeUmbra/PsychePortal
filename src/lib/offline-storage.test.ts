@@ -212,3 +212,110 @@ describe('offlineStorage initialization', () => {
     expect(typeof clearAll).toBe('function');
   });
 });
+
+describe('offlineStorage error handling and edge cases', () => {
+  describe('encryptData/decryptData error paths', () => {
+    it('should handle encryption failure gracefully', async () => {
+      const mockKey = {} as CryptoKey;
+      const testData = '{"id":"test","name":"Test Patient"}';
+      
+      // Mock encrypt to throw
+      mockCrypto.subtle.encrypt.mockRejectedValueOnce(new Error('Encryption failed'));
+      
+      await expect(encryptData(testData, mockKey)).rejects.toThrow('Encryption failed');
+    });
+
+    it('should handle decryption failure gracefully', async () => {
+      const mockKey = {} as CryptoKey;
+      const encryptedData = {
+        ciphertext: 'base64ciphertext',
+        iv: 'base64iv',
+        tag: 'base64tag',
+        salt: 'base64salt',
+        timestamp: Date.now(),
+      };
+      
+      // Mock decrypt to throw
+      mockCrypto.subtle.decrypt.mockRejectedValueOnce(new Error('Decryption failed'));
+      
+          await expect(decryptData(encryptedData, mockKey)).rejects.toThrow();
+    });
+  });
+
+  describe('wrapKey/unwrapKey error paths', () => {
+    it('should handle wrapKey failure', async () => {
+      const mockKey = {} as CryptoKey;
+      const mockMasterKey = {} as CryptoKey;
+      
+      mockCrypto.subtle.wrapKey.mockRejectedValueOnce(new Error('Wrap failed'));
+      
+      await expect(wrapKey(mockKey, mockMasterKey)).rejects.toThrow('Wrap failed');
+    });
+
+    it('should handle unwrapKey failure', async () => {
+      const wrappedKey = 'base64wrappedkey';
+      const mockMasterKey = {} as CryptoKey;
+      
+      mockCrypto.subtle.unwrapKey.mockRejectedValueOnce(new Error('Unwrap failed'));
+      
+      await expect(unwrapKey(wrappedKey, mockMasterKey)).rejects.toThrow('Unwrap failed');
+    });
+  });
+
+  describe('getDeviceMasterKey error paths', () => {
+    it('should handle digest failure', async () => {
+      mockCrypto.subtle.digest.mockRejectedValueOnce(new Error('Digest failed'));
+      
+      await expect(getDeviceMasterKey()).rejects.toThrow('Digest failed');
+    });
+
+    it('should handle importKey failure', async () => {
+      mockCrypto.subtle.digest.mockResolvedValueOnce(new ArrayBuffer(32));
+      mockCrypto.subtle.importKey.mockRejectedValueOnce(new Error('Import failed'));
+      
+      await expect(getDeviceMasterKey()).rejects.toThrow('Import failed');
+    });
+  });
+
+  describe('deriveKeyFromPassphrase error paths', () => {
+    it('should handle deriveKey failure', async () => {
+      const passphrase = 'test-passphrase-123';
+      const salt = generateSalt();
+      
+      mockCrypto.subtle.deriveKey.mockRejectedValueOnce(new Error('Derive failed'));
+      
+      await expect(deriveKeyFromPassphrase(passphrase, salt)).rejects.toThrow('Derive failed');
+    });
+  });
+});
+
+describe('offlineStorage utility functions', () => {
+  describe('base64Encode/base64Decode edge cases', () => {
+    it('should handle ArrayBuffer input', () => {
+      const buf = new TextEncoder().encode('test').buffer;
+      const encoded = base64Encode(buf);
+      const decoded = base64Decode(encoded);
+      expect(new TextDecoder().decode(decoded)).toBe('test');
+    });
+
+    it('should handle large data', () => {
+      const largeData = new Uint8Array(10000);
+      for (let i = 0; i < largeData.length; i++) {
+        largeData[i] = i % 256;
+      }
+      const encoded = base64Encode(largeData);
+      const decoded = base64Decode(encoded);
+      expect(decoded).toEqual(largeData);
+    });
+  });
+
+  describe('generateSalt', () => {
+    it('should generate cryptographically random salt', () => {
+      const salt1 = generateSalt();
+      const salt2 = generateSalt();
+      expect(salt1).not.toEqual(salt2);
+      expect(salt1.length).toBe(16);
+      expect(salt2.length).toBe(16);
+    });
+  });
+});

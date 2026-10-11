@@ -81,10 +81,11 @@ export function createMockDocRef(path: string, id: string) {
   return { type: 'doc', path, id };
 }
 
-// Mock onAuthStateChanged callback
+// Mock onAuthStateChanged callback - async version that simulates real Firebase behavior
 export function createMockAuthStateChanged(user: User | null) {
   return vi.fn((cb: (user: User | null) => void) => {
-    cb(user);
+    // Simulate async behavior - don't call immediately
+    setTimeout(() => cb(user), 0);
     return vi.fn();
   });
 }

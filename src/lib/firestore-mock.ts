@@ -105,6 +105,19 @@ let state: Record<string, any[]> = {
   patient_consents: []
 };
 
+// Clear all state for testing
+export const clearState = () => {
+  state = {
+    patients: [],
+    sessions: [],
+    psychologists: [],
+    audit_logs: [],
+    note_versions: [],
+    patient_consents: []
+  };
+  notify();
+};
+
 // Setup internal events for onSnapshot
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach(fn => fn());
