@@ -243,11 +243,334 @@ describe('deleteAllPatientData (LGPD erasure)', () => {
     });
 
     it('handles sessions without attachments', async () => {
-      await seedPatient();
-      await seedSession();
-      await seedSession();
-      const result = await deleteAllPatientData(PATIENT_ID, PSYCH);
-      expect(result.sessionsDeleted).toBe(2);
-      expect(result.attachmentsDeleted).toBe(0);
-    });
-  });
+          await seedPatient();
+          await seedSession();
+          await seedSession();
+          const result = await deleteAllPatientData(PATIENT_ID, PSYCH);
+          expect(result.sessionsDeleted).toBe(2);
+          expect(result.attachmentsDeleted).toBe(0);
+        });
+
+        it('deletes note_versions for erased sessions', async () => {
+          await seedPatient();
+          const s1 = await seedSession();
+          const s2 = await seedSession();
+          await seedNoteVersion(s1);
+          await seedNoteVersion(s2);
+
+          const result = await deleteAllPatientData(PATIENT_ID, PSYCH);
+
+          expect(result.sessionsDeleted).toBe(2);
+          const versions = (await firestoreMock.getDocs(firestoreMock.collection({}, 'note_versions'))).docs;
+          expect(versions).toHaveLength(0);
+        });
+
+        it('handles legacy attachment path reconstruction', async () => {
+          await seedPatient();
+          const sessionId = await seedSession({ attachments: [{ name: 'legacy.pdf' }] });
+
+          const result = await deleteAllPatientData(PATIENT_ID, PSYCH);
+
+          expect(result.attachmentsDeleted).toBe(1);
+          expect(mockDeleteObject.fn).toHaveBeenCalledWith({
+            path: `patients/${PSYCH}/${sessionId}/legacy.pdf`,
+          });
+        });
+
+        it('handles Drive attachment deletion with stored storagePath', async () => {
+          await seedPatient();
+          await seedSession({ attachments: [{ name: 'doc.pdf', storagePath: 'patients/p/s/doc.pdf' }] });
+
+          const result = await deleteAllPatientData(PATIENT_ID, PSYCH);
+
+          expect(result.attachmentsDeleted).toBe(1);
+          expect(mockDeleteObject.fn).toHaveBeenCalledWith({ path: 'patients/p/s/doc.pdf' });
+        });
+
+        it('handles multiple attachments across sessions', async () => {
+          await seedPatient();
+          await seedSession({ attachments: [{ name: 'a.pdf', storagePath: 'x/a.pdf' }] });
+          await seedSession({ attachments: [{ name: 'b.pdf', storagePath: 'y/b.pdf' }] });
+
+          const result = await deleteAllPatientData(PATIENT_ID, PSYCH);
+
+          expect(result.attachmentsDeleted).toBe(2);
+          expect(mockDeleteObject.fn).toHaveBeenCalledTimes(2);
+        });
+
+        it('logs bulk attachment deletion to audit trail', async () => {
+          await seedPatient();
+          await seedSession({ attachments: [{ name: 'a.pdf', storagePath: 'x/a.pdf' }] });
+
+          await deleteAllPatientData(PATIENT_ID, PSYCH);
+
+          expect(mockAudit.logDelete).toHaveBeenCalledWith(
+            PSYCH,
+            'attachment',
+            PATIENT_ID,
+            expect.objectContaining({ count: 1, context: 'erasure_request' })
+          );
+        });
+
+        it('removes draft_edit_ localStorage keys tied to patient sessions', async () => {
+          await seedPatient();
+          const s1 = await seedSession();
+          await seedSession();
+          localStorage.setItem('draft_edit_' + s1, '{json}');
+          localStorage.setItem('draft_edit_unknown-session', '{json}');
+          localStorage.setItem('unrelated', 'x');
+
+          await deleteAllPatientData(PATIENT_ID, PSYCH);
+
+          expect(localStorage.getItem('draft_edit_' + s1)).toBeNull();
+          expect(localStorage.getItem('draft_edit_unknown-session')).toBe('{json}');
+          expect(localStorage.getItem('unrelated')).toBe('x');
+        });
+
+        it('handles legacy mock_db_cache cleanup', async () => {
+          await seedPatient();
+          const s1 = await seedSession();
+          const legacyCache = {
+            patients: [{ id: PATIENT_ID, name: 'Test' }],
+            sessions: [{ id: s1, patientId: PATIENT_ID }, { id: 'other-session', patientId: 'other' }],
+            note_versions: [{ sessionId: s1 }, { sessionId: 'other-session' }],
+          };
+          localStorage.setItem('mock_db_cache', JSON.stringify(legacyCache));
+
+          await deleteAllPatientData(PATIENT_ID, PSYCH);
+
+          const cached = JSON.parse(localStorage.getItem('mock_db_cache') || '{}');
+          expect(cached.patients).toHaveLength(0);
+          expect(cached.sessions).toHaveLength(1);
+          expect(cached.sessions[0].id).toBe('other-session');
+          expect(cached.note_versions).toHaveLength(1);
+          expect(cached.note_versions[0].sessionId).toBe('other-session');
+        });
+
+        it('removes mock_db_cache entirely when empty', async () => {
+                  await seedPatient();
+                  const s1 = await seedSession();
+                  const legacyCache = {
+                    patients: [{ id: PATIENT_ID, name: 'Test' }],
+                    sessions: [{ id: s1, patientId: PATIENT_ID }],
+                    note_versions: [{ sessionId: s1 }],
+                  };
+                  localStorage.setItem('mock_db_cache', JSON.stringify(legacyCache));
+
+                  await deleteAllPatientData(PATIENT_ID, PSYCH);
+
+                  expect(localStorage.getItem('mock_db_cache')).toBeNull();
+                });
+
+                it('logs attachment deletion to audit trail when attachments exist', async () => {
+                  await seedPatient();
+                  await seedSession({ attachments: [{ name: 'a.pdf', storagePath: 'x/a.pdf' }] });
+
+                  await deleteAllPatientData(PATIENT_ID, PSYCH);
+
+                  expect(mockAudit.logDelete).toHaveBeenCalledWith(
+                    PSYCH,
+                    'attachment',
+                    PATIENT_ID,
+                    expect.objectContaining({ count: 1, context: 'erasure_request' })
+                  );
+                });
+
+                it('handles browser-storage cleanup error gracefully', async () => {
+                  await seedPatient();
+                  await seedSession();
+          
+                  // Mock localStorage to throw on getItem
+                  const originalGetItem = localStorage.getItem;
+                  localStorage.getItem = vi.fn().mockImplementation((key) => {
+                    if (key === 'mock_db_cache') {
+                      throw new Error('localStorage error');
+                    }
+                    return originalGetItem.call(localStorage, key);
+                  });
+
+                  // Should not throw
+                  const result = await deleteAllPatientData(PATIENT_ID, PSYCH);
+                  expect(result.patientDeleted).toBe(true);
+
+                  // Restore
+                  localStorage.getItem = originalGetItem;
+                });
+
+                it('handles localStorage key() error gracefully', async () => {
+                  await seedPatient();
+                  await seedSession();
+          
+                  // Mock localStorage.key to throw
+                  const originalKey = localStorage.key;
+                  localStorage.key = vi.fn().mockImplementation(() => {
+                    throw new Error('key error');
+                  });
+
+                  // Should not throw
+                  const result = await deleteAllPatientData(PATIENT_ID, PSYCH);
+                  expect(result.patientDeleted).toBe(true);
+
+                  // Restore
+                  localStorage.key = originalKey;
+                });
+
+                it('handles localStorage removeItem error gracefully', async () => {
+                  await seedPatient();
+                  const s1 = await seedSession();
+                  localStorage.setItem('draft_edit_' + s1, '{json}');
+          
+                  // Mock localStorage.removeItem to throw
+                  const originalRemoveItem = localStorage.removeItem;
+                  localStorage.removeItem = vi.fn().mockImplementation(() => {
+                    throw new Error('removeItem error');
+                  });
+
+                  // Should not throw
+                  const result = await deleteAllPatientData(PATIENT_ID, PSYCH);
+                  expect(result.patientDeleted).toBe(true);
+
+                  // Restore
+                  localStorage.removeItem = originalRemoveItem;
+                });
+
+                it('handles localStorage setItem error gracefully', async () => {
+                  await seedPatient();
+                  const s1 = await seedSession();
+                  const legacyCache = {
+                    patients: [{ id: PATIENT_ID, name: 'Test' }],
+                    sessions: [{ id: s1, patientId: PATIENT_ID }, { id: 'other-session', patientId: 'other' }],
+                    note_versions: [{ sessionId: s1 }, { sessionId: 'other-session' }],
+                  };
+                  localStorage.setItem('mock_db_cache', JSON.stringify(legacyCache));
+          
+                  // Mock localStorage.setItem to throw
+                  const originalSetItem = localStorage.setItem;
+                  localStorage.setItem = vi.fn().mockImplementation(() => {
+                    throw new Error('setItem error');
+                  });
+
+                  // Should not throw
+                  const result = await deleteAllPatientData(PATIENT_ID, PSYCH);
+                  expect(result.patientDeleted).toBe(true);
+
+                  // Restore
+                  localStorage.setItem = originalSetItem;
+                });
+
+                it('handles legacy cache with invalid JSON gracefully', async () => {
+                  await seedPatient();
+                  const s1 = await seedSession();
+                  // Set invalid JSON in legacy cache
+                  localStorage.setItem('mock_db_cache', 'invalid json {');
+
+                  // Should not throw
+                  const result = await deleteAllPatientData(PATIENT_ID, PSYCH);
+                  expect(result.patientDeleted).toBe(true);
+          
+                  // Cache should be removed due to parse error
+                  expect(localStorage.getItem('mock_db_cache')).toBeNull();
+                });
+
+                it('handles legacy cache with empty object gracefully', async () => {
+                  await seedPatient();
+                  const s1 = await seedSession();
+                  // Set empty object in legacy cache
+                  localStorage.setItem('mock_db_cache', '{}');
+
+                  // Should not throw
+                  const result = await deleteAllPatientData(PATIENT_ID, PSYCH);
+                  expect(result.patientDeleted).toBe(true);
+          
+                  // Cache should be removed since it's empty after filtering
+                  expect(localStorage.getItem('mock_db_cache')).toBeNull();
+                });
+
+                it('handles legacy cache with only other patient data', async () => {
+                  await seedPatient();
+                  const s1 = await seedSession();
+                  // Set legacy cache with only other patient data
+                  const legacyCache = {
+                    patients: [{ id: 'other-patient', name: 'Other' }],
+                    sessions: [{ id: 'other-session', patientId: 'other-patient' }],
+                    note_versions: [{ sessionId: 'other-session' }],
+                  };
+                  localStorage.setItem('mock_db_cache', JSON.stringify(legacyCache));
+
+                  // Should not throw
+                  const result = await deleteAllPatientData(PATIENT_ID, PSYCH);
+                  expect(result.patientDeleted).toBe(true);
+          
+                  // Cache should be preserved since it has other patient data
+                  const cached = JSON.parse(localStorage.getItem('mock_db_cache') || '{}');
+                  expect(cached.patients).toHaveLength(1);
+                  expect(cached.patients[0].id).toBe('other-patient');
+                });
+
+                it('handles legacy cache with mixed patient data (some for this patient, some for others)', async () => {
+                  await seedPatient();
+                  const s1 = await seedSession();
+                  // Set legacy cache with mixed data
+                  const legacyCache = {
+                    patients: [
+                      { id: PATIENT_ID, name: 'Test' },
+                      { id: 'other-patient', name: 'Other' }
+                    ],
+                    sessions: [
+                      { id: s1, patientId: PATIENT_ID },
+                      { id: 'other-session', patientId: 'other-patient' }
+                    ],
+                    note_versions: [
+                      { sessionId: s1 },
+                      { sessionId: 'other-session' }
+                    ],
+                  };
+                  localStorage.setItem('mock_db_cache', JSON.stringify(legacyCache));
+
+                  // Should not throw
+                  const result = await deleteAllPatientData(PATIENT_ID, PSYCH);
+                  expect(result.patientDeleted).toBe(true);
+          
+                  // Cache should be preserved with only other patient data
+                  const cached = JSON.parse(localStorage.getItem('mock_db_cache') || '{}');
+                  expect(cached.patients).toHaveLength(1);
+                  expect(cached.patients[0].id).toBe('other-patient');
+                  expect(cached.sessions).toHaveLength(1);
+                  expect(cached.sessions[0].id).toBe('other-session');
+                  expect(cached.note_versions).toHaveLength(1);
+                  expect(cached.note_versions[0].sessionId).toBe('other-session');
+                });
+
+                it('handles legacy cache where all data is for this patient (cache removed)', async () => {
+                  await seedPatient();
+                  const s1 = await seedSession();
+                  // Set legacy cache with only this patient's data
+                  const legacyCache = {
+                    patients: [{ id: PATIENT_ID, name: 'Test' }],
+                    sessions: [{ id: s1, patientId: PATIENT_ID }],
+                    note_versions: [{ sessionId: s1 }],
+                  };
+                  localStorage.setItem('mock_db_cache', JSON.stringify(legacyCache));
+
+                  // Should not throw
+                  const result = await deleteAllPatientData(PATIENT_ID, PSYCH);
+                  expect(result.patientDeleted).toBe(true);
+          
+                  // Cache should be removed since all data was for this patient
+                  expect(localStorage.getItem('mock_db_cache')).toBeNull();
+                });
+
+                it('handles legacy cache parse error (cache removed)', async () => {
+                  await seedPatient();
+                  const s1 = await seedSession();
+                  // Set invalid JSON in legacy cache
+                  localStorage.setItem('mock_db_cache', 'invalid json {');
+
+                  // Should not throw
+                  const result = await deleteAllPatientData(PATIENT_ID, PSYCH);
+                  expect(result.patientDeleted).toBe(true);
+          
+                  // Cache should be removed due to parse error
+                  expect(localStorage.getItem('mock_db_cache')).toBeNull();
+                });
+              });

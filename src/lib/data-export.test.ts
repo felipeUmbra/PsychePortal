@@ -237,4 +237,132 @@ describe('generateDataBundle', () => {
       expect(bundle.integrity.algorithm).toBeTruthy();
       expect(bundle.integrity.hash).toMatch(/^[0-9a-f]{64}$/);
     });
-  });
+
+        it('handles passphrase with missing key record', async () => {
+          await seedPatient();
+          const salt = generateSalt();
+          const key = await deriveKeyFromPassphrase('pass', salt);
+          const encrypted = await encryptNote('secret', key);
+          await seedSession({ notes: encrypted });
+          // No key record stored
+
+          const bundle = await generateDataBundle(PATIENT, PSYCH, 'pass');
+
+          expect((bundle.sessions[0] as any)._notesDecrypted).toBe(false);
+          expect((bundle.sessions[0] as any)._notesEncrypted).toBe(true);
+        });
+
+        it('handles passphrase with wrong passphrase', async () => {
+          await seedPatient();
+          const salt = generateSalt();
+          const key = await deriveKeyFromPassphrase('correct-pass', salt);
+          const encrypted = await encryptNote('secret', key);
+          await seedSession({ notes: encrypted });
+          await storeKeyRecord(PSYCH, salt, 'a'.repeat(64));
+
+          // Provide wrong passphrase
+          const bundle = await generateDataBundle(PATIENT, PSYCH, 'wrong-pass');
+
+          // Should fail to decrypt, mark as encrypted
+          expect((bundle.sessions[0] as any)._notesDecrypted).toBe(false);
+          expect((bundle.sessions[0] as any)._notesEncrypted).toBe(true);
+        });
+
+        it('handles multiple sessions with mixed encryption states', async () => {
+          await seedPatient();
+      
+          // Plaintext session
+          await seedSession({ notes: 'plaintext note' });
+      
+          // Encrypted session without passphrase
+          const salt1 = generateSalt();
+          const key1 = await deriveKeyFromPassphrase('pass1', salt1);
+          const encrypted1 = await encryptNote('encrypted1', key1);
+          await seedSession({ notes: encrypted1 });
+      
+          // Encrypted session with passphrase and key record
+          const salt2 = generateSalt();
+          const key2 = await deriveKeyFromPassphrase('pass2', salt2);
+          const encrypted2 = await encryptNote('encrypted2', key2);
+          await seedSession({ notes: encrypted2 });
+          await storeKeyRecord(PSYCH, salt2, 'a'.repeat(64));
+
+          const bundle = await generateDataBundle(PATIENT, PSYCH, 'pass2');
+
+          expect(bundle.sessions).toHaveLength(3);
+          // First session: plaintext
+          expect((bundle.sessions[0] as any)._notesDecrypted).toBe(false);
+          expect((bundle.sessions[0] as any)._notesEncrypted).toBeUndefined();
+          // Second session: encrypted, no passphrase
+          expect((bundle.sessions[1] as any)._notesDecrypted).toBe(false);
+          expect((bundle.sessions[1] as any)._notesEncrypted).toBe(true);
+          // Third session: encrypted with passphrase and key record
+          expect((bundle.sessions[2] as any)._notesDecrypted).toBe(true);
+          expect((bundle.sessions[2] as any).notes).toBe('encrypted2');
+        });
+
+        it('handles session with null notes', async () => {
+          await seedPatient();
+          await seedSession({ notes: null });
+
+          const bundle = await generateDataBundle(PATIENT, PSYCH);
+
+          expect(bundle.sessions).toHaveLength(1);
+          expect((bundle.sessions[0] as any).notes).toBeNull();
+        });
+
+        it('handles session with undefined notes', async () => {
+          await seedPatient();
+          await seedSession({ notes: undefined });
+
+          const bundle = await generateDataBundle(PATIENT, PSYCH);
+
+          expect(bundle.sessions).toHaveLength(1);
+          expect((bundle.sessions[0] as any).notes).toBeUndefined();
+        });
+
+        it('handles session with empty string notes', async () => {
+          await seedPatient();
+          await seedSession({ notes: '' });
+
+          const bundle = await generateDataBundle(PATIENT, PSYCH);
+
+          expect(bundle.sessions).toHaveLength(1);
+          expect((bundle.sessions[0] as any).notes).toBe('');
+        });
+
+        it('handles getDoc failure for patient', async () => {
+          const originalGetDoc = mockFstore.delegates.getDoc;
+          mockFstore.delegates.getDoc = vi.fn().mockRejectedValueOnce(new Error('Firestore getDoc failed'));
+
+          await expect(generateDataBundle(PATIENT, PSYCH)).rejects.toThrow('Firestore getDoc failed');
+
+          mockFstore.delegates.getDoc = originalGetDoc;
+        });
+
+        it('handles getDocs failure for sessions', async () => {
+          await seedPatient();
+          const originalGetDocs = mockFstore.delegates.getDocs;
+          mockFstore.delegates.getDocs = vi.fn().mockRejectedValueOnce(new Error('Firestore getDocs failed'));
+
+          await expect(generateDataBundle(PATIENT, PSYCH)).rejects.toThrow('Firestore getDocs failed');
+
+          mockFstore.delegates.getDocs = originalGetDocs;
+        });
+
+        it('handles decryptNote failure gracefully', async () => {
+          await seedPatient();
+          const salt = generateSalt();
+          const key = await deriveKeyFromPassphrase('pass', salt);
+          const encrypted = await encryptNote('secret', key);
+          await seedSession({ notes: encrypted });
+          await storeKeyRecord(PSYCH, salt, 'a'.repeat(64));
+
+          // Provide wrong passphrase to trigger decryption failure
+          const bundle = await generateDataBundle(PATIENT, PSYCH, 'wrong-pass');
+
+          // Should not throw, should mark as encrypted
+          expect((bundle.sessions[0] as any)._notesDecrypted).toBe(false);
+          expect((bundle.sessions[0] as any)._notesEncrypted).toBe(true);
+        });
+      });

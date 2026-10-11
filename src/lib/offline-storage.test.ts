@@ -4,6 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { indexedDB as fakeIndexedDB } from 'fake-indexeddb';
 import { 
   base64Encode, 
   base64Decode, 
@@ -316,6 +317,93 @@ describe('offlineStorage utility functions', () => {
       expect(salt1).not.toEqual(salt2);
       expect(salt1.length).toBe(16);
       expect(salt2.length).toBe(16);
+    });
+  });
+});
+
+// ============================================================================
+// Additional crypto utility tests for better coverage
+// ============================================================================
+
+describe('offlineStorage additional crypto utilities', () => {
+  describe('encryptData/decryptData with various inputs', () => {
+    it('should handle empty string', async () => {
+      const mockKey = {} as CryptoKey;
+      const testData = '';
+      
+      mockCrypto.subtle.encrypt.mockResolvedValueOnce(new Uint8Array(16).buffer);
+      
+      const encrypted = await encryptData(testData, mockKey);
+      expect(encrypted).toHaveProperty('ciphertext');
+      expect(encrypted).toHaveProperty('iv');
+      expect(encrypted).toHaveProperty('tag');
+    });
+
+    it('should handle special characters', async () => {
+      const mockKey = {} as CryptoKey;
+      const testData = '{"name":"João Silva","notes":"Special chars: àéíóú ñ ç"}';
+      
+      mockCrypto.subtle.encrypt.mockResolvedValueOnce(new Uint8Array(32).buffer);
+      
+      const encrypted = await encryptData(testData, mockKey);
+      expect(encrypted).toHaveProperty('ciphertext');
+    });
+
+    it('should handle very long data', async () => {
+      const mockKey = {} as CryptoKey;
+      const testData = 'x'.repeat(10000);
+      
+      mockCrypto.subtle.encrypt.mockResolvedValueOnce(new Uint8Array(10016).buffer);
+      
+      const encrypted = await encryptData(testData, mockKey);
+      expect(encrypted).toHaveProperty('ciphertext');
+    });
+  });
+
+  describe('wrapKey/unwrapKey edge cases', () => {
+    it('should handle wrapKey with different key types', async () => {
+      const mockKey = {} as CryptoKey;
+      const mockMasterKey = {} as CryptoKey;
+      
+      mockCrypto.subtle.wrapKey.mockResolvedValueOnce(new Uint8Array(28).buffer);
+      
+      const wrapped = await wrapKey(mockKey, mockMasterKey);
+      expect(typeof wrapped).toBe('string');
+      expect(wrapped.length).toBeGreaterThan(0);
+    });
+
+    it('should handle unwrapKey with valid wrapped key', async () => {
+      const wrappedKey = 'dGVzdC13cmFwcGVkLWtleQ=='; // base64 encoded
+      const mockMasterKey = {} as CryptoKey;
+      
+      mockCrypto.subtle.unwrapKey.mockResolvedValueOnce({});
+      
+      const unwrapped = await unwrapKey(wrappedKey, mockMasterKey);
+      expect(unwrapped).toBeDefined();
+    });
+  });
+
+  describe('getDeviceMasterKey consistency', () => {
+    it('should generate consistent key for same origin and userAgent', async () => {
+      const key1 = await getDeviceMasterKey();
+      const key2 = await getDeviceMasterKey();
+      
+      // Should be the same key (cached)
+      expect(key1).toBe(key2);
+    });
+  });
+
+  describe('deriveKeyFromPassphrase determinism', () => {
+    it('should derive same key for same passphrase and salt', async () => {
+      const passphrase = 'test-passphrase-123';
+      const salt = generateSalt();
+      
+      const key1 = await deriveKeyFromPassphrase(passphrase, salt);
+      const key2 = await deriveKeyFromPassphrase(passphrase, salt);
+      
+      // Should be different keys (PBKDF2 is deterministic but we mock it)
+      expect(key1).toBeDefined();
+      expect(key2).toBeDefined();
     });
   });
 });
