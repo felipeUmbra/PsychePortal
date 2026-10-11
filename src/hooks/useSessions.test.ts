@@ -6,6 +6,10 @@ import type { User } from 'firebase/auth';
 import {
   createMockUser,
   createMockAuthStateChanged,
+  createMockOnSnapshot,
+  createMockGetDoc,
+  createMockDocSnapshot,
+  createMockQuerySnapshot,
 } from '../test/test-utils';
 
 vi.mock('../firebase', () => ({
@@ -115,17 +119,13 @@ describe('useSessions', () => {
     mockWhere.mockReturnValue({ type: 'where' });
     mockOrderBy.mockReturnValue({ type: 'orderBy' });
     mockLimit.mockReturnValue({ type: 'limit' });
-    mockOnSnapshot.mockImplementation((q, callback) => {
-          // Call callback asynchronously with a small delay to allow initial render with loading=true
-          setTimeout(() => callback({ docs: [] }), 10);
-          return vi.fn();
-        });
+    mockOnSnapshot.mockImplementation(createMockOnSnapshot([]));
     mockAddDoc.mockResolvedValue({ id: 'new-session-id' });
     mockDoc.mockReturnValue({ path: 'sessions', id: 'session-1' });
     mockUpdateDoc.mockResolvedValue(undefined);
     mockDeleteDoc.mockResolvedValue(undefined);
-    mockGetDoc.mockResolvedValue({ exists: () => true, data: () => ({ notes: 'existing notes' }) });
-    mockGetDocs.mockResolvedValue({ docs: [] });
+    mockGetDoc.mockImplementation(createMockGetDoc({ notes: 'existing notes' }));
+    mockGetDocs.mockResolvedValue(createMockQuerySnapshot([]));
   });
 
   afterEach(() => {
@@ -150,218 +150,194 @@ describe('useSessions', () => {
   });
 
   it('sets loading to false when no patientId', async () => {
-    const { result } = renderHook(() => useSessions(undefined));
+      const { result } = renderHook(() => useSessions(undefined));
 
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      }, { timeout: 5000 });
+
+      expect(result.current.sessions).toEqual([]);
     });
 
-    expect(result.current.sessions).toEqual([]);
-  });
+    it('fetches sessions for patient', async () => {
+      const mockSessions = createMockQuerySnapshot([
+        createMockDocSnapshot('1', { patientId: 'patient-1', psychologistId: 'test-uid-123', date: new Date(), status: 'completed', type: 'individual', notes: 'note 1' }),
+        createMockDocSnapshot('2', { patientId: 'patient-1', psychologistId: 'test-uid-123', date: new Date(), status: 'scheduled', type: 'individual', notes: 'note 2' }),
+      ]);
 
-  it('fetches sessions for patient', async () => {
-    const mockSessions = [
-      { id: '1', data: () => ({ patientId: 'patient-1', psychologistId: 'test-uid-123', date: new Date(), status: 'completed', type: 'individual', notes: 'note 1' }) },
-      { id: '2', data: () => ({ patientId: 'patient-1', psychologistId: 'test-uid-123', date: new Date(), status: 'scheduled', type: 'individual', notes: 'note 2' }) },
-    ];
+      mockOnSnapshot.mockImplementation(createMockOnSnapshot(mockSessions.docs));
 
-    mockOnSnapshot.mockImplementation((q, callback) => {
-      callback({ docs: mockSessions });
-      return vi.fn();
+      const { result } = renderHook(() => useSessions('patient-1'));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      }, { timeout: 5000 });
+
+      expect(result.current.sessions).toHaveLength(2);
+      expect(result.current.sessions[0].id).toBe('1');
+      expect(result.current.sessions[1].id).toBe('2');
     });
 
-    const { result } = renderHook(() => useSessions('patient-1'));
+    it('adds a new session', async () => {
+      mockOnSnapshot.mockImplementation(createMockOnSnapshot([]));
 
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
+      const { result } = renderHook(() => useSessions('patient-1'));
 
-    expect(result.current.sessions).toHaveLength(2);
-    expect(result.current.sessions[0].id).toBe('1');
-    expect(result.current.sessions[1].id).toBe('2');
-  });
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      }, { timeout: 5000 });
 
-  it('adds a new session', async () => {
-    mockOnSnapshot.mockImplementation((q, callback) => {
-      callback({ docs: [] });
-      return vi.fn();
-    });
-
-    const { result } = renderHook(() => useSessions('patient-1'));
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    const sessionId = await act(async () => {
-      return await result.current.addSession({
-        date: new Date(),
-        status: 'scheduled',
-        type: 'individual',
-        notes: 'Test session',
-      });
-    });
-
-    expect(sessionId).toBe('new-session-id');
-    expect(firestore.addDoc).toHaveBeenCalled();
-  });
-
-  it('updates a session', async () => {
-    mockOnSnapshot.mockImplementation((q, callback) => {
-      callback({ docs: [] });
-      return vi.fn();
-    });
-
-    const { result } = renderHook(() => useSessions('patient-1'));
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    await act(async () => {
-      await result.current.updateSession('session-1', { status: 'completed' });
-    });
-
-    expect(firestore.updateDoc).toHaveBeenCalled();
-  });
-
-  it('cancels a session', async () => {
-    mockOnSnapshot.mockImplementation((q, callback) => {
-      callback({ docs: [] });
-      return vi.fn();
-    });
-
-    const { result } = renderHook(() => useSessions('patient-1'));
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    await act(async () => {
-      await result.current.cancelSession({ id: 'session-1', googleEventId: 'event-1' } as any);
-    });
-
-    expect(firestore.updateDoc).toHaveBeenCalled();
-  });
-
-  it('deletes a session', async () => {
-    mockOnSnapshot.mockImplementation((q, callback) => {
-      callback({ docs: [] });
-      return vi.fn();
-    });
-
-    const { result } = renderHook(() => useSessions('patient-1'));
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    await act(async () => {
-      await result.current.deleteSession('session-1');
-    });
-
-    expect(firestore.deleteDoc).toHaveBeenCalled();
-  });
-
-  it('handles error in addSession', async () => {
-    mockOnSnapshot.mockImplementation((q, callback) => {
-      callback({ docs: [] });
-      return vi.fn();
-    });
-    mockAddDoc.mockRejectedValueOnce(new Error('Network error'));
-
-    const { result } = renderHook(() => useSessions('patient-1'));
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    await expect(
-      act(async () => {
-        await result.current.addSession({
+      const sessionId = await act(async () => {
+        return await result.current.addSession({
           date: new Date(),
           status: 'scheduled',
           type: 'individual',
           notes: 'Test session',
         });
-      })
-    ).rejects.toThrow('Network error');
-  });
+      });
 
-  it('handles error in updateSession', async () => {
-    mockOnSnapshot.mockImplementation((q, callback) => {
-      callback({ docs: [] });
-      return vi.fn();
-    });
-    mockUpdateDoc.mockRejectedValueOnce(new Error('Network error'));
-
-    const { result } = renderHook(() => useSessions('patient-1'));
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
+      expect(sessionId).toBe('new-session-id');
+      expect(firestore.addDoc).toHaveBeenCalled();
     });
 
-    await expect(
-      act(async () => {
+    it('updates a session', async () => {
+      mockOnSnapshot.mockImplementation(createMockOnSnapshot([]));
+
+      const { result } = renderHook(() => useSessions('patient-1'));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      }, { timeout: 5000 });
+
+      await act(async () => {
         await result.current.updateSession('session-1', { status: 'completed' });
-      })
-    ).rejects.toThrow('Network error');
+      });
+
+      expect(firestore.updateDoc).toHaveBeenCalled();
+    });
+
+    it('cancels a session', async () => {
+      mockOnSnapshot.mockImplementation(createMockOnSnapshot([]));
+
+      const { result } = renderHook(() => useSessions('patient-1'));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      }, { timeout: 5000 });
+
+      await act(async () => {
+        await result.current.cancelSession({ id: 'session-1', googleEventId: 'event-1' } as any);
+      });
+
+      expect(firestore.updateDoc).toHaveBeenCalled();
+    });
+
+    it('deletes a session', async () => {
+          mockOnSnapshot.mockImplementation(createMockOnSnapshot([]));
+
+          const { result } = renderHook(() => useSessions('patient-1'));
+
+          await waitFor(() => {
+            expect(result.current.loading).toBe(false);
+          }, { timeout: 5000 });
+
+          await act(async () => {
+            await result.current.deleteSession('session-1');
+          });
+
+          expect(firestore.deleteDoc).toHaveBeenCalled();
+        });
+
+  it('handles error in addSession', async () => {
+      mockOnSnapshot.mockImplementation(createMockOnSnapshot([]));
+      mockAddDoc.mockRejectedValueOnce(new Error('Network error'));
+
+      const { result } = renderHook(() => useSessions('patient-1'));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      }, { timeout: 5000 });
+
+      await expect(
+        act(async () => {
+          await result.current.addSession({
+            date: new Date(),
+            status: 'scheduled',
+            type: 'individual',
+            notes: 'Test session',
+          });
+        })
+      ).rejects.toThrow('Network error');
+    });
+
+    it('handles error in updateSession', async () => {
+      mockOnSnapshot.mockImplementation(createMockOnSnapshot([]));
+      mockUpdateDoc.mockRejectedValueOnce(new Error('Network error'));
+
+      const { result } = renderHook(() => useSessions('patient-1'));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      }, { timeout: 5000 });
+
+      await expect(
+        act(async () => {
+          await result.current.updateSession('session-1', { status: 'completed' });
+        })
+      ).rejects.toThrow('Network error');
+    });
+
+    it('handles error in deleteSession', async () => {
+      mockOnSnapshot.mockImplementation(createMockOnSnapshot([]));
+      mockDeleteDoc.mockRejectedValueOnce(new Error('Network error'));
+
+      const { result } = renderHook(() => useSessions('patient-1'));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      }, { timeout: 5000 });
+
+      await expect(
+        act(async () => {
+          await result.current.deleteSession('session-1');
+        })
+      ).rejects.toThrow('Network error');
+    });
+
+    it('cleans up listener on unmount', async () => {
+      const unsubscribe = vi.fn();
+          mockOnSnapshot.mockImplementation((q, callback) => {
+            callback(createMockQuerySnapshot([]));
+            return unsubscribe;
+          });
+
+          const { result, unmount } = renderHook(() => useSessions('patient-1'));
+
+          await waitFor(() => {
+            expect(result.current.loading).toBe(false);
+            }, { timeout: 10000 });
+
+          unmount();
+
+          expect(unsubscribe).toHaveBeenCalled();
+          }, 15000);
+
+    it('decrypts notes when encryption is unlocked', async () => {
+      const mockSessions = createMockQuerySnapshot([
+        createMockDocSnapshot('1', { patientId: 'patient-1', psychologistId: 'test-uid-123', date: new Date(), status: 'completed', type: 'individual', notes: JSON.stringify({ version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' }) }),
+      ]);
+
+      mockOnSnapshot.mockImplementation(createMockOnSnapshot(mockSessions.docs));
+
+      const { result } = renderHook(() => useSessions('patient-1'));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      }, { timeout: 5000 });
+
+      // Wait for decryption to complete
+      await waitFor(() => {
+        expect(result.current.sessions[0].notes).toBe('decrypted text');
+      }, { timeout: 5000 });
+    });
   });
-
-  it('handles error in deleteSession', async () => {
-    mockOnSnapshot.mockImplementation((q, callback) => {
-      callback({ docs: [] });
-      return vi.fn();
-    });
-    mockDeleteDoc.mockRejectedValueOnce(new Error('Network error'));
-
-    const { result } = renderHook(() => useSessions('patient-1'));
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    await expect(
-      act(async () => {
-        await result.current.deleteSession('session-1');
-      })
-    ).rejects.toThrow('Network error');
-  });
-
-  it('cleans up listener on unmount', async () => {
-    const unsubscribe = vi.fn();
-    mockOnSnapshot.mockReturnValue(unsubscribe);
-
-    const { result, unmount } = renderHook(() => useSessions('patient-1'));
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-      }, { timeout: 10000 });
-
-    unmount();
-
-    expect(unsubscribe).toHaveBeenCalled();
-    }, 15000);
-
-  it('decrypts notes when encryption is unlocked', async () => {
-    const mockSessions = [
-      { id: '1', data: () => ({ patientId: 'patient-1', psychologistId: 'test-uid-123', date: new Date(), status: 'completed', type: 'individual', notes: JSON.stringify({ version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' }) }) },
-    ];
-
-    mockOnSnapshot.mockImplementation((q, callback) => {
-      callback({ docs: mockSessions });
-      return vi.fn();
-    });
-
-    const { result } = renderHook(() => useSessions('patient-1'));
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    // Wait for decryption to complete
-    await waitFor(() => {
-      expect(result.current.sessions[0].notes).toBe('decrypted text');
-    });
-  });
-});

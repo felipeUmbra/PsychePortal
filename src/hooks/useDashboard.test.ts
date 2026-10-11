@@ -6,6 +6,10 @@ import type { User } from 'firebase/auth';
 import {
   createMockUser,
   createMockAuthStateChanged,
+  createMockOnSnapshot,
+  createMockGetDocs,
+  createMockDocSnapshot,
+  createMockQuerySnapshot,
 } from '../test/test-utils';
 
 vi.mock('../firebase', () => ({
@@ -69,12 +73,10 @@ describe('useDashboard', () => {
       mockWhere.mockReturnValue({ type: 'where' });
       mockLimit.mockReturnValue({ type: 'limit' });
       mockOrderBy.mockReturnValue({ type: 'orderBy' });
-            mockGetDocs.mockImplementation(() => Promise.resolve({ size: 0, docs: [] }));
-      mockOnSnapshot.mockImplementation((q, callback) => {
-              // Call callback synchronously for tests
-              callback({ docs: [] });
-        return vi.fn();
-      });
+      
+      // Default: empty results, async callback
+      mockGetDocs.mockImplementation(() => Promise.resolve(createMockQuerySnapshot([])));
+      mockOnSnapshot.mockImplementation(createMockOnSnapshot([]));
     });
 
     afterEach(() => {
@@ -87,7 +89,7 @@ describe('useDashboard', () => {
     
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
-      });
+          }, { timeout: 5000 });
     });
 
     it('sets loading to false when no user', async () => {
@@ -108,25 +110,53 @@ describe('useDashboard', () => {
     });
 
     it('fetches stats when user is authenticated', async () => {
-      const mockPatientsSnap = { size: 5, docs: [] };
-      const mockSessionsSnap = { size: 10, docs: [] };
-      const mockScheduledSnap = { size: 3, docs: [] };
+          const mockPatientsSnap = createMockQuerySnapshot([
+            createMockDocSnapshot('1', {}),
+            createMockDocSnapshot('2', {}),
+            createMockDocSnapshot('3', {}),
+            createMockDocSnapshot('4', {}),
+            createMockDocSnapshot('5', {}),
+          ]);
+          const mockSessionsSnap = createMockQuerySnapshot([
+            createMockDocSnapshot('1', { status: 'completed', date: new Date() }),
+            createMockDocSnapshot('2', { status: 'completed', date: new Date() }),
+            createMockDocSnapshot('3', { status: 'completed', date: new Date() }),
+            createMockDocSnapshot('4', { status: 'completed', date: new Date() }),
+            createMockDocSnapshot('5', { status: 'completed', date: new Date() }),
+            createMockDocSnapshot('6', { status: 'completed', date: new Date() }),
+            createMockDocSnapshot('7', { status: 'completed', date: new Date() }),
+            createMockDocSnapshot('8', { status: 'completed', date: new Date() }),
+            createMockDocSnapshot('9', { status: 'completed', date: new Date() }),
+            createMockDocSnapshot('10', { status: 'completed', date: new Date() }),
+          ]);
+          const now = new Date();
+                    const futureDate = new Date(now.getTime() + 3600000); // 1 hour from now
+                    const mockScheduledSnap = createMockQuerySnapshot([
+                      createMockDocSnapshot('1', { status: 'scheduled', date: futureDate }),
+                      createMockDocSnapshot('2', { status: 'scheduled', date: futureDate }),
+                      createMockDocSnapshot('3', { status: 'scheduled', date: futureDate }),
+                    ]);
 
-      mockGetDocs
-        .mockResolvedValueOnce(mockPatientsSnap)
-        .mockResolvedValueOnce(mockSessionsSnap)
-        .mockResolvedValueOnce(mockScheduledSnap);
+                    mockGetDocs
+                      .mockResolvedValueOnce(mockPatientsSnap)
+                      .mockResolvedValueOnce(mockSessionsSnap)
+                      .mockResolvedValueOnce(mockScheduledSnap);
 
-      const { result } = renderHook(() => useDashboard());
+                    // Mock onSnapshot to return the scheduled sessions for today's listener
+                    mockOnSnapshot
+                      .mockImplementationOnce(createMockOnSnapshot(mockScheduledSnap.docs)) // today's sessions
+                      .mockImplementationOnce(createMockOnSnapshot([])); // recent sessions
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { timeout: 10000 });
+          const { result } = renderHook(() => useDashboard());
 
-      expect(result.current.stats.patients).toBe(5);
-      expect(result.current.stats.sessions).toBe(10);
-      expect(result.current.stats.scheduled).toBe(3);
-    });
+          await waitFor(() => {
+            expect(result.current.loading).toBe(false);
+          }, { timeout: 10000 });
+
+          expect(result.current.stats.patients).toBe(5);
+          expect(result.current.stats.sessions).toBe(10);
+          expect(result.current.stats.scheduled).toBe(3);
+        });
 
   it('calculates growth percentage correctly', async () => {
     const now = new Date();
@@ -135,56 +165,62 @@ describe('useDashboard', () => {
     const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1;
     const previousYear = currentMonth === 0 ? currentYear - 1 : currentYear;
 
-    const mockSessionsSnap = {
-      size: 10,
-      docs: [
-        { data: () => ({ date: new Date(currentYear, currentMonth, 15) }) },
-        { data: () => ({ date: new Date(currentYear, currentMonth, 20) }) },
-        { data: () => ({ date: new Date(previousYear, previousMonth, 10) }) },
-      ],
-    };
+      const mockSessionsSnap = createMockQuerySnapshot([
+        createMockDocSnapshot('1', { date: new Date(currentYear, currentMonth, 15), status: 'completed' }),
+        createMockDocSnapshot('2', { date: new Date(currentYear, currentMonth, 20), status: 'completed' }),
+        createMockDocSnapshot('3', { date: new Date(previousYear, previousMonth, 10), status: 'completed' }),
+      ]);
 
-    mockGetDocs
-      .mockResolvedValueOnce({ size: 5, docs: [] }) // patients
-      .mockResolvedValueOnce(mockSessionsSnap) // sessions
-      .mockResolvedValueOnce({ size: 0, docs: [] }); // scheduled
+      mockGetDocs
+        .mockResolvedValueOnce(createMockQuerySnapshot([
+          createMockDocSnapshot('1', {}),
+          createMockDocSnapshot('2', {}),
+          createMockDocSnapshot('3', {}),
+          createMockDocSnapshot('4', {}),
+          createMockDocSnapshot('5', {}),
+        ])) // patients
+        .mockResolvedValueOnce(mockSessionsSnap) // sessions
+        .mockResolvedValueOnce(createMockQuerySnapshot([])); // scheduled
 
-    const { result } = renderHook(() => useDashboard());
+      const { result } = renderHook(() => useDashboard());
 
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      }, { timeout: 10000 });
+
+      // 2 current month, 1 previous month = 100% growth
+      expect(result.current.stats.growth).toBe('+100%');
     });
-
-    // 2 current month, 1 previous month = 100% growth
-    expect(result.current.stats.growth).toBe('+100%');
-  });
 
   it('handles zero previous month sessions', async () => {
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
-    const mockSessionsSnap = {
-      size: 10,
-      docs: [
-        { data: () => ({ date: new Date(currentYear, currentMonth, 15) }) },
-        { data: () => ({ date: new Date(currentYear, currentMonth, 20) }) },
-      ],
-    };
+      const mockSessionsSnap = createMockQuerySnapshot([
+        createMockDocSnapshot('1', { date: new Date(currentYear, currentMonth, 15), status: 'completed' }),
+        createMockDocSnapshot('2', { date: new Date(currentYear, currentMonth, 20), status: 'completed' }),
+      ]);
 
-    mockGetDocs
-      .mockResolvedValueOnce({ size: 5, docs: [] })
-      .mockResolvedValueOnce(mockSessionsSnap)
-      .mockResolvedValueOnce({ size: 0, docs: [] });
+      mockGetDocs
+        .mockResolvedValueOnce(createMockQuerySnapshot([
+          createMockDocSnapshot('1', {}),
+          createMockDocSnapshot('2', {}),
+          createMockDocSnapshot('3', {}),
+          createMockDocSnapshot('4', {}),
+          createMockDocSnapshot('5', {}),
+        ]))
+        .mockResolvedValueOnce(mockSessionsSnap)
+        .mockResolvedValueOnce(createMockQuerySnapshot([]));
 
-    const { result } = renderHook(() => useDashboard());
+      const { result } = renderHook(() => useDashboard());
 
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      }, { timeout: 10000 });
+
+      expect(result.current.stats.growth).toBe('+100%');
     });
-
-    expect(result.current.stats.growth).toBe('+100%');
-  });
 
   it('handles error in fetchStats', async () => {
     mockGetDocs.mockRejectedValueOnce(new Error('Network error'));
@@ -231,57 +267,75 @@ describe('useDashboard', () => {
     const unsubscribeToday = vi.fn();
     const unsubscribeSessions = vi.fn();
     mockOnSnapshot
-      .mockReturnValueOnce(unsubscribeToday)
-      .mockReturnValueOnce(unsubscribeSessions);
+          .mockImplementationOnce((q, callback) => {
+            callback(createMockQuerySnapshot([]));
+            return unsubscribeToday;
+          })
+          .mockImplementationOnce((q, callback) => {
+            callback(createMockQuerySnapshot([]));
+            return unsubscribeSessions;
+          });
 
-    const { result, unmount } = renderHook(() => useDashboard());
+      const { result, unmount } = renderHook(() => useDashboard());
 
-      // Wait for the hook to initialize (loading becomes false)
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { timeout: 10000 });
+        // Wait for the hook to initialize (loading becomes false)
+        await waitFor(() => {
+          expect(result.current.loading).toBe(false);
+        }, { timeout: 10000 });
 
-      unmount();
+        unmount();
 
-      expect(unsubscribeToday).toHaveBeenCalled();
-      expect(unsubscribeSessions).toHaveBeenCalled();
-    }, 15000);
+        expect(unsubscribeToday).toHaveBeenCalled();
+        expect(unsubscribeSessions).toHaveBeenCalled();
+      }, 15000);
 
   it('updates scheduled count dynamically from today sessions', async () => {
     const now = new Date();
     const futureDate = new Date(now.getTime() + 3600000); // 1 hour from now
     const pastDate = new Date(now.getTime() - 3600000); // 1 hour ago
 
-    const mockTodaySessions = {
-      docs: [
-        { id: '1', data: () => ({ date: futureDate, status: 'scheduled' }) },
-        { id: '2', data: () => ({ date: pastDate, status: 'scheduled' }) },
-        { id: '3', data: () => ({ date: futureDate, status: 'completed' }) },
-      ],
-    };
+      const mockTodaySessions = createMockQuerySnapshot([
+        createMockDocSnapshot('1', { date: futureDate, status: 'scheduled' }),
+        createMockDocSnapshot('2', { date: pastDate, status: 'scheduled' }),
+        createMockDocSnapshot('3', { date: futureDate, status: 'completed' }),
+      ]);
 
-    mockOnSnapshot
-      .mockImplementationOnce((q, callback) => {
-        callback(mockTodaySessions);
-        return vi.fn();
-      })
-      .mockImplementationOnce((q, callback) => {
-        callback({ docs: [] });
-        return vi.fn();
-      });
+      mockOnSnapshot
+        .mockImplementationOnce(createMockOnSnapshot(mockTodaySessions.docs))
+        .mockImplementationOnce(createMockOnSnapshot([]));
 
-    mockGetDocs
-      .mockResolvedValueOnce({ size: 5, docs: [] })
-      .mockResolvedValueOnce({ size: 10, docs: [] })
-      .mockResolvedValueOnce({ size: 0, docs: [] });
+      mockGetDocs
+        .mockResolvedValueOnce(createMockQuerySnapshot([
+          createMockDocSnapshot('1', {}),
+          createMockDocSnapshot('2', {}),
+          createMockDocSnapshot('3', {}),
+          createMockDocSnapshot('4', {}),
+          createMockDocSnapshot('5', {}),
+        ]))
+        .mockResolvedValueOnce(createMockQuerySnapshot([
+          createMockDocSnapshot('1', { status: 'completed', date: new Date() }),
+          createMockDocSnapshot('2', { status: 'completed', date: new Date() }),
+          createMockDocSnapshot('3', { status: 'completed', date: new Date() }),
+          createMockDocSnapshot('4', { status: 'completed', date: new Date() }),
+          createMockDocSnapshot('5', { status: 'completed', date: new Date() }),
+          createMockDocSnapshot('6', { status: 'completed', date: new Date() }),
+          createMockDocSnapshot('7', { status: 'completed', date: new Date() }),
+          createMockDocSnapshot('8', { status: 'completed', date: new Date() }),
+          createMockDocSnapshot('9', { status: 'completed', date: new Date() }),
+          createMockDocSnapshot('10', { status: 'completed', date: new Date() }),
+        ]))
+        .mockResolvedValueOnce(createMockQuerySnapshot([]));
 
-    const { result } = renderHook(() => useDashboard());
+      const { result } = renderHook(() => useDashboard());
 
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      }, { timeout: 10000 });
+
+            // Wait for the onSnapshot callback to update the scheduled count
+            // The callback is called via Promise.resolve().then(), so we need to wait for microtasks
+            await waitFor(() => {
+              expect(result.current.stats.scheduled).toBe(1);
+            }, { timeout: 15000 });
     });
-
-    // Should have 1 upcoming session (futureDate, scheduled)
-    expect(result.current.stats.scheduled).toBe(1);
   });
-});

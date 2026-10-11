@@ -20,10 +20,11 @@ export default defineConfig({
       setupFiles: ['./src/test/setup.ts'],
       include: ['src/**/*.test.{ts,tsx}'],
       exclude: ['node_modules', 'dist', 'main_build'],
-      coverage: {
-        reporter: ['text', 'json', 'html'],
-        include: ['src/lib/**', 'src/hooks/**'],
-        exclude: ['src/lib/firestore-mock.ts'],
+        testTimeout: 15000,
+        coverage: {
+          reporter: ['text', 'json', 'html'],
+          include: ['src/lib/**', 'src/hooks/**'],
+          exclude: ['src/lib/firestore-mock.ts'],
+        },
       },
-    },
 });

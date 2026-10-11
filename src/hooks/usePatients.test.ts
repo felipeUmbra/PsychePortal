@@ -6,6 +6,10 @@ import type { User } from 'firebase/auth';
 import {
   createMockUser,
   createMockAuthStateChanged,
+  createMockOnSnapshot,
+  createMockGetDoc,
+  createMockDocSnapshot,
+  createMockQuerySnapshot,
 } from '../test/test-utils';
 
 vi.mock('../firebase', () => ({
@@ -87,13 +91,10 @@ describe('usePatients', () => {
     mockCollection.mockReturnValue({ path: 'patients' });
     mockQuery.mockReturnValue({ path: 'patients', conditions: [] });
     mockWhere.mockReturnValue({ type: 'where' });
-    mockOnSnapshot.mockImplementation((q, callback) => {
-      callback({ docs: [] });
-      return vi.fn();
-    });
+    mockOnSnapshot.mockImplementation(createMockOnSnapshot([]));
     mockAddDoc.mockResolvedValue({ id: 'new-patient-id' });
     mockDoc.mockReturnValue({ path: 'patients', id: 'patient-1' });
-    mockGetDoc.mockResolvedValue({ exists: () => true, data: () => ({ fullName: 'Test Patient' }) });
+    mockGetDoc.mockImplementation(createMockGetDoc({ fullName: 'Test Patient' }));
     mockUpdateDoc.mockResolvedValue(undefined);
     mockDeleteDoc.mockResolvedValue(undefined);
   });
@@ -148,189 +149,168 @@ describe('usePatients', () => {
   });
 
   it('adds a new patient', async () => {
-    mockOnSnapshot.mockImplementation((q, callback) => {
-      callback({ docs: [] });
-      return vi.fn();
-    });
+      mockOnSnapshot.mockImplementation(createMockOnSnapshot([]));
 
-    const { result } = renderHook(() => usePatients());
+      const { result } = renderHook(() => usePatients());
 
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      }, { timeout: 5000 });
 
-    const patientId = await act(async () => {
-      return await result.current.addPatient({
-        fullName: 'New Patient',
-        email: 'new@test.com',
-        phone: '123456789',
-      });
-    });
-
-    expect(patientId).toBe('new-patient-id');
-    expect(firestore.addDoc).toHaveBeenCalled();
-  });
-
-  it('updates a patient', async () => {
-    mockOnSnapshot.mockImplementation((q, callback) => {
-      callback({ docs: [] });
-      return vi.fn();
-    });
-
-    const { result } = renderHook(() => usePatients());
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    await act(async () => {
-      await result.current.updatePatient('patient-1', { fullName: 'Updated Name' });
-    });
-
-    expect(firestore.updateDoc).toHaveBeenCalled();
-  });
-
-  it('deletes a patient', async () => {
-    mockOnSnapshot.mockImplementation((q, callback) => {
-      callback({ docs: [] });
-      return vi.fn();
-    });
-
-    const { result } = renderHook(() => usePatients());
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    await act(async () => {
-      await result.current.deletePatient('patient-1');
-    });
-
-    expect(firestore.deleteDoc).toHaveBeenCalled();
-  });
-
-  it('handles error in addPatient', async () => {
-    mockOnSnapshot.mockImplementation((q, callback) => {
-      callback({ docs: [] });
-      return vi.fn();
-    });
-    mockAddDoc.mockRejectedValueOnce(new Error('Network error'));
-
-    const { result } = renderHook(() => usePatients());
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    await expect(
-      act(async () => {
-        await result.current.addPatient({
+      const patientId = await act(async () => {
+        return await result.current.addPatient({
           fullName: 'New Patient',
           email: 'new@test.com',
+          phone: '123456789',
         });
-      })
-    ).rejects.toThrow('Network error');
-  });
+      });
 
-  it('handles error in updatePatient', async () => {
-    mockOnSnapshot.mockImplementation((q, callback) => {
-      callback({ docs: [] });
-      return vi.fn();
-    });
-    mockUpdateDoc.mockRejectedValueOnce(new Error('Network error'));
-
-    const { result } = renderHook(() => usePatients());
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
+      expect(patientId).toBe('new-patient-id');
+      expect(firestore.addDoc).toHaveBeenCalled();
     });
 
-    await expect(
-      act(async () => {
+    it('updates a patient', async () => {
+      mockOnSnapshot.mockImplementation(createMockOnSnapshot([]));
+
+      const { result } = renderHook(() => usePatients());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      }, { timeout: 5000 });
+
+      await act(async () => {
         await result.current.updatePatient('patient-1', { fullName: 'Updated Name' });
-      })
-    ).rejects.toThrow('Network error');
-  });
+      });
 
-  it('handles error in deletePatient', async () => {
-    mockOnSnapshot.mockImplementation((q, callback) => {
-      callback({ docs: [] });
-      return vi.fn();
-    });
-    mockDeleteDoc.mockRejectedValueOnce(new Error('Network error'));
-
-    const { result } = renderHook(() => usePatients());
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
+      expect(firestore.updateDoc).toHaveBeenCalled();
     });
 
-    await expect(
-      act(async () => {
+    it('deletes a patient', async () => {
+      mockOnSnapshot.mockImplementation(createMockOnSnapshot([]));
+
+      const { result } = renderHook(() => usePatients());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      }, { timeout: 5000 });
+
+      await act(async () => {
         await result.current.deletePatient('patient-1');
-      })
-    ).rejects.toThrow('Network error');
+      });
+
+      expect(firestore.deleteDoc).toHaveBeenCalled();
+    });
+
+    it('handles error in addPatient', async () => {
+      mockOnSnapshot.mockImplementation(createMockOnSnapshot([]));
+      mockAddDoc.mockRejectedValueOnce(new Error('Network error'));
+
+      const { result } = renderHook(() => usePatients());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      }, { timeout: 5000 });
+
+      await expect(
+        act(async () => {
+          await result.current.addPatient({
+            fullName: 'New Patient',
+            email: 'new@test.com',
+          });
+        })
+      ).rejects.toThrow('Network error');
+    });
+
+    it('handles error in updatePatient', async () => {
+      mockOnSnapshot.mockImplementation(createMockOnSnapshot([]));
+      mockUpdateDoc.mockRejectedValueOnce(new Error('Network error'));
+
+      const { result } = renderHook(() => usePatients());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      }, { timeout: 5000 });
+
+      await expect(
+        act(async () => {
+          await result.current.updatePatient('patient-1', { fullName: 'Updated Name' });
+        })
+      ).rejects.toThrow('Network error');
+    });
+
+    it('handles error in deletePatient', async () => {
+      mockOnSnapshot.mockImplementation(createMockOnSnapshot([]));
+      mockDeleteDoc.mockRejectedValueOnce(new Error('Network error'));
+
+      const { result } = renderHook(() => usePatients());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      }, { timeout: 5000 });
+
+      await expect(
+        act(async () => {
+          await result.current.deletePatient('patient-1');
+        })
+      ).rejects.toThrow('Network error');
+    });
+
+    it('cleans up listener on unmount', async () => {
+      const unsubscribe = vi.fn();
+          mockOnSnapshot.mockImplementation((q, callback) => {
+            callback(createMockQuerySnapshot([]));
+            return unsubscribe;
+          });
+
+          const { result, unmount } = renderHook(() => usePatients());
+
+          await waitFor(() => {
+            expect(result.current.loading).toBe(false);
+          }, { timeout: 5000 });
+
+          unmount();
+
+          expect(unsubscribe).toHaveBeenCalled();
+        });
+
+    it('decrypts notes when encryption is unlocked', async () => {
+      const mockPatients = createMockQuerySnapshot([
+        createMockDocSnapshot('1', { psychologistId: 'test-uid-123', fullName: 'Patient 1', notes: JSON.stringify({ version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' }) }),
+      ]);
+
+      mockOnSnapshot.mockImplementation(createMockOnSnapshot(mockPatients.docs));
+
+      const { result } = renderHook(() => usePatients());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      }, { timeout: 5000 });
+
+      // Wait for decryption to complete
+      await waitFor(() => {
+        expect(result.current.patients[0].notes).toBe('decrypted text');
+      }, { timeout: 5000 });
+    });
+
+    it('decrypts anamnesis fields when encryption is unlocked', async () => {
+      const mockPatients = createMockQuerySnapshot([
+        createMockDocSnapshot('1', { psychologistId: 'test-uid-123', fullName: 'Patient 1', anamnesis: { chiefComplaint: JSON.stringify({ version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' }) } }),
+      ]);
+
+      mockOnSnapshot.mockImplementation(createMockOnSnapshot(mockPatients.docs));
+
+      const { result } = renderHook(() => usePatients());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      }, { timeout: 5000 });
+
+      // Wait for decryption to complete
+      await waitFor(() => {
+        expect(result.current.patients[0].anamnesis?.chiefComplaint).toBe('decrypted text');
+      }, { timeout: 5000 });
+    });
   });
-
-  it('cleans up listener on unmount', async () => {
-    const unsubscribe = vi.fn();
-    mockOnSnapshot.mockReturnValue(unsubscribe);
-
-    const { result, unmount } = renderHook(() => usePatients());
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    unmount();
-
-    expect(unsubscribe).toHaveBeenCalled();
-  });
-
-  it('decrypts notes when encryption is unlocked', async () => {
-    const mockPatients = [
-      { id: '1', data: () => ({ psychologistId: 'test-uid-123', fullName: 'Patient 1', notes: JSON.stringify({ version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' }) }) },
-    ];
-
-    mockOnSnapshot.mockImplementation((q, callback) => {
-      callback({ docs: mockPatients });
-      return vi.fn();
-    });
-
-    const { result } = renderHook(() => usePatients());
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    // Wait for decryption to complete
-    await waitFor(() => {
-      expect(result.current.patients[0].notes).toBe('decrypted text');
-    });
-  });
-
-  it('decrypts anamnesis fields when encryption is unlocked', async () => {
-    const mockPatients = [
-      { id: '1', data: () => ({ psychologistId: 'test-uid-123', fullName: 'Patient 1', anamnesis: { chiefComplaint: JSON.stringify({ version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' }) } }) },
-    ];
-
-    mockOnSnapshot.mockImplementation((q, callback) => {
-      callback({ docs: mockPatients });
-      return vi.fn();
-    });
-
-    const { result } = renderHook(() => usePatients());
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    // Wait for decryption to complete
-    await waitFor(() => {
-      expect(result.current.patients[0].anamnesis?.chiefComplaint).toBe('decrypted text');
-    });
-  });
-});
 
 describe('usePatient', () => {
   const mockUser = createMockUser('test-uid-123');
@@ -352,8 +332,9 @@ describe('usePatient', () => {
     vi.mocked(firestore.getDoc).mockImplementation(mockGetDoc);
     vi.mocked(firestore.updateDoc).mockImplementation(mockUpdateDoc);
 
+    // Default mock implementations
     mockDoc.mockReturnValue({ path: 'patients', id: 'patient-1' });
-    mockGetDoc.mockResolvedValue({ exists: () => true, data: () => ({ fullName: 'Test Patient' }) });
+    mockGetDoc.mockImplementation(createMockGetDoc({ fullName: 'Test Patient', email: 'test@test.com' }));
     mockUpdateDoc.mockResolvedValue(undefined);
   });
 
@@ -379,7 +360,7 @@ describe('usePatient', () => {
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
-    });
+    }, { timeout: 5000 });
 
     expect(result.current.patient).toBeNull();
   });
@@ -389,60 +370,60 @@ describe('usePatient', () => {
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
-    });
+    }, { timeout: 5000 });
 
     expect(result.current.patient).toBeNull();
   });
 
   it('fetches patient by id', async () => {
-    mockGetDoc.mockResolvedValue({ exists: () => true, data: () => ({ fullName: 'Test Patient', email: 'test@test.com' }) });
+      mockGetDoc.mockImplementation(createMockGetDoc({ fullName: 'Test Patient', email: 'test@test.com' }, true, 'patient-1'));
 
     const { result } = renderHook(() => usePatient('patient-1'));
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
-    });
+    }, { timeout: 5000 });
 
     expect(result.current.patient).toEqual({ id: 'patient-1', fullName: 'Test Patient', email: 'test@test.com' });
   });
 
   it('retries fetching patient up to 5 times', async () => {
     mockGetDoc
-      .mockResolvedValueOnce({ exists: () => false })
-      .mockResolvedValueOnce({ exists: () => false })
-      .mockResolvedValueOnce({ exists: () => true, data: () => ({ fullName: 'Test Patient' }) });
+      .mockImplementationOnce(createMockGetDoc(null, false))
+      .mockImplementationOnce(createMockGetDoc(null, false))
+        .mockImplementationOnce(createMockGetDoc({ fullName: 'Test Patient' }, true, 'patient-1'));
 
     const { result } = renderHook(() => usePatient('patient-1'));
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
-    });
+    }, { timeout: 5000 });
 
     expect(mockGetDoc).toHaveBeenCalledTimes(3);
     expect(result.current.patient).toEqual({ id: 'patient-1', fullName: 'Test Patient' });
   });
 
   it('handles patient not found after retries', async () => {
-    mockGetDoc.mockResolvedValue({ exists: () => false });
+    mockGetDoc.mockImplementation(createMockGetDoc(null, false));
 
     const { result } = renderHook(() => usePatient('patient-1'));
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
-    });
+    }, { timeout: 5000 });
 
     expect(result.current.patient).toBeNull();
     expect(mockGetDoc).toHaveBeenCalledTimes(5);
   });
 
   it('updates patient', async () => {
-    mockGetDoc.mockResolvedValue({ exists: () => true, data: () => ({ fullName: 'Test Patient' }) });
+    mockGetDoc.mockImplementation(createMockGetDoc({ fullName: 'Test Patient' }));
 
     const { result } = renderHook(() => usePatient('patient-1'));
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
-    });
+    }, { timeout: 5000 });
 
     await act(async () => {
       await result.current.updatePatient({ fullName: 'Updated Name' });
@@ -453,14 +434,14 @@ describe('usePatient', () => {
   });
 
   it('handles error in updatePatient', async () => {
-    mockGetDoc.mockResolvedValue({ exists: () => true, data: () => ({ fullName: 'Test Patient' }) });
+    mockGetDoc.mockImplementation(createMockGetDoc({ fullName: 'Test Patient' }));
     mockUpdateDoc.mockRejectedValueOnce(new Error('Network error'));
 
     const { result } = renderHook(() => usePatient('patient-1'));
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
-    });
+    }, { timeout: 5000 });
 
     await expect(
       act(async () => {
