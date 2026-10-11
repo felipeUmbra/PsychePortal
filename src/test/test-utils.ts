@@ -81,10 +81,37 @@ export function createMockDocRef(path: string, id: string) {
   return { type: 'doc', path, id };
 }
 
-// Mock onAuthStateChanged callback
+// Mock onAuthStateChanged callback - async version that simulates real Firebase behavior
 export function createMockAuthStateChanged(user: User | null) {
   return vi.fn((cb: (user: User | null) => void) => {
-    cb(user);
+    // Simulate async behavior - don't call immediately
+    setTimeout(() => cb(user), 0);
     return vi.fn();
   });
+}
+
+// Mock onSnapshot that calls callback asynchronously (like real Firestore)
+export function createMockOnSnapshot<T = any>(docs: DocumentSnapshot<T>[] = []) {
+  return vi.fn((query: any, callback: (snapshot: QuerySnapshot<T>) => void) => {
+    // Call callback asynchronously to simulate real Firestore behavior
+    // Use setTimeout with 0 to ensure it runs after the current tick
+    setTimeout(() => {
+      callback(createMockQuerySnapshot(docs));
+    }, 0);
+    return vi.fn();
+  });
+}
+
+// Mock getDoc that returns a document snapshot
+export function createMockGetDoc<T = any>(data: T | null, exists = true, id = 'mock-id') {
+  return vi.fn().mockResolvedValue(
+    data && exists
+      ? createMockDocSnapshot(id, data)
+      : { exists: () => false, data: () => undefined, id } as DocumentSnapshot<T>
+  );
+}
+
+// Mock getDocs that returns a query snapshot
+export function createMockGetDocs<T = any>(docs: DocumentSnapshot<T>[] = []) {
+  return vi.fn().mockResolvedValue(createMockQuerySnapshot(docs));
 }

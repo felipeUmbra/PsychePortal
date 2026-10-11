@@ -34,7 +34,7 @@ vi.mock('../firebase', () => ({
 
 import * as firestoreMock from './firestore-mock';
 import { setDriveToken } from './firestore-mock';
-import { getLastAuditHash, logEvent, logView, logDelete, verifyAuditChain } from './audit';
+import { getLastAuditHash, logEvent, logView, logDelete, verifyAuditChain, logExport, logAuth } from './audit';
 
 async function boot() {
   // Build the delegating firebase/firestore proxy from the real firestore-mock.
@@ -69,6 +69,8 @@ beforeEach(async () => {
     json: async () => ({ files: [] }),
   }) as unknown as typeof fetch;
   await boot();
+  // Clear state between tests for isolation
+  firestoreMock.clearState();
 });
 
 afterEach(() => {
@@ -151,5 +153,197 @@ describe('convenience loggers', () => {
     expect(views[0].action).toBe('view');
     expect(dels[0].action).toBe('delete');
     expect(dels[0].beforeHash).toBeTruthy();
+  });
+
+  it('logExport writes export event with correct action and afterHash', async () => {
+    await logExport('psych-export', 'patient', ['p1', 'p2'], 'csv');
+
+    const exports = (await firestoreMock.getDocs(
+      firestoreMock.query(firestoreMock.collection({}, 'audit_logs'), firestoreMock.where('actorId', '==', 'psych-export'))
+    )).docs.map((d) => d.data());
+
+    expect(exports).toHaveLength(1);
+    expect(exports[0].action).toBe('export');
+    expect(exports[0].entity).toBe('patient');
+    expect(exports[0].entityId).toBe('p1,p2');
+    // afterData is not stored directly; only its hash (afterHash) is stored
+    expect(exports[0].afterHash).toBeTruthy();
+  });
+
+  it('logAuth writes login/logout events', async () => {
+    await logAuth('psych-auth', 'login');
+    await logAuth('psych-auth', 'logout');
+
+    const auths = (await firestoreMock.getDocs(
+      firestoreMock.query(firestoreMock.collection({}, 'audit_logs'), firestoreMock.where('actorId', '==', 'psych-auth'))
+    )).docs.map((d) => d.data());
+
+    expect(auths).toHaveLength(2);
+    expect(auths[0].action).toBe('login');
+    expect(auths[1].action).toBe('logout');
+    expect(auths[0].entity).toBe('psychologist');
+    expect(auths[0].entityId).toBe('psych-auth');
+  });
+});
+
+describe('audit error handling and edge cases', () => {
+
+  it('handles Firestore addDoc failure in logEvent gracefully (does not throw)', async () => {
+    const originalAddDoc = mockFstore.delegates.addDoc;
+    mockFstore.delegates.addDoc = vi.fn().mockRejectedValueOnce(new Error('Firestore addDoc failed'));
+
+    // logEvent catches errors internally and doesn't throw
+    await expect(logEvent({ actorId: 'test', action: 'create', entity: 'patient', entityId: 'p1' }))
+      .resolves.toBeUndefined();
+
+    mockFstore.delegates.addDoc = originalAddDoc;
+  });
+
+  it('handles Firestore getDocs failure in getLastAuditHash gracefully (returns genesis hash)', async () => {
+    const originalGetDocs = mockFstore.delegates.getDocs;
+    mockFstore.delegates.getDocs = vi.fn().mockRejectedValueOnce(new Error('Firestore getDocs failed'));
+
+    // getLastAuditHash catches errors and returns genesis hash
+    const result = await getLastAuditHash('test-actor');
+    expect(result).toBe('0'.repeat(64));
+
+    mockFstore.delegates.getDocs = originalGetDocs;
+  });
+
+  it('handles Firestore getDocs failure in verifyAuditChain gracefully (returns invalid)', async () => {
+    const originalGetDocs = mockFstore.delegates.getDocs;
+    mockFstore.delegates.getDocs = vi.fn().mockRejectedValueOnce(new Error('Firestore getDocs failed'));
+
+    // verifyAuditChain catches errors and returns invalid result
+    const result = await verifyAuditChain('test-actor');
+    expect(result.valid).toBe(false);
+    expect(result.totalRecords).toBe(0);
+
+    mockFstore.delegates.getDocs = originalGetDocs;
+  });
+
+  it('handles empty actorId in logEvent', async () => {
+    await logEvent({ actorId: '', action: 'create', entity: 'patient', entityId: 'p1' });
+    const docs = (await firestoreMock.getDocs(
+      firestoreMock.query(firestoreMock.collection({}, 'audit_logs'), firestoreMock.where('actorId', '==', ''))
+    )).docs.map((d) => d.data());
+
+    expect(docs).toHaveLength(1);
+    expect(docs[0].actorId).toBe('');
+  });
+
+  it('handles special characters in entityId', async () => {
+    await logEvent({ actorId: 'test', action: 'create', entity: 'patient', entityId: 'p@#$%^&*()' });
+    const docs = (await firestoreMock.getDocs(
+      firestoreMock.query(firestoreMock.collection({}, 'audit_logs'), firestoreMock.where('actorId', '==', 'test'))
+    )).docs.map((d) => d.data());
+
+    expect(docs).toHaveLength(1);
+    expect(docs[0].entityId).toBe('p@#$%^&*()');
+  });
+
+  it('handles very long entityId', async () => {
+    const longId = 'a'.repeat(1000);
+    await logEvent({ actorId: 'test', action: 'create', entity: 'patient', entityId: longId });
+    const docs = (await firestoreMock.getDocs(
+      firestoreMock.query(firestoreMock.collection({}, 'audit_logs'), firestoreMock.where('actorId', '==', 'test'))
+    )).docs.map((d) => d.data());
+
+    expect(docs).toHaveLength(1);
+    expect(docs[0].entityId).toBe(longId);
+  });
+
+  it('handles logExport with empty entityIds array', async () => {
+    await logExport('psych-export', 'patient', [], 'csv');
+    const exports = (await firestoreMock.getDocs(
+      firestoreMock.query(firestoreMock.collection({}, 'audit_logs'), firestoreMock.where('actorId', '==', 'psych-export'))
+    )).docs.map((d) => d.data());
+
+    expect(exports).toHaveLength(1);
+    expect(exports[0].entityId).toBe('');
+  });
+
+  it('handles logExport with single entityId', async () => {
+    await logExport('psych-export', 'patient', ['p1'], 'json');
+    const exports = (await firestoreMock.getDocs(
+      firestoreMock.query(firestoreMock.collection({}, 'audit_logs'), firestoreMock.where('actorId', '==', 'psych-export'))
+    )).docs.map((d) => d.data());
+
+    expect(exports).toHaveLength(1);
+    expect(exports[0].entityId).toBe('p1');
+  });
+
+  it('handles logAuth with unknown action', async () => {
+    await logAuth('psych-auth', 'unknown-action');
+    const auths = (await firestoreMock.getDocs(
+      firestoreMock.query(firestoreMock.collection({}, 'audit_logs'), firestoreMock.where('actorId', '==', 'psych-auth'))
+    )).docs.map((d) => d.data());
+
+    expect(auths).toHaveLength(1);
+    expect(auths[0].action).toBe('unknown-action');
+  });
+
+  it('handles logView with sessionId', async () => {
+      await logView('psych-v', 'patient', 'p1', 'session-123');
+      const views = (await firestoreMock.getDocs(
+        firestoreMock.query(firestoreMock.collection({}, 'audit_logs'), firestoreMock.where('actorId', '==', 'psych-v'))
+      )).docs.map((d) => d.data());
+
+      expect(views).toHaveLength(1);
+      expect(views[0].action).toBe('view');
+      expect(views[0].sessionId).toBe('session-123');
+    });
+
+  it('handles logDelete with complex beforeData', async () => {
+    const complexData = { 
+      nested: { array: [1, 2, 3], obj: { key: 'value' } },
+      date: new Date().toISOString(),
+      nullValue: null
+    };
+    await logDelete('psych-d', 'session', 's1', complexData);
+    const dels = (await firestoreMock.getDocs(
+      firestoreMock.query(firestoreMock.collection({}, 'audit_logs'), firestoreMock.where('actorId', '==', 'psych-d'))
+    )).docs.map((d) => d.data());
+
+    expect(dels).toHaveLength(1);
+    expect(dels[0].action).toBe('delete');
+    expect(dels[0].beforeHash).toBeTruthy();
+  });
+
+  it('handles verifyAuditChain with single record', async () => {
+    await logEvent({ actorId: 'single-record', action: 'create', entity: 'patient', entityId: 'p1' });
+    const res = await verifyAuditChain('single-record');
+    expect(res).toEqual({ valid: true, firstInvalidId: undefined, totalRecords: 1 });
+  });
+
+  it('handles verifyAuditChain with missing prevHash', async () => {
+    await logEvent({ actorId: 'missing-prev', action: 'create', entity: 'patient', entityId: 'p1' });
+    const docs = (await firestoreMock.getDocs(
+      firestoreMock.query(firestoreMock.collection({}, 'audit_logs'), firestoreMock.where('actorId', '==', 'missing-prev'))
+    )).docs.map((d) => d.data());
+
+    // Corrupt the record by removing prevHash
+    const tampered = { ...docs[0], id: 'tampered-id', prevHash: undefined };
+    await firestoreMock.setDoc(firestoreMock.doc({}, 'audit_logs', 'tampered-id'), tampered);
+
+    const res = await verifyAuditChain('missing-prev');
+    expect(res.valid).toBe(false);
+  });
+
+  it('handles verifyAuditChain with mismatched hash', async () => {
+    await logEvent({ actorId: 'mismatch-hash', action: 'create', entity: 'patient', entityId: 'p1' });
+    await new Promise((r) => setTimeout(r, 5));
+    await logEvent({ actorId: 'mismatch-hash', action: 'update', entity: 'patient', entityId: 'p1' });
+
+    const docs = (await firestoreMock.getDocs(
+      firestoreMock.query(firestoreMock.collection({}, 'audit_logs'), firestoreMock.where('actorId', '==', 'mismatch-hash'))
+    )).docs.map((d) => d.data());
+
+    // Corrupt the second record's hash
+    const tampered = { ...docs[1], id: 'tampered-id', hash: '0'.repeat(63) + 'f' };
+    await firestoreMock.setDoc(firestoreMock.doc({}, 'audit_logs', 'tampered-id'), tampered);
+
+    const res = await verifyAuditChain('mismatch-hash');
+    expect(res.valid).toBe(false);
   });
 });

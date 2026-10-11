@@ -7,6 +7,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 async function freshMock() {
   vi.resetModules();
+  // offline-storage keeps module-level singletons (dbInstance,
+  // encryptionKey, isInitialized) that survive vi.resetModules().
+  // Reset them so each test starts offline storage from a clean slate.
+  const { __resetForTesting } = await import('./offline-storage');
+  __resetForTesting();
   const mod = await import('./firestore-mock');
   return mod;
 }
@@ -16,6 +21,13 @@ async function bootMock() {
   mod.setDriveToken('test-token');
   // Wait for the mocked Drive load to complete
   await new Promise((r) => setTimeout(r, 15));
+  // Ensure the Drive load (which falls back to offline storage) has completed
+  // so that isLoaded=true and writes are not queued.
+  await mod.ensureLoaded();
+  // Extra safety: wait until isLoaded is actually true (handles race conditions)
+  for (let i = 0; i < 50 && !mod.isLoadedState(); i++) {
+    await new Promise((r) => setTimeout(r, 10));
+  }
   return mod;
 }
 
@@ -131,10 +143,14 @@ describe('firestore-mock CRUD (memory-only, no Drive)', () => {
     await mod.addDoc(col, { name: 'Bia' });
     await new Promise((r) => setTimeout(r, 15));
 
-    expect(sizes.length).toBeGreaterThanOrEqual(2);
-    expect(sizes[sizes.length - 1]).toBe(2);
-    unsub();
-  });
+      // The listener fires on registration (initial snapshot) and again
+      // after the second addDoc notifies listeners. Intermediate sync
+      // notifications may add extra emissions, so assert on the final
+      // size rather than the exact emission count.
+      expect(sizes.length).toBeGreaterThanOrEqual(2);
+      expect(sizes[sizes.length - 1]).toBe(2);
+      unsub();
+    });
 
   it('serverTimestamp is processed into an ISO string on write', async () => {
     const mod = await bootMock();

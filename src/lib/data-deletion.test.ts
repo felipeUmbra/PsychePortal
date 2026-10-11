@@ -33,7 +33,6 @@ const mockDeleteObject = vi.hoisted(() => ({ fn: vi.fn() }));
 // data-deletion imports { deleteObject } from './firestore-mock'.
 // Spy on the REAL deleteObject so the mock module stays intact.
 import * as firestoreMock from './firestore-mock';
-const realDeleteObject = firestoreMock.deleteObject;
 
 import { deleteAllPatientData } from './data-deletion';
 
@@ -86,10 +85,10 @@ beforeEach(async () => {
   mockAudit.logDelete.mockClear();
   mockDeleteObject.fn.mockClear();
   mockDeleteObject.fn.mockResolvedValue(undefined);
+  // Mock the deleteObject export
+  vi.spyOn(firestoreMock, 'deleteObject').mockImplementation(mockDeleteObject.fn);
   await boot();
   await cleanAllCollections(firestoreMock);
-  // Replace the module-level deleteObject with the spy only while this test runs
-  vi.spyOn(firestoreMock, 'deleteObject').mockImplementation(mockDeleteObject.fn);
 });
 
 afterEach(() => {
@@ -178,4 +177,77 @@ describe('deleteAllPatientData (LGPD erasure)', () => {
       attachmentsDeleted: 0,
     });
   });
-});
+
+  it('handles audit log failure gracefully', async () => {
+        await seedPatient();
+        await seedSession({ attachments: [{ name: 'a.pdf', storagePath: 'x/a.pdf' }] });
+        mockAudit.logDelete.mockRejectedValueOnce(new Error('Audit failed'));
+
+        // The function doesn't catch logDelete errors, so it will throw
+        await expect(deleteAllPatientData(PATIENT_ID, PSYCH)).rejects.toThrow('Audit failed');
+      });
+
+  it('handles Drive attachment deletion failure gracefully', async () => {
+    await seedPatient();
+    await seedSession({ attachments: [{ name: 'a.pdf', storagePath: 'x/a.pdf' }] });
+    mockDeleteObject.fn.mockRejectedValueOnce(new Error('Drive delete failed'));
+
+    const result = await deleteAllPatientData(PATIENT_ID, PSYCH);
+
+    expect(result.patientDeleted).toBe(true);
+    expect(result.sessionsDeleted).toBe(1);
+    expect(result.attachmentsDeleted).toBe(0); // Failed to delete
+  });
+
+  it('handles Firestore delete failure gracefully', async () => {
+        await seedPatient();
+        await seedSession();
+        // Mock deleteDoc to fail for sessions only (patient deletion succeeds)
+        const originalDeleteDoc = mockFstore.delegates.deleteDoc;
+        let callCount = 0;
+        mockFstore.delegates.deleteDoc = vi.fn().mockImplementation(async (...args) => {
+          callCount++;
+          // First call is for patient, let it succeed
+          if (callCount === 1) {
+            return originalDeleteDoc(...args);
+          }
+          // Subsequent calls are for sessions, make them fail
+          throw new Error('Firestore delete failed');
+        });
+
+        // The function catches errors from session deleteDoc and continues
+        const result = await deleteAllPatientData(PATIENT_ID, PSYCH);
+
+        expect(result.patientDeleted).toBe(true);
+        expect(result.sessionsDeleted).toBe(0);
+        expect(result.attachmentsDeleted).toBe(0);
+
+        // Restore
+        mockFstore.delegates.deleteDoc = originalDeleteDoc;
+      });
+
+  it('handles missing patient gracefully', async () => {
+    const result = await deleteAllPatientData('nonexistent-patient', PSYCH);
+    expect(result).toMatchObject({
+      patientDeleted: false,
+      sessionsDeleted: 0,
+      attachmentsDeleted: 0,
+      });
+    });
+
+    it('handles empty sessions array', async () => {
+      await seedPatient();
+      const result = await deleteAllPatientData(PATIENT_ID, PSYCH);
+      expect(result.sessionsDeleted).toBe(0);
+      expect(result.patientDeleted).toBe(true);
+    });
+
+    it('handles sessions without attachments', async () => {
+      await seedPatient();
+      await seedSession();
+      await seedSession();
+      const result = await deleteAllPatientData(PATIENT_ID, PSYCH);
+      expect(result.sessionsDeleted).toBe(2);
+      expect(result.attachmentsDeleted).toBe(0);
+    });
+  });

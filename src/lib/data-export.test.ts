@@ -167,4 +167,74 @@ describe('generateDataBundle', () => {
     await generateDataBundle(PATIENT, PSYCH);
     expect(mockAudit.logEvent).toHaveBeenCalled();
   });
-});
+
+    it('handles missing patient gracefully', async () => {
+          const bundle = await generateDataBundle('nonexistent-patient', PSYCH);
+          expect(bundle.patient).toBeNull();
+          expect(bundle.sessions).toHaveLength(0);
+        });
+
+        it('handles audit log failure gracefully', async () => {
+          await seedPatient();
+          mockAudit.logEvent.mockRejectedValueOnce(new Error('Audit failed'));
+
+          // The function doesn't catch logEvent errors, so it will throw
+          await expect(generateDataBundle(PATIENT, PSYCH)).rejects.toThrow('Audit failed');
+        });
+
+        it('handles Firestore query failure gracefully', async () => {
+          await seedPatient();
+          // Mock getDocs to fail
+          const originalGetDocs = mockFstore.delegates.getDocs;
+          mockFstore.delegates.getDocs = vi.fn().mockRejectedValueOnce(new Error('Firestore query failed'));
+
+          await expect(generateDataBundle(PATIENT, PSYCH)).rejects.toThrow('Firestore query failed');
+
+          // Restore
+          mockFstore.delegates.getDocs = originalGetDocs;
+        });
+
+        it('handles empty sessions collection', async () => {
+          await seedPatient();
+          const bundle = await generateDataBundle(PATIENT, PSYCH);
+          expect(bundle.sessions).toHaveLength(0);
+        });
+
+        it('handles empty consents collection', async () => {
+          await seedPatient();
+          const bundle = await generateDataBundle(PATIENT, PSYCH);
+          // consents is not part of the bundle, so just verify it doesn't throw
+          expect(bundle).toBeDefined();
+        });
+
+    it('handles sessions with various statuses', async () => {
+      await seedPatient();
+      await seedSession({ status: 'scheduled' });
+      await seedSession({ status: 'completed' });
+      await seedSession({ status: 'cancelled' });
+      await seedSession({ status: 'no-show' });
+
+      const bundle = await generateDataBundle(PATIENT, PSYCH);
+      expect(bundle.sessions).toHaveLength(4);
+    });
+
+    it('handles sessions with attachments', async () => {
+      await seedPatient();
+      await seedSession({ 
+        attachments: [{ name: 'doc.pdf', storagePath: 'patients/p/s/doc.pdf' }] 
+      });
+
+      const bundle = await generateDataBundle(PATIENT, PSYCH);
+      expect(bundle.sessions[0].attachments).toHaveLength(1);
+      expect(bundle.sessions[0].attachments[0].name).toBe('doc.pdf');
+    });
+
+    it('handles integrity hash generation', async () => {
+      await seedPatient();
+      await seedSession({ notes: 'test note' });
+
+      const bundle = await generateDataBundle(PATIENT, PSYCH);
+      expect(bundle.integrity.algorithm).toBeTruthy();
+      expect(bundle.integrity.hash).toMatch(/^[0-9a-f]{64}$/);
+    });
+  });

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import 'fake-indexeddb/auto';
 import {
   NOTE_ENCRYPTION_VERSION,
@@ -157,3 +157,211 @@ describe('key record helpers (IndexedDB-backed)', () => {
     expect(await getKeyRecord('psych-3')).toBeNull();
   });
 });
+
+  describe('note-crypto error handling and edge cases', () => {
+    describe('encryptNote/decryptNote error paths', () => {
+      it('handles encryption failure', async () => {
+        const key = await deriveKeyFromPassphrase('test-passphrase', generateSalt());
+        // Mock crypto.subtle.encrypt to fail
+        const originalEncrypt = crypto.subtle.encrypt;
+        crypto.subtle.encrypt = vi.fn().mockRejectedValueOnce(new Error('Encryption failed'));
+
+        await expect(encryptNote('test', key)).rejects.toThrow('Encryption failed');
+
+        crypto.subtle.encrypt = originalEncrypt;
+      });
+
+      it('handles decryption failure with wrong key', async () => {
+        const key = await deriveKeyFromPassphrase('test-passphrase', generateSalt());
+        const payload = await encryptNote('secret', key);
+        const wrongKey = await deriveKeyFromPassphrase('wrong-passphrase', generateSalt());
+
+        await expect(decryptNote(payload, wrongKey)).rejects.toThrow();
+      });
+
+      it('handles tampered ciphertext', async () => {
+        const key = await deriveKeyFromPassphrase('test-passphrase', generateSalt());
+        const payload = await encryptNote('secret', key);
+        const bytes = base64Decode(payload.ciphertext);
+        bytes[0] ^= 0xff;
+        const tampered = { ...payload, ciphertext: base64Encode(bytes) };
+
+        await expect(decryptNote(tampered, key)).rejects.toThrow();
+      });
+
+      it('handles tampered IV', async () => {
+        const key = await deriveKeyFromPassphrase('test-passphrase', generateSalt());
+        const payload = await encryptNote('secret', key);
+        const iv = base64Decode(payload.iv);
+        iv[0] ^= 0xff;
+
+        await expect(decryptNote({ ...payload, iv: base64Encode(iv) }, key)).rejects.toThrow();
+      });
+
+      it('handles tampered auth tag', async () => {
+        const key = await deriveKeyFromPassphrase('test-passphrase', generateSalt());
+        const payload = await encryptNote('secret', key);
+        // The tag is embedded in the ciphertext for AES-GCM
+        const bytes = base64Decode(payload.ciphertext);
+        bytes[bytes.length - 1] ^= 0xff;
+        const tampered = { ...payload, ciphertext: base64Encode(bytes) };
+
+        await expect(decryptNote(tampered, key)).rejects.toThrow();
+      });
+    });
+
+    describe('key derivation edge cases', () => {
+      it('derives different keys for different passphrases', async () => {
+        const salt = generateSalt();
+        const k1 = await deriveKeyFromPassphrase('passphrase1', salt);
+        const k2 = await deriveKeyFromPassphrase('passphrase2', salt);
+        const payload = await encryptNote('test', k1);
+
+        await expect(decryptNote(payload, k2)).rejects.toThrow();
+      });
+
+      it('derives different keys for different salts', async () => {
+        const k1 = await deriveKeyFromPassphrase('same-passphrase', generateSalt());
+        const k2 = await deriveKeyFromPassphrase('same-passphrase', generateSalt());
+        const payload = await encryptNote('test', k1);
+
+        await expect(decryptNote(payload, k2)).rejects.toThrow();
+      });
+
+      it('handles empty passphrase', async () => {
+        const salt = generateSalt();
+        const key = await deriveKeyFromPassphrase('', salt);
+        const payload = await encryptNote('test', key);
+        expect(await decryptNote(payload, key)).toBe('test');
+      });
+
+      it('handles very long passphrase', async () => {
+        const longPassphrase = 'a'.repeat(1000);
+        const salt = generateSalt();
+        const key = await deriveKeyFromPassphrase(longPassphrase, salt);
+        const payload = await encryptNote('test', key);
+        expect(await decryptNote(payload, key)).toBe('test');
+      });
+
+      it('handles unicode passphrase', async () => {
+        const unicodePassphrase = '🔐🔑🔒password🔒🔑🔐';
+        const salt = generateSalt();
+        const key = await deriveKeyFromPassphrase(unicodePassphrase, salt);
+        const payload = await encryptNote('test', key);
+        expect(await decryptNote(payload, key)).toBe('test');
+      });
+    });
+
+    describe('recovery phrase edge cases', () => {
+      it('generates valid recovery phrases', () => {
+        for (let i = 0; i < 10; i++) {
+          const phrase = generateRecoveryPhrase();
+          const words = phrase.split(' ');
+          expect(words).toHaveLength(12);
+          for (const w of words) {
+            expect(WORD_LIST).toContain(w);
+          }
+        }
+      });
+
+      it('hashes recovery phrase consistently', async () => {
+        const phrase = 'word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12';
+        const hash1 = await hashRecoveryPhrase(phrase);
+        const hash2 = await hashRecoveryPhrase(phrase);
+        expect(hash1).toBe(hash2);
+        expect(hash1).toMatch(/^[0-9a-f]{64}$/);
+      });
+
+      it('produces different hashes for different phrases', async () => {
+        const hash1 = await hashRecoveryPhrase('word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12');
+        const hash2 = await hashRecoveryPhrase('word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12 word13');
+        expect(hash1).not.toBe(hash2);
+      });
+    });
+
+    describe('base64 encoding edge cases', () => {
+      it('handles empty input', () => {
+        const encoded = base64Encode(new Uint8Array([]));
+        const decoded = base64Decode(encoded);
+        expect(decoded).toEqual(new Uint8Array([]));
+      });
+
+      it('handles single byte', () => {
+        const encoded = base64Encode(new Uint8Array([0]));
+        const decoded = base64Decode(encoded);
+        expect(decoded).toEqual(new Uint8Array([0]));
+      });
+
+      it('handles all byte values', () => {
+        const bytes = new Uint8Array(256);
+        for (let i = 0; i < 256; i++) {
+          bytes[i] = i;
+        }
+        const encoded = base64Encode(bytes);
+        const decoded = base64Decode(encoded);
+        expect(decoded).toEqual(bytes);
+      });
+
+      it('handles ArrayBuffer input', () => {
+        const buf = new TextEncoder().encode('test').buffer;
+        const encoded = base64Encode(buf);
+        const decoded = base64Decode(encoded);
+        expect(new TextDecoder().decode(decoded)).toBe('test');
+      });
+    });
+
+    describe('salt generation', () => {
+      it('generates unique salts', () => {
+        const salts = new Set();
+        for (let i = 0; i < 100; i++) {
+          const salt = generateSalt();
+          expect(salt).toHaveLength(16);
+          salts.add(Array.from(salt).join(','));
+        }
+        expect(salts.size).toBe(100);
+      });
+    });
+
+    describe('key record helpers edge cases', () => {
+      it('handles missing psychologist', async () => {
+        expect(await getKeyRecord('nonexistent-psych')).toBeNull();
+      });
+
+      it('stores and retrieves key record', async () => {
+        const salt = generateSalt();
+        const recoveryHash = 'a'.repeat(64);
+        await storeKeyRecord('psych-test-1', salt, recoveryHash);
+        const fetched = await getKeyRecord('psych-test-1');
+        expect(fetched?.salt).toBe(base64Encode(salt));
+        expect(fetched?.recoveryHash).toBe(recoveryHash);
+        expect(fetched?.createdAt).toBeTruthy();
+      });
+
+      it('overwrites existing record', async () => {
+        await storeKeyRecord('psych-test-2', generateSalt(), 'h1');
+        await storeKeyRecord('psych-test-2', generateSalt(), 'h2');
+        const fetched = await getKeyRecord('psych-test-2');
+        expect(fetched?.recoveryHash).toBe('h2');
+      });
+
+      it('deletes key record', async () => {
+        await storeKeyRecord('psych-test-3', generateSalt(), 'h3');
+        await deleteKeyRecord('psych-test-3');
+        expect(await getKeyRecord('psych-test-3')).toBeNull();
+      });
+
+      it('handles multiple psychologists', async () => {
+        await storeKeyRecord('psych-a', generateSalt(), 'hash-a');
+        await storeKeyRecord('psych-b', generateSalt(), 'hash-b');
+        await storeKeyRecord('psych-c', generateSalt(), 'hash-c');
+
+        const a = await getKeyRecord('psych-a');
+        const b = await getKeyRecord('psych-b');
+        const c = await getKeyRecord('psych-c');
+
+        expect(a?.recoveryHash).toBe('hash-a');
+        expect(b?.recoveryHash).toBe('hash-b');
+        expect(c?.recoveryHash).toBe('hash-c');
+      });
+    });
+  });

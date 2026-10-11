@@ -5,10 +5,11 @@ import { auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { useGoogleAuth } from '../context/GoogleAuthContext';
 import { useTranslation } from 'react-i18next';
-import { LogOut, AlertTriangle, ExternalLink, X, Menu, Clock } from 'lucide-react';
+import { LogOut, AlertTriangle, ExternalLink, X, Menu, Clock, CheckCircle } from 'lucide-react';
 import { startInactivityTimer, resetInactivityTimer, clearInactivityTimer } from '../lib/token-expiration';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+import { SyncStatus } from './SyncStatus';
 
 export default function Layout() {
   const [user, loading] = useAuthState(auth);
@@ -18,6 +19,7 @@ export default function Layout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [authError, setAuthError] = useState<{ status: number; message?: string; service: string } | null>(null);
   const [retentionReminder, setRetentionReminder] = useState(false);
+  const [syncToast, setSyncToast] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
   const { clearTokens } = useGoogleAuth();
 
   useEffect(() => {
@@ -34,16 +36,31 @@ export default function Layout() {
     const handleAuthSuccess = () => {
       setAuthError(null);
     };
-    window.addEventListener('google-auth-error', handleAuthError);
     const handleRetentionReminder = () => { setRetentionReminder(true); };
+    
+    // Sync status toast notifications
+    const handleSyncStatusChange = (e: CustomEvent) => {
+      const { status, error } = e.detail;
+      if (status === 'error' && error) {
+        setSyncToast({ type: 'error', message: t('sync.sync_failed', 'Sync failed') + ': ' + error });
+        setTimeout(() => setSyncToast(null), 8000);
+      } else if (status === 'synced') {
+        setSyncToast({ type: 'success', message: t('sync.all_changes_synced', 'All changes synced to Google Drive') });
+        setTimeout(() => setSyncToast(null), 5000);
+      }
+    };
+
+    window.addEventListener('google-auth-error', handleAuthError);
     window.addEventListener('retention-reminder', handleRetentionReminder);
     window.addEventListener('google-auth-success', handleAuthSuccess);
+    window.addEventListener('sync-status-changed', handleSyncStatusChange as EventListener);
     return () => {
       window.removeEventListener('google-auth-error', handleAuthError);
       window.removeEventListener('google-auth-success', handleAuthSuccess);
       window.removeEventListener('retention-reminder', handleRetentionReminder);
+      window.removeEventListener('sync-status-changed', handleSyncStatusChange as EventListener);
     };
-  }, []);
+  }, [t]);
 
   // Inactivity auto-lock: monitor user activity and lock encryption after timeout
   useEffect(() => {
@@ -232,6 +249,33 @@ export default function Layout() {
             </div>
           </div>
         )}
+                {syncToast && (
+                  <div className={`px-8 py-2.5 flex items-center justify-between animate-in fade-in slide-in-from-top-2 ${
+                    syncToast.type === 'error' 
+                      ? 'bg-red-50 border-b border-red-200' 
+                      : 'bg-green-50 border-b border-green-200'
+                  }`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                        syncToast.type === 'error' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
+                      }`} aria-hidden="true">
+                        {syncToast.type === 'error' ? <AlertTriangle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
+                      </div>
+                      <div>
+                        <p className={`text-[13px] font-bold ${syncToast.type === 'error' ? 'text-red-800' : 'text-green-800'}`}>
+                          {syncToast.message}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setSyncToast(null)}
+                      className={`p-1.5 rounded-lg ${syncToast.type === 'error' ? 'hover:bg-red-100 text-red-600' : 'hover:bg-green-100 text-green-600'}`}
+                      aria-label={t('common.close', 'Close')}
+                    >
+                      <X className="w-4 h-4" aria-hidden="true" />
+                    </button>
+                  </div>
+                )}
         <header className="h-16 bg-surface border-b border-border-custom flex items-center justify-between px-4 sm:px-8 shrink-0">
           <div className="flex items-center gap-3">
             {/* Mobile Menu Toggle */}
@@ -250,49 +294,52 @@ export default function Layout() {
             </div>
           </div>
 
-          <div className="relative">
-            <button
-              onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              className="flex items-center gap-3 hover:opacity-80 transition-opacity"
-              aria-label={t('layout.user_menu', 'User Menu')}
-              aria-expanded={isUserMenuOpen}
-            >
-              <div className="flex flex-col items-end hidden sm:flex">
-                <span className="text-[13px] font-semibold text-text-main">{user.displayName}</span>
-                <span className="text-[11px] text-text-muted font-medium">{user.email}</span>
-              </div>
-              <div className="w-9 h-9 rounded-full bg-accent-custom border border-border-custom flex items-center justify-center text-[12px] font-bold text-primary-custom overflow-hidden shadow-sm">
-                {user.photoURL ? (
-                  <img src={user.photoURL} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                ) : (
-                  user.displayName?.charAt(0) || 'P'
-                )}
-              </div>
-            </button>
+                    <div className="flex items-center gap-3">
+                      <SyncStatus />
+                      <div className="relative">
+                                            <button
+                                              onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                                              className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                                              aria-label={t('layout.user_menu', 'User Menu')}
+                                              aria-expanded={isUserMenuOpen}
+                                            >
+                                              <div className="flex flex-col items-end hidden sm:flex">
+                                                <span className="text-[13px] font-semibold text-text-main">{user.displayName}</span>
+                                                <span className="text-[11px] text-text-muted font-medium">{user.email}</span>
+                                              </div>
+                                              <div className="w-9 h-9 rounded-full bg-accent-custom border border-border-custom flex items-center justify-center text-[12px] font-bold text-primary-custom overflow-hidden shadow-sm">
+                                                {user.photoURL ? (
+                                                  <img src={user.photoURL} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                                ) : (
+                                                  user.displayName?.charAt(0) || 'P'
+                                                )}
+                                              </div>
+                                            </button>
 
-            {isUserMenuOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setIsUserMenuOpen(false)} />
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-border-custom rounded-xl shadow-lg z-50 p-2 animate-in fade-in zoom-in-95">
-                  <Link
-                    to="/app/settings"
-                    onClick={() => setIsUserMenuOpen(false)}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-text-main hover:bg-bg rounded-lg transition-colors font-medium"
-                  >
-                    {t('sidebar.settings', 'Configurações')}
-                  </Link>
-                  <div className="h-px bg-border-custom my-1" />
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-red-600 hover:bg-red-50 rounded-lg transition-colors font-bold"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    {t('sidebar.logout', 'Logout')}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+                                            {isUserMenuOpen && (
+                                              <>
+                                                <div className="fixed inset-0 z-40" onClick={() => setIsUserMenuOpen(false)} />
+                                                <div className="absolute right-0 mt-2 w-48 bg-white border border-border-custom rounded-xl shadow-lg z-50 p-2 animate-in fade-in zoom-in-95">
+                                                  <Link
+                                                    to="/app/settings"
+                                                    onClick={() => setIsUserMenuOpen(false)}
+                                                    className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-text-main hover:bg-bg rounded-lg transition-colors font-medium"
+                                                  >
+                                                    {t('sidebar.settings', 'Configurações')}
+                                                  </Link>
+                                                  <div className="h-px bg-border-custom my-1" />
+                                                  <button
+                                                    onClick={handleLogout}
+                                                    className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-red-600 hover:bg-red-50 rounded-lg transition-colors font-bold"
+                                                  >
+                                                    <LogOut className="w-4 h-4" />
+                                                    {t('sidebar.logout', 'Logout')}
+                                                  </button>
+                                                </div>
+                                              </>
+                                            )}
+                                          </div>
+                                        </div>
         </header>
         <main id="main-content" className="flex-1 p-4 sm:p-8 overflow-y-auto">
           <div className="max-w-7xl mx-auto">

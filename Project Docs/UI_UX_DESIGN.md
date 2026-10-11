@@ -1,7 +1,7 @@
 # Portal Psis UI/UX Design
 
 **Status:** Current UI baseline and design requirements
-**Last updated:** 2026-09-25
+**Last updated:** 2026-10-11
 
 Related documents: [PRD](PRD.md), [TRD](TRD.md), [App Flow](APP_FLOW.md).
 
