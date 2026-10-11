@@ -35,7 +35,7 @@ vi.mock('./audit', () => ({
 }));
 
 import * as firestoreMock from './firestore-mock';
-import { generateDataBundle } from './data-export';
+import { downloadBundleAsFile, generateDataBundle } from './data-export';
 import {
   generateSalt,
   deriveKeyFromPassphrase,
@@ -87,6 +87,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  delete (globalThis as any).document;
 });
 
 describe('generateDataBundle', () => {
@@ -104,6 +105,66 @@ describe('generateDataBundle', () => {
     expect(bundle.integrity.hash).toMatch(/^[0-9a-f]{64}$/);
   });
 
+  describe('downloadBundleAsFile', () => {
+    it('creates, clicks, removes, and revokes the sanitized export download', () => {
+      const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:export');
+      const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+      const link = { style: {}, setAttribute: vi.fn(), click: vi.fn() };
+      const body = { appendChild: vi.fn(), removeChild: vi.fn() };
+      const documentMock = { createElement: vi.fn(() => link), body };
+      Object.defineProperty(globalThis, 'document', { configurable: true, value: documentMock });
+      const bundle = {
+        metadata: {
+          exportedAt: '2026-10-11T00:00:00.000Z',
+          exportedBy: PSYCH,
+          patientId: PATIENT,
+          version: '1.0',
+        },
+        patient: { id: PATIENT },
+        sessions: [],
+        integrity: { algorithm: 'SHA-256', hash: 'hash' },
+      };
+
+      downloadBundleAsFile(bundle, 'Ana / Doe');
+
+      expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
+      expect(link.click).toHaveBeenCalledOnce();
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:export');
+      expect(link.setAttribute).toHaveBeenCalledWith(
+        'download',
+        expect.stringMatching(/^data-export-Ana___Doe-\d{4}-\d{2}-\d{2}\.json$/),
+      );
+      expect(body.removeChild).toHaveBeenCalledWith(link);
+    });
+
+    it('uses the patient ID when no patient name is provided', () => {
+      vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:export');
+      vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+      const link = { style: {}, setAttribute: vi.fn(), click: vi.fn() };
+      const documentMock = { createElement: vi.fn(() => link), body: { appendChild: vi.fn(), removeChild: vi.fn() } };
+      Object.defineProperty(globalThis, 'document', { configurable: true, value: documentMock });
+      const bundle = {
+        metadata: {
+          exportedAt: '2026-10-11T00:00:00.000Z',
+          exportedBy: PSYCH,
+          patientId: 'patient 42',
+          version: '1.0',
+        },
+        patient: null,
+        sessions: [],
+        integrity: { algorithm: 'SHA-256', hash: 'hash' },
+      };
+
+      downloadBundleAsFile(bundle);
+
+      expect(link.click).toHaveBeenCalledOnce();
+      expect(link.setAttribute).toHaveBeenCalledWith(
+        'download',
+        expect.stringMatching(/^data-export-patient_42-\d{4}-\d{2}-\d{2}\.json$/),
+      );
+    });
+  });
+
   it('returns patient null when the patient doc is missing', async () => {
     await seedSession({ patientId: PATIENT });
     const bundle = await generateDataBundle('ghost-patient', PSYCH);
@@ -118,6 +179,17 @@ describe('generateDataBundle', () => {
     // tryDecryptNote on plaintext returns {plaintext: null, encrypted: false}
     // → export sets _notesDecrypted = false, _notesEncrypted not set
     expect((bundle.sessions[0] as any)._notesDecrypted).toBe(false);
+  });
+
+  it('stringifies legacy object notes that do not contain an encrypted payload', async () => {
+    await seedPatient();
+    await seedSession({ notes: { legacy: 'plain object note' } });
+
+    const bundle = await generateDataBundle(PATIENT, PSYCH);
+
+    expect((bundle.sessions[0] as any).notes).toBe('[object Object]');
+    expect((bundle.sessions[0] as any)._notesDecrypted).toBe(true);
+    expect((bundle.sessions[0] as any)._notesEncrypted).toBeUndefined();
   });
 
   it('marks encrypted notes without passphrase as encrypted (not decrypted)', async () => {

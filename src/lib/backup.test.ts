@@ -109,6 +109,12 @@ describe('backup', () => {
       const result = await listBackupFiles(mockPrimaryToken);
       expect(result).toEqual([]);
     });
+
+    it('returns empty array when the Drive response omits files', async () => {
+      mockFetch.mockResolvedValue(createMockResponse({}));
+
+      await expect(listBackupFiles(mockPrimaryToken)).resolves.toEqual([]);
+    });
   });
 
   describe('listBackupFiles - error handling', () => {
@@ -220,6 +226,18 @@ describe('backup', () => {
       expect(deleted).toBe(0);
     });
 
+    it('groups multiple backups from the same day under one retention date', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({
+        files: [
+          { id: 'f1', name: 'workspace-backup-2024-01-15-103000.json', createdTime: '2024-01-15T10:30:00Z' },
+          { id: 'f2', name: 'workspace-backup-2024-01-15-113000.json', createdTime: '2024-01-15T11:30:00Z' },
+        ],
+      }));
+
+      await expect(pruneOldBackups(mockPrimaryToken)).resolves.toBe(0);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
     it('returns 0 when no files to prune', async () => {
       mockFetch.mockResolvedValue(createMockResponse({ files: [] }));
 
@@ -314,6 +332,22 @@ describe('backup', () => {
       expect(result.primary).toBe(true);
       expect(result.secondary).toBe(false);
       expect(result.secondaryError).toBeDefined();
+    });
+
+    it('uses a fallback message when secondary backup rejects without an error message', async () => {
+      mockFetch
+        .mockResolvedValueOnce(createMockResponse({ files: [] }))
+        .mockResolvedValueOnce(createMockResponse(undefined))
+        .mockResolvedValueOnce(createMockResponse({ files: [] }))
+        .mockResolvedValueOnce(createMockResponse({ files: [] }))
+        .mockResolvedValueOnce(createMockResponse({ files: [] }))
+        .mockRejectedValueOnce({});
+
+      const result = await triggerFullBackup(mockPrimaryToken, mockPsychologistId, mockSecondaryToken);
+
+      expect(result.primary).toBe(true);
+      expect(result.secondary).toBe(false);
+      expect(result.secondaryError).toBe('Secondary backup failed');
     });
   });
 

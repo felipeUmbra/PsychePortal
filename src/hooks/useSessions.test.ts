@@ -80,6 +80,9 @@ vi.mock('../lib/firestore-mock', () => ({
 
 import { useSessions } from './useSessions';
 import * as firestore from 'firebase/firestore';
+import * as storage from '../lib/firestore-mock';
+import { handleFirestoreError, OperationType } from '../lib/error-handler';
+import { saveNextNoteVersion } from '../lib/note-versioning';
 import { useAuthState } from 'react-firebase-hooks/auth';
 
 describe('useSessions', () => {
@@ -339,5 +342,140 @@ describe('useSessions', () => {
       await waitFor(() => {
         expect(result.current.sessions[0].notes).toBe('decrypted text');
       }, { timeout: 5000 });
+    });
+
+    it('reports subscription errors and clears the loading state', async () => {
+      const error = new Error('subscription failed');
+      mockOnSnapshot.mockImplementation((_query, _onNext, onError) => {
+        onError(error);
+        return vi.fn();
+      });
+
+      const { result } = renderHook(() => useSessions('patient-1'));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+      expect(handleFirestoreError).toHaveBeenCalledWith(error, OperationType.LIST, 'sessions');
+    });
+
+    it('encrypts notes before adding a session when encryption is unlocked', async () => {
+      const { result } = renderHook(() => useSessions('patient-1'));
+
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      await act(async () => result.current.addSession({
+        date: new Date(),
+        status: 'scheduled',
+        type: 'individual',
+        notes: 'clinical note',
+      }));
+
+      expect(mockAddDoc).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ notes: JSON.stringify({ version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' }) }),
+      );
+    });
+
+    it('saves an existing note version before updating notes', async () => {
+      const { result } = renderHook(() => useSessions('patient-1'));
+
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      await act(async () => result.current.updateSession('session-1', { notes: 'replacement note' }));
+
+      expect(saveNextNoteVersion).toHaveBeenCalledWith('session-1', 'test-uid-123', 'existing notes');
+      expect(mockUpdateDoc).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ notes: JSON.stringify({ version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' }) }),
+      );
+    });
+
+    it('updates a linked Google Calendar event when the session date changes', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200 }));
+      const successEvent = vi.fn();
+      window.addEventListener('google-auth-success', successEvent);
+      const { result } = renderHook(() => useSessions('patient-1'));
+
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      await act(async () => result.current.updateSession('session-1', {
+        date: new Date('2026-10-12T10:00:00.000Z'),
+        googleEventId: 'event-1',
+        type: 'individual',
+      }));
+
+      expect(fetch).toHaveBeenCalledWith(
+        'https://www.googleapis.com/calendar/v3/calendars/primary/events/event-1',
+        expect.objectContaining({ method: 'PATCH' }),
+      );
+      expect(successEvent).toHaveBeenCalledOnce();
+      window.removeEventListener('google-auth-success', successEvent);
+    });
+
+    it('dispatches a calendar authorization error when cancellation is forbidden', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+        ok: false,
+        status: 403,
+        statusText: 'Forbidden',
+        json: async () => ({ error: { message: 'Calendar permission expired' } }),
+      }));
+      const authorizationError = vi.fn();
+      window.addEventListener('google-auth-error', authorizationError);
+      const { result } = renderHook(() => useSessions('patient-1'));
+
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      await act(async () => result.current.cancelSession({
+        id: 'session-1',
+        googleEventId: 'event-1',
+      } as any));
+
+      expect(authorizationError).toHaveBeenCalledOnce();
+      expect(authorizationError.mock.calls[0][0]).toMatchObject({
+        detail: { status: 403, service: 'calendar', message: 'Calendar permission expired' },
+      });
+      window.removeEventListener('google-auth-error', authorizationError);
+    });
+
+    it('uploads attachment metadata and always resets the upload flag', async () => {
+      const storageRef = { path: 'attachment-path' };
+      vi.mocked(storage.getStorage).mockReturnValue({} as any);
+      vi.mocked(storage.ref).mockReturnValue(storageRef as any);
+      vi.mocked(storage.uploadBytes).mockResolvedValue({} as any);
+      vi.mocked(storage.getDownloadURL).mockResolvedValue('https://drive.test/file');
+      const { result } = renderHook(() => useSessions('patient-1'));
+
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      let uploaded: Awaited<ReturnType<typeof result.current.uploadFile>> | undefined;
+      await act(async () => {
+        uploaded = await result.current.uploadFile(new File(['document'], 'report.pdf'), 'session-1');
+      });
+
+      expect(storage.uploadBytes).toHaveBeenCalledWith(storageRef, expect.any(File));
+      expect(uploaded).toMatchObject({
+        name: 'report.pdf',
+        url: 'https://drive.test/file',
+        size: 8,
+        storagePath: expect.stringMatching(/^patients\/test-uid-123\/session-1\/\d+_report\.pdf$/),
+      });
+      expect(result.current.isUploading).toBe(false);
+    });
+
+    it('rejects oversized uploads before attempting storage access', async () => {
+      const { result } = renderHook(() => useSessions('patient-1'));
+      const oversizedFile = new File(['x'], 'large.pdf');
+      Object.defineProperty(oversizedFile, 'size', { value: 40 * 1024 * 1024 + 1 });
+
+      await expect(result.current.uploadFile(oversizedFile, 'session-1'))
+        .rejects.toThrow('File size exceeds 40MB limit.');
+      expect(storage.uploadBytes).not.toHaveBeenCalled();
+    });
+
+    it('swallows attachment deletion failures after logging them', async () => {
+      vi.mocked(storage.deleteObject).mockRejectedValueOnce(new Error('delete failed'));
+      const errorLog = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const { result } = renderHook(() => useSessions('patient-1'));
+
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      await expect(result.current.deleteFile('attachment-path')).resolves.toBeUndefined();
+
+      expect(errorLog).toHaveBeenCalledWith('File deletion failed:', expect.any(Error));
     });
   });

@@ -310,6 +310,34 @@ describe('usePatients', () => {
         expect(result.current.patients[0].anamnesis?.chiefComplaint).toBe('decrypted text');
       }, { timeout: 5000 });
     });
+
+    it('encrypts notes and non-empty anamnesis fields before creating a patient', async () => {
+      mockOnSnapshot.mockImplementation(createMockOnSnapshot([]));
+      const { result } = renderHook(() => usePatients());
+
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      await act(async () => result.current.addPatient({
+        fullName: 'Encrypted Patient',
+        notes: 'clinical notes',
+        anamnesis: {
+          chiefComplaint: 'sleep difficulty',
+          medicalHistory: '',
+          familyHistory: 'family history',
+        },
+      } as any));
+
+      expect(mockAddDoc).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          notes: JSON.stringify({ version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' }),
+          anamnesis: expect.objectContaining({
+            chiefComplaint: JSON.stringify({ version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' }),
+            medicalHistory: '',
+            familyHistory: JSON.stringify({ version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' }),
+          }),
+        }),
+      );
+    });
   });
 
 describe('usePatient', () => {

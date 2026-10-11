@@ -286,6 +286,17 @@ describe('useEncryption', () => {
     await expect(result.current.decrypt({ version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' })).rejects.toThrow('Encryption key not unlocked');
   });
 
+  it('rejects field encryption and decryption when locked', async () => {
+    const { result } = renderHook(() => useEncryption());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await expect(result.current.encryptFields({ note: 'plaintext' }))
+      .rejects.toThrow('Encryption key not unlocked');
+    await expect(result.current.decryptFields({}))
+      .rejects.toThrow('Encryption key not unlocked');
+  });
+
   it('encrypts fields when unlocked', async () => {
     vi.mocked(noteCrypto.getKeyRecord).mockResolvedValue({ salt: 'c2FsdA==', recoveryHash: 'hash', createdAt: new Date().toISOString() });
     vi.mocked(noteCrypto.base64Decode).mockReturnValue(new Uint8Array([1, 2, 3]));

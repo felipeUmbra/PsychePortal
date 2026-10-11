@@ -10,9 +10,12 @@ import {
   deriveKeyFromPassphrase,
   encryptNote,
   decryptNote,
+  encryptNoteFields,
+  decryptNoteFields,
   getKeyRecord,
   storeKeyRecord,
   deleteKeyRecord,
+  isPassphraseValid,
 } from './note-crypto';
 import { WORD_LIST } from './word-list';
 
@@ -90,6 +93,43 @@ describe('encrypt/decrypt notes', () => {
 
   beforeAll(async () => {
     key = await deriveKeyFromPassphrase('test-passphrase', generateSalt());
+  });
+
+  describe('note field helpers', () => {
+    let key: CryptoKey;
+
+    beforeAll(async () => {
+      key = await deriveKeyFromPassphrase('field-test-passphrase', generateSalt());
+    });
+
+    it('encrypts only non-empty fields and decrypts them', async () => {
+      const encrypted = await encryptNoteFields({
+        chiefComplaint: 'sleep difficulty',
+        medicalHistory: '',
+      }, key);
+
+      expect(Object.keys(encrypted)).toEqual(['chiefComplaint']);
+      await expect(decryptNoteFields(encrypted, key)).resolves.toEqual({
+        chiefComplaint: 'sleep difficulty',
+      });
+    });
+
+    it('preserves legacy string fields and skips malformed non-string payloads', async () => {
+      const decrypted = await decryptNoteFields({
+        legacy: 'legacy plaintext',
+        malformed: { iv: '', ciphertext: '' },
+      } as any, key);
+
+      expect(decrypted).toEqual({ legacy: 'legacy plaintext' });
+    });
+  });
+
+  describe('passphrase validation', () => {
+    it('requires at least twelve characters', () => {
+      expect(isPassphraseValid('short')).toBe(false);
+      expect(isPassphraseValid('exactly12ch')).toBe(false);
+      expect(isPassphraseValid('exactly12chr')).toBe(true);
+    });
   });
 
   it('produces an encrypted payload with version v1 and non-empty iv/ciphertext', async () => {
