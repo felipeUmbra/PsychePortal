@@ -56,6 +56,7 @@ vi.mock('firebase/firestore', () => ({
 }));
 
 import { usePatients, usePatient } from './usePatients';
+import { useEncryption } from './useEncryption';
 import { auth } from '../firebase';
 import * as firestore from 'firebase/firestore';
 
@@ -344,7 +345,63 @@ describe('usePatients', () => {
             }),
           );
         });
-      });
+
+                it('handles notes without version/ciphertext (covers pl.version && pl.ciphertext false branch)', async () => {
+                  const mockPatients = createMockQuerySnapshot([
+                    createMockDocSnapshot('1', { psychologistId: 'test-uid-123', fullName: 'Patient 1', notes: 'plain text note' }),
+                  ]);
+
+                  mockOnSnapshot.mockImplementation(createMockOnSnapshot(mockPatients.docs));
+
+                  const { result } = renderHook(() => usePatients());
+
+                  await waitFor(() => {
+                    expect(result.current.loading).toBe(false);
+                  }, { timeout: 5000 });
+
+                  // Plain text notes should remain as-is
+                  expect(result.current.patients[0].notes).toBe('plain text note');
+                });
+
+                it('handles anamnesis without version/ciphertext (covers pl.version && pl.ciphertext false branch)', async () => {
+                  const mockPatients = createMockQuerySnapshot([
+                    createMockDocSnapshot('1', { psychologistId: 'test-uid-123', fullName: 'Patient 1', anamnesis: { chiefComplaint: 'plain text complaint' } }),
+                  ]);
+
+                  mockOnSnapshot.mockImplementation(createMockOnSnapshot(mockPatients.docs));
+
+                  const { result } = renderHook(() => usePatients());
+
+                  await waitFor(() => {
+                    expect(result.current.loading).toBe(false);
+                  }, { timeout: 5000 });
+
+                  // Plain text anamnesis should remain as-is
+                  expect(result.current.patients[0].anamnesis?.chiefComplaint).toBe('plain text complaint');
+                });
+
+                it('handles anamnesis field empty string (covers dataToWrite.anamnesis[f] false branch)', async () => {
+                  mockOnSnapshot.mockImplementation(createMockOnSnapshot([]));
+                  const { result } = renderHook(() => usePatients());
+                  await waitFor(() => expect(result.current.loading).toBe(false));
+                  await act(async () => result.current.addPatient({
+                    fullName: 'Test Patient',
+                    anamnesis: {
+                      chiefComplaint: '',
+                      medicalHistory: 'history',
+                    },
+                  } as any));
+                  expect(mockAddDoc).toHaveBeenCalledWith(
+                    expect.anything(),
+                    expect.objectContaining({
+                      anamnesis: expect.objectContaining({
+                        chiefComplaint: '',
+                        medicalHistory: JSON.stringify({ version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' }),
+                      }),
+                    }),
+                  );
+                });
+              });
 
 describe('usePatient', () => {
   const mockUser = createMockUser('test-uid-123');

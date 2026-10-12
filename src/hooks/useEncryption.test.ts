@@ -413,4 +413,308 @@ describe('useEncryption', () => {
     expect(result.current.isSetup).toBe(false);
     expect(result.current.needsSetup).toBe(true);
   });
+
+  it('disables encryption without passphrase validation', async () => {
+    vi.mocked(noteCrypto.getKeyRecord).mockResolvedValue({ salt: 'c2FsdA==', recoveryHash: 'hash', createdAt: new Date().toISOString() });
+    vi.mocked(noteCrypto.base64Decode).mockReturnValue(new Uint8Array([1, 2, 3]));
+    vi.mocked(noteCrypto.deriveKeyFromPassphrase).mockResolvedValue({} as any);
+    vi.mocked(noteCrypto.deleteKeyRecord).mockResolvedValue(undefined);
+
+    const { result } = renderHook(() => useEncryption());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.unlock('valid-passphrase-123');
+    });
+
+    await act(async () => {
+      await result.current.disable();
+    });
+
+    expect(result.current.isUnlocked).toBe(false);
+    expect(result.current.isSetup).toBe(false);
+    expect(result.current.needsSetup).toBe(true);
+    expect(noteCrypto.deleteKeyRecord).toHaveBeenCalledWith('test-uid-123');
+  });
+
+  it('handles session-timeout event when locked', async () => {
+    const { result } = renderHook(() => useEncryption());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Don't unlock, just dispatch session-timeout
+    act(() => {
+      window.dispatchEvent(new CustomEvent('session-timeout'));
+    });
+
+    expect(result.current.isUnlocked).toBe(false);
+  });
+
+  it('handles setup with valid passphrase (covers isPassphraseValid true branch)', async () => {
+    const { result } = renderHook(() => useEncryption());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    const setupResult = await act(async () => {
+      return await result.current.setup('valid-passphrase-123');
+    });
+
+    expect(setupResult.recoveryPhrase).toBeDefined();
+    expect(result.current.isUnlocked).toBe(true);
+    expect(result.current.isSetup).toBe(true);
+    expect(result.current.needsSetup).toBe(false);
+    expect(noteCrypto.storeKeyRecord).toHaveBeenCalledWith('test-uid-123', expect.any(Uint8Array), 'hashed');
+  });
+
+  it('handles unlock with valid passphrase (covers isPassphraseValid true branch)', async () => {
+    vi.mocked(noteCrypto.getKeyRecord).mockResolvedValue({ salt: 'c2FsdA==', recoveryHash: 'hash', createdAt: new Date().toISOString() });
+    vi.mocked(noteCrypto.base64Decode).mockReturnValue(new Uint8Array([1, 2, 3]));
+    vi.mocked(noteCrypto.deriveKeyFromPassphrase).mockResolvedValue({} as any);
+
+    const { result } = renderHook(() => useEncryption());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.unlock('valid-passphrase-123');
+    });
+
+    expect(result.current.isUnlocked).toBe(true);
+    expect(noteCrypto.deriveKeyFromPassphrase).toHaveBeenCalledWith('valid-passphrase-123', expect.any(Uint8Array));
+  });
+
+  it('handles unlock with existing record (covers !record false branch)', async () => {
+    vi.mocked(noteCrypto.getKeyRecord).mockResolvedValue({ salt: 'c2FsdA==', recoveryHash: 'hash', createdAt: new Date().toISOString() });
+    vi.mocked(noteCrypto.base64Decode).mockReturnValue(new Uint8Array([1, 2, 3]));
+    vi.mocked(noteCrypto.deriveKeyFromPassphrase).mockResolvedValue({} as any);
+
+    const { result } = renderHook(() => useEncryption());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.unlock('valid-passphrase-123');
+    });
+
+    expect(result.current.isUnlocked).toBe(true);
+    expect(noteCrypto.deriveKeyFromPassphrase).toHaveBeenCalledWith('valid-passphrase-123', expect.any(Uint8Array));
+  });
+
+  it('handles disable with existing uid (covers !uid false branch)', async () => {
+    vi.mocked(noteCrypto.getKeyRecord).mockResolvedValue({ salt: 'c2FsdA==', recoveryHash: 'hash', createdAt: new Date().toISOString() });
+    vi.mocked(noteCrypto.base64Decode).mockReturnValue(new Uint8Array([1, 2, 3]));
+    vi.mocked(noteCrypto.deriveKeyFromPassphrase).mockResolvedValue({} as any);
+    vi.mocked(noteCrypto.deleteKeyRecord).mockResolvedValue(undefined);
+
+    const { result } = renderHook(() => useEncryption());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.unlock('valid-passphrase-123');
+    });
+
+    await act(async () => {
+      await result.current.disable();
+    });
+
+    expect(result.current.isUnlocked).toBe(false);
+    expect(result.current.isSetup).toBe(false);
+    expect(result.current.needsSetup).toBe(true);
+    expect(noteCrypto.deleteKeyRecord).toHaveBeenCalledWith('test-uid-123');
+  });
+
+  it('handles setup with isPassphraseValid false (covers binary-expr false branch)', async () => {
+    vi.mocked(noteCrypto.isPassphraseValid).mockReturnValue(false);
+    const { result } = renderHook(() => useEncryption());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await expect(act(async () => {
+      await result.current.setup('short');
+    })).rejects.toThrow('Passphrase must be at least 12 characters');
+  });
+
+  it('handles setup with isPassphraseValid true (covers binary-expr true branch)', async () => {
+    const { result } = renderHook(() => useEncryption());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    const setupResult = await act(async () => {
+      return await result.current.setup('valid-passphrase-123');
+    });
+
+    expect(setupResult.recoveryPhrase).toBeDefined();
+    expect(result.current.isUnlocked).toBe(true);
+    expect(result.current.isSetup).toBe(true);
+    expect(result.current.needsSetup).toBe(false);
+    expect(noteCrypto.storeKeyRecord).toHaveBeenCalledWith('test-uid-123', expect.any(Uint8Array), 'hashed');
+  });
+
+  it('handles unlock with isPassphraseValid false (covers binary-expr false branch)', async () => {
+    vi.mocked(noteCrypto.getKeyRecord).mockResolvedValue({ salt: 'c2FsdA==', recoveryHash: 'hash', createdAt: new Date().toISOString() });
+    vi.mocked(noteCrypto.isPassphraseValid).mockReturnValue(false);
+
+    const { result } = renderHook(() => useEncryption());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await expect(act(async () => {
+      await result.current.unlock('short');
+    })).rejects.toThrow('Passphrase must be at least 12 characters');
+  });
+
+  it('handles unlock with isPassphraseValid true (covers binary-expr true branch)', async () => {
+    vi.mocked(noteCrypto.getKeyRecord).mockResolvedValue({ salt: 'c2FsdA==', recoveryHash: 'hash', createdAt: new Date().toISOString() });
+    vi.mocked(noteCrypto.base64Decode).mockReturnValue(new Uint8Array([1, 2, 3]));
+    vi.mocked(noteCrypto.deriveKeyFromPassphrase).mockResolvedValue({} as any);
+
+    const { result } = renderHook(() => useEncryption());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.unlock('valid-passphrase-123');
+    });
+
+    expect(result.current.isUnlocked).toBe(true);
+    expect(noteCrypto.deriveKeyFromPassphrase).toHaveBeenCalledWith('valid-passphrase-123', expect.any(Uint8Array));
+  });
+
+  it('handles unlock with no record (covers !record true branch)', async () => {
+    vi.mocked(noteCrypto.getKeyRecord).mockResolvedValue(null);
+
+    const { result } = renderHook(() => useEncryption());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await expect(act(async () => {
+      await result.current.unlock('valid-passphrase-123');
+    })).rejects.toThrow('No encryption key found — setup first');
+  });
+
+  it('handles unlock with existing record (covers !record false branch)', async () => {
+    vi.mocked(noteCrypto.getKeyRecord).mockResolvedValue({ salt: 'c2FsdA==', recoveryHash: 'hash', createdAt: new Date().toISOString() });
+    vi.mocked(noteCrypto.base64Decode).mockReturnValue(new Uint8Array([1, 2, 3]));
+    vi.mocked(noteCrypto.deriveKeyFromPassphrase).mockResolvedValue({} as any);
+
+    const { result } = renderHook(() => useEncryption());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.unlock('valid-passphrase-123');
+    });
+
+    expect(result.current.isUnlocked).toBe(true);
+    expect(noteCrypto.deriveKeyFromPassphrase).toHaveBeenCalledWith('valid-passphrase-123', expect.any(Uint8Array));
+  });
+
+  it('handles disable with no uid (covers !uid true branch)', async () => {
+    Object.defineProperty(auth, 'currentUser', {
+      value: null,
+      writable: true,
+      configurable: true,
+    });
+    const mockAuthChanged = vi.mocked(auth.onAuthStateChanged);
+    mockAuthChanged.mockImplementation((cb: (user: User | null) => void) => {
+      cb(null);
+      return vi.fn();
+    });
+
+    const { result } = renderHook(() => useEncryption());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await expect(act(async () => {
+      await result.current.disable();
+    })).rejects.toThrow('No authenticated user');
+  });
+
+  it('handles disable with existing uid (covers !uid false branch)', async () => {
+    vi.mocked(noteCrypto.getKeyRecord).mockResolvedValue({ salt: 'c2FsdA==', recoveryHash: 'hash', createdAt: new Date().toISOString() });
+    vi.mocked(noteCrypto.base64Decode).mockReturnValue(new Uint8Array([1, 2, 3]));
+    vi.mocked(noteCrypto.deriveKeyFromPassphrase).mockResolvedValue({} as any);
+    vi.mocked(noteCrypto.deleteKeyRecord).mockResolvedValue(undefined);
+
+    const { result } = renderHook(() => useEncryption());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.unlock('valid-passphrase-123');
+    });
+
+    await act(async () => {
+      await result.current.disable();
+    });
+
+    expect(result.current.isUnlocked).toBe(false);
+    expect(result.current.isSetup).toBe(false);
+    expect(result.current.needsSetup).toBe(true);
+    expect(noteCrypto.deleteKeyRecord).toHaveBeenCalledWith('test-uid-123');
+  });
+
+  it('handles encrypt when locked (covers !cachedMasterKey true branch)', async () => {
+    const { result } = renderHook(() => useEncryption());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await expect(result.current.encrypt('plaintext')).rejects.toThrow('Encryption key not unlocked');
+  });
+
+  it('handles decrypt when locked (covers !cachedMasterKey true branch)', async () => {
+    const { result } = renderHook(() => useEncryption());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await expect(result.current.decrypt({ version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' })).rejects.toThrow('Encryption key not unlocked');
+  });
+
+  it('handles encryptFields when locked (covers !cachedMasterKey true branch)', async () => {
+    const { result } = renderHook(() => useEncryption());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await expect(result.current.encryptFields({ field1: 'value1' })).rejects.toThrow('Encryption key not unlocked');
+  });
+
+  it('handles decryptFields when locked (covers !cachedMasterKey true branch)', async () => {
+    const { result } = renderHook(() => useEncryption());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await expect(result.current.decryptFields({ field1: { version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' } })).rejects.toThrow('Encryption key not unlocked');
+  });
 });
