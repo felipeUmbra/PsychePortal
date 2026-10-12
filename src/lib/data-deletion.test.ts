@@ -573,4 +573,96 @@ describe('deleteAllPatientData (LGPD erasure)', () => {
                   // Cache should be removed due to parse error
                   expect(localStorage.getItem('mock_db_cache')).toBeNull();
                 });
-              });
+
+                                it('deletes note_versions for erased sessions', async () => {
+                                  await seedPatient();
+                                  const s1 = await seedSession();
+                                  const s2 = await seedSession();
+                                  await seedNoteVersion(s1);
+                                  await seedNoteVersion(s2);
+
+                                  const result = await deleteAllPatientData(PATIENT_ID, PSYCH);
+
+                                  expect(result.sessionsDeleted).toBe(2);
+                                  const versions = (await firestoreMock.getDocs(firestoreMock.collection({}, 'note_versions'))).docs;
+                                  expect(versions).toHaveLength(0);
+                                });
+
+                                it('handles localStorage getItem error gracefully', async () => {
+                                  await seedPatient();
+                                  await seedSession();
+          
+                                  // Mock localStorage to throw on getItem
+                                  const originalGetItem = localStorage.getItem;
+                                  localStorage.getItem = vi.fn().mockImplementation((key) => {
+                                    if (key === 'mock_db_cache') {
+                                      throw new Error('localStorage error');
+                                    }
+                                    return originalGetItem.call(localStorage, key);
+                                  });
+
+                                  // Should not throw
+                                  const result = await deleteAllPatientData(PATIENT_ID, PSYCH);
+                                  expect(result.patientDeleted).toBe(true);
+
+                                  // Restore
+                                  localStorage.getItem = originalGetItem;
+                                });
+
+                                it('handles localStorage key() error gracefully', async () => {
+                                  await seedPatient();
+                                  await seedSession();
+          
+                                  // Mock localStorage.key to throw
+                                  const originalKey = localStorage.key;
+                                  localStorage.key = vi.fn().mockImplementation((index) => {
+                                    if (index === 0) throw new Error('localStorage key error');
+                                    return originalKey.call(localStorage, index);
+                                  });
+
+                                  // Should not throw
+                                  const result = await deleteAllPatientData(PATIENT_ID, PSYCH);
+                                  expect(result.patientDeleted).toBe(true);
+
+                                  // Restore
+                                  localStorage.key = originalKey;
+                                });
+
+                                it('handles localStorage removeItem error gracefully', async () => {
+                                  await seedPatient();
+                                  await seedSession();
+          
+                                  // Mock localStorage.removeItem to throw
+                                  const originalRemoveItem = localStorage.removeItem;
+                                  localStorage.removeItem = vi.fn().mockImplementation((key) => {
+                                    if (key === 'mock_db_cache') throw new Error('localStorage removeItem error');
+                                    return originalRemoveItem.call(localStorage, key);
+                                  });
+
+                                  // Should not throw
+                                  const result = await deleteAllPatientData(PATIENT_ID, PSYCH);
+                                  expect(result.patientDeleted).toBe(true);
+
+                                  // Restore
+                                  localStorage.removeItem = originalRemoveItem;
+                                });
+
+                                it('handles localStorage setItem error gracefully', async () => {
+                                  await seedPatient();
+                                  await seedSession();
+          
+                                  // Mock localStorage.setItem to throw
+                                  const originalSetItem = localStorage.setItem;
+                                  localStorage.setItem = vi.fn().mockImplementation((key, value) => {
+                                    if (key === 'mock_db_cache') throw new Error('localStorage setItem error');
+                                    return originalSetItem.call(localStorage, key, value);
+                                  });
+
+                                  // Should not throw
+                                  const result = await deleteAllPatientData(PATIENT_ID, PSYCH);
+                                  expect(result.patientDeleted).toBe(true);
+
+                                  // Restore
+                                  localStorage.setItem = originalSetItem;
+                                });
+                              });

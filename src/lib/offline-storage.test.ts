@@ -666,4 +666,82 @@ describe('offlineStorage additional crypto utilities', () => {
       expect(key2).toBeDefined();
     });
   });
-});
+
+    describe('IndexedDB store/index creation branches', () => {
+      beforeEach(async () => {
+        vi.stubGlobal('crypto', webcrypto);
+        vi.stubGlobal('indexedDB', fakeIndexedDB);
+        vi.stubGlobal('IDBKeyRange', IDBKeyRange);
+        vi.stubGlobal('IDBCursor', IDBCursor);
+        vi.stubGlobal('IDBDatabase', FakeIDBDatabase);
+        vi.stubGlobal('IDBIndex', IDBIndex);
+        vi.stubGlobal('IDBObjectStore', IDBObjectStore);
+        vi.stubGlobal('IDBOpenDBRequest', IDBOpenDBRequest);
+        vi.stubGlobal('IDBRequest', IDBRequest);
+        vi.stubGlobal('IDBTransaction', IDBTransaction);
+      });
+
+      afterEach(() => {
+        vi.unstubAllGlobals();
+      });
+
+      it('should handle IndexedDB upgrade with store creation', async () => {
+        // Test the upgrade path by resetting and re-initializing
+        await __resetForTesting();
+        localStorageMock.clear();
+        await init();
+        expect(await isReady()).toBe(true);
+      });
+
+      it('should handle IndexedDB upgrade with index creation', async () => {
+        // The upgrade function creates indexes for each store config
+        await __resetForTesting();
+        localStorageMock.clear();
+        await init();
+      
+        // Put some data to exercise the indexes
+        await offlineStorage.put('patients', { id: 'index-test-1', name: 'Test' });
+        await offlineStorage.put('sessions', { id: 'index-test-2', patientId: 'index-test-1', date: new Date().toISOString() });
+        await offlineStorage.put('psychologists', { id: 'index-test-3', name: 'Dr. Test' });
+        await offlineStorage.put('audit_logs', { id: 'index-test-4', actorId: 'psych-1', timestamp: Date.now() });
+        await offlineStorage.put('patient_consents', { id: 'index-test-5', patientId: 'index-test-1' });
+        await offlineStorage.put('note_versions', { id: 'index-test-6', sessionId: 'index-test-2' });
+      
+        expect(await offlineStorage.get('patients', 'index-test-1')).toBeDefined();
+        expect(await offlineStorage.get('sessions', 'index-test-2')).toBeDefined();
+        expect(await offlineStorage.get('psychologists', 'index-test-3')).toBeDefined();
+        expect(await offlineStorage.get('audit_logs', 'index-test-4')).toBeDefined();
+        expect(await offlineStorage.get('patient_consents', 'index-test-5')).toBeDefined();
+        expect(await offlineStorage.get('note_versions', 'index-test-6')).toBeDefined();
+      });
+
+      it('should handle IndexedDB metadata store creation', async () => {
+        await __resetForTesting();
+        localStorageMock.clear();
+        await init();
+      
+        const metadata = await offlineStorage.getSyncMetadata();
+        expect(metadata).toEqual({
+          lastSynced: null,
+          pendingOperations: 0,
+          driveTokenPresent: false,
+        });
+      });
+
+      it('should handle IndexedDB store creation for all collections', async () => {
+        await __resetForTesting();
+        localStorageMock.clear();
+        await init();
+      
+        const collections = await offlineStorage.getAllCollections();
+        expect(Object.keys(collections)).toEqual([
+          'patients',
+          'sessions',
+          'psychologists',
+          'audit_logs',
+          'patient_consents',
+          'note_versions',
+        ]);
+      });
+    });
+  });
