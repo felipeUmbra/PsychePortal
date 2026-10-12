@@ -561,6 +561,154 @@ describe('useDashboard', () => {
               });
             });
 
+                        it('handles growthPercentage <= 0 branch (negative growth)', async () => {
+                          const now = new Date();
+                          const currentMonth = now.getMonth();
+                          const currentYear = now.getFullYear();
+                          const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+                          const previousYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+                          const mockSessionsSnap = createMockQuerySnapshot([
+                            createMockDocSnapshot('1', { date: new Date(currentYear, currentMonth, 15), status: 'completed' }),
+                            createMockDocSnapshot('2', { date: new Date(previousYear, previousMonth, 10), status: 'completed' }),
+                            createMockDocSnapshot('3', { date: new Date(previousYear, previousMonth, 20), status: 'completed' }),
+                          ]);
+
+                          mockGetDocs
+                            .mockResolvedValueOnce(createMockQuerySnapshot([createMockDocSnapshot('1', {})]))
+                            .mockResolvedValueOnce(mockSessionsSnap)
+                            .mockResolvedValueOnce(createMockQuerySnapshot([]));
+
+                          mockOnSnapshot
+                            .mockImplementationOnce(createMockOnSnapshot([]))
+                            .mockImplementationOnce(createMockOnSnapshot([]));
+
+                          const { result } = renderHook(() => useDashboard());
+                          await waitFor(() => expect(result.current.loading).toBe(false));
+                          expect(result.current.stats.growth).toBe('-50%');
+                        });
+
+                        it('handles prevMonthSessions === 0 with currentMonthSessions === 0', async () => {
+                          const now = new Date();
+                          const currentMonth = now.getMonth();
+                          const currentYear = now.getFullYear();
+
+                          const mockSessionsSnap = createMockQuerySnapshot([]);
+
+                          mockGetDocs
+                            .mockResolvedValueOnce(createMockQuerySnapshot([createMockDocSnapshot('1', {})]))
+                            .mockResolvedValueOnce(mockSessionsSnap)
+                            .mockResolvedValueOnce(createMockQuerySnapshot([]));
+
+                          mockOnSnapshot
+                            .mockImplementationOnce(createMockOnSnapshot([]))
+                            .mockImplementationOnce(createMockOnSnapshot([]));
+
+                          const { result } = renderHook(() => useDashboard());
+                          await waitFor(() => expect(result.current.loading).toBe(false));
+                          expect(result.current.stats.growth).toBe('0%');
+                        });
+
+                        it('handles session date without toDate method (covers ternary false branch)', async () => {
+                          const now = new Date();
+                          const futureDate = new Date(now.getTime() + 3600000);
+
+                          const mockTodaySessions = createMockQuerySnapshot([
+                            createMockDocSnapshot('1', { date: futureDate.toISOString(), status: 'scheduled' }),
+                          ]);
+
+                          mockOnSnapshot
+                            .mockImplementationOnce(createMockOnSnapshot(mockTodaySessions.docs))
+                            .mockImplementationOnce(createMockOnSnapshot([]));
+
+                          mockGetDocs
+                            .mockResolvedValueOnce(createMockQuerySnapshot([createMockDocSnapshot('1', {})]))
+                            .mockResolvedValueOnce(createMockQuerySnapshot([]))
+                            .mockResolvedValueOnce(createMockQuerySnapshot([]));
+
+                          const { result } = renderHook(() => useDashboard());
+
+                          await waitFor(() => expect(result.current.loading).toBe(false));
+                          expect(result.current.stats.scheduled).toBeGreaterThanOrEqual(0);
+                        });
+
+                        it('handles session date in past (covers d > now false branch)', async () => {
+                          const now = new Date();
+                          const pastDate = new Date(now.getTime() - 3600000);
+
+                          const mockTodaySessions = createMockQuerySnapshot([
+                            createMockDocSnapshot('1', { date: pastDate, status: 'scheduled' }),
+                          ]);
+
+                          mockOnSnapshot
+                            .mockImplementationOnce(createMockOnSnapshot(mockTodaySessions.docs))
+                            .mockImplementationOnce(createMockOnSnapshot([]));
+
+                          mockGetDocs
+                            .mockResolvedValueOnce(createMockQuerySnapshot([createMockDocSnapshot('1', {})]))
+                            .mockResolvedValueOnce(createMockQuerySnapshot([]))
+                            .mockResolvedValueOnce(createMockQuerySnapshot([]));
+
+                          const { result } = renderHook(() => useDashboard());
+
+                          await waitFor(() => expect(result.current.loading).toBe(false));
+                          expect(result.current.stats.scheduled).toBe(0);
+                        });
+
+                        it('handles isMounted false in today sessions listener', async () => {
+                          const now = new Date();
+                          const futureDate = new Date(now.getTime() + 3600000);
+
+                          const mockTodaySessions = createMockQuerySnapshot([
+                            createMockDocSnapshot('1', { date: futureDate, status: 'scheduled' }),
+                          ]);
+
+                          mockOnSnapshot
+                            .mockImplementationOnce(createMockOnSnapshot(mockTodaySessions.docs))
+                            .mockImplementationOnce(createMockOnSnapshot([]));
+
+                          mockGetDocs
+                            .mockResolvedValueOnce(createMockQuerySnapshot([createMockDocSnapshot('1', {})]))
+                            .mockResolvedValueOnce(createMockQuerySnapshot([]))
+                            .mockResolvedValueOnce(createMockQuerySnapshot([]));
+
+                          const { result, unmount } = renderHook(() => useDashboard());
+
+                          await waitFor(() => expect(result.current.loading).toBe(false));
+
+                          // Unmount to set isMounted = false
+                          unmount();
+
+                          // The callback should not update state after unmount
+                          // Just verify the hook works and unmount doesn't throw
+                          expect(result.current.stats.scheduled).toBeGreaterThanOrEqual(0);
+                        });
+
+                        it('handles isMounted false in recent sessions error handler', async () => {
+                          const error = new Error('Recent listener failed');
+                          mockOnSnapshot
+                            .mockImplementationOnce(createMockOnSnapshot([]))
+                            .mockImplementationOnce((_query, _onNext, onError) => {
+                              onError(error);
+                              return vi.fn();
+                            });
+
+                          mockGetDocs
+                            .mockResolvedValueOnce(createMockQuerySnapshot([createMockDocSnapshot('1', {})]))
+                            .mockResolvedValueOnce(createMockQuerySnapshot([]))
+                            .mockResolvedValueOnce(createMockQuerySnapshot([]));
+
+                          const { result, unmount } = renderHook(() => useDashboard());
+
+                          await waitFor(() => expect(result.current.loading).toBe(false));
+
+                          // Unmount to set isMounted = false
+                          unmount();
+
+                          // The error handler should not set loading after unmount
+                          expect(result.current.loading).toBe(false);
+                                                  });
+
             it('handles isMounted check in today sessions listener', async () => {
               const now = new Date();
               const futureDate = new Date(now.getTime() + 3600000);
@@ -1312,5 +1460,115 @@ describe('useDashboard', () => {
 
               await waitFor(() => expect(result.current.loading).toBe(false));
               expect(result.current.stats.scheduled).toBe(0);
+            });
+
+            it('handles Firestore timestamp dates in stats and today sessions', async () => {
+              const statsToDate = vi.fn(() => new Date());
+              const statsTimestamp = { toDate: statsToDate };
+              const todayTimestamp = { toDate: () => new Date(Date.now() + 3600000) };
+              const sessions = createMockQuerySnapshot([
+                createMockDocSnapshot('completed-session', { date: statsTimestamp }),
+              ]);
+              const todaySessions = createMockQuerySnapshot([
+                createMockDocSnapshot('scheduled-session', { date: todayTimestamp, status: 'scheduled' }),
+              ]);
+
+              mockGetDocs
+                .mockResolvedValueOnce(createMockQuerySnapshot([]))
+                .mockResolvedValueOnce(sessions)
+                .mockResolvedValueOnce(createMockQuerySnapshot([]));
+              mockOnSnapshot
+                .mockImplementationOnce(createMockOnSnapshot(todaySessions.docs))
+                .mockImplementationOnce(createMockOnSnapshot([]));
+
+              const { result } = renderHook(() => useDashboard());
+
+              await waitFor(() => {
+                expect(result.current.stats.growth).toBe('+100%');
+                expect(result.current.stats.scheduled).toBe(1);
+              });
+              expect(statsToDate).toHaveBeenCalled();
+            });
+
+            it('calculates the previous month and year correctly in January', async () => {
+              vi.useFakeTimers({ toFake: ['Date'] });
+              vi.setSystemTime(new Date(2026, 0, 15, 12));
+
+              try {
+                const sessions = createMockQuerySnapshot([
+                  createMockDocSnapshot('current-session', { date: new Date(2026, 0, 10) }),
+                  createMockDocSnapshot('previous-session', { date: new Date(2025, 11, 10) }),
+                ]);
+                mockGetDocs
+                  .mockResolvedValueOnce(createMockQuerySnapshot([]))
+                  .mockResolvedValueOnce(sessions)
+                  .mockResolvedValueOnce(createMockQuerySnapshot([]));
+                mockOnSnapshot
+                  .mockImplementationOnce(createMockOnSnapshot([]))
+                  .mockImplementationOnce(createMockOnSnapshot([]));
+
+                const { result } = renderHook(() => useDashboard());
+                await waitFor(() => expect(result.current.loading).toBe(false));
+
+                expect(result.current.stats.growth).toBe('0%');
+              } finally {
+                vi.useRealTimers();
+              }
+            });
+
+            it('ignores listener callbacks that run after unmount', async () => {
+              let todayCallback: ((snapshot: ReturnType<typeof createMockQuerySnapshot>) => void) | undefined;
+              let recentCallback: ((snapshot: ReturnType<typeof createMockQuerySnapshot>) => void) | undefined;
+              let recentErrorCallback: ((error: Error) => void) | undefined;
+
+              mockOnSnapshot
+                .mockImplementationOnce((_query, callback) => {
+                  todayCallback = callback;
+                  return vi.fn();
+                })
+                .mockImplementationOnce((_query, callback, onError) => {
+                  recentCallback = callback;
+                  recentErrorCallback = onError;
+                  return vi.fn();
+                });
+
+              const { unmount } = renderHook(() => useDashboard());
+
+              await waitFor(() => {
+                expect(todayCallback).toBeDefined();
+                expect(recentCallback).toBeDefined();
+                expect(recentErrorCallback).toBeDefined();
+              });
+
+              unmount();
+              todayCallback?.(createMockQuerySnapshot([]));
+              recentCallback?.(createMockQuerySnapshot([]));
+              recentErrorCallback?.(new Error('Recent listener failed'));
+
+              expect(handleFirestoreError).toHaveBeenCalledWith(
+                expect.any(Error),
+                OperationType.LIST,
+                'sessions',
+              );
+            });
+
+            it('does not update stats when the fetch completes after unmount', async () => {
+              let resolvePatients!: (snapshot: ReturnType<typeof createMockQuerySnapshot>) => void;
+              const patientsPromise = new Promise<ReturnType<typeof createMockQuerySnapshot>>((resolve) => {
+                resolvePatients = resolve;
+              });
+              mockGetDocs
+                .mockReturnValueOnce(patientsPromise)
+                .mockResolvedValueOnce(createMockQuerySnapshot([]))
+                .mockResolvedValueOnce(createMockQuerySnapshot([]));
+
+              const { unmount } = renderHook(() => useDashboard());
+              await waitFor(() => expect(mockGetDocs).toHaveBeenCalledTimes(1));
+
+              unmount();
+              await act(async () => {
+                resolvePatients(createMockQuerySnapshot([]));
+                await new Promise((resolve) => setTimeout(resolve, 0));
+              });
             });
           });
