@@ -359,4 +359,113 @@ describe('useDashboard', () => {
               expect(result.current.stats.scheduled).toBe(1);
             }, { timeout: 15000 });
     });
-  });
+
+      it('handles subscription error in today sessions listener', async () => {
+        const error = new Error('Today listener failed');
+        mockOnSnapshot
+          .mockImplementationOnce((_query, _onNext, onError) => {
+            onError(error);
+            return vi.fn();
+          })
+          .mockImplementationOnce(createMockOnSnapshot([]));
+
+        mockGetDocs
+          .mockResolvedValueOnce(createMockQuerySnapshot([createMockDocSnapshot('1', {})]))
+          .mockResolvedValueOnce(createMockQuerySnapshot([]))
+          .mockResolvedValueOnce(createMockQuerySnapshot([]));
+
+        const { result } = renderHook(() => useDashboard());
+        await waitFor(() => expect(result.current.loading).toBe(false));
+        expect(handleFirestoreError).toHaveBeenCalledWith(error, OperationType.LIST, 'sessions');
+      });
+
+      it('handles subscription error in recent sessions listener', async () => {
+        const error = new Error('Recent listener failed');
+        mockOnSnapshot
+          .mockImplementationOnce(createMockOnSnapshot([]))
+          .mockImplementationOnce((_query, _onNext, onError) => {
+            onError(error);
+            return vi.fn();
+          });
+
+        mockGetDocs
+          .mockResolvedValueOnce(createMockQuerySnapshot([createMockDocSnapshot('1', {})]))
+          .mockResolvedValueOnce(createMockQuerySnapshot([]))
+          .mockResolvedValueOnce(createMockQuerySnapshot([]));
+
+        const { result } = renderHook(() => useDashboard());
+        await waitFor(() => expect(result.current.loading).toBe(false));
+        expect(handleFirestoreError).toHaveBeenCalledWith(error, OperationType.LIST, 'sessions');
+      });
+
+      it('handles empty patients and sessions', async () => {
+        mockGetDocs
+          .mockResolvedValueOnce(createMockQuerySnapshot([]))
+          .mockResolvedValueOnce(createMockQuerySnapshot([]))
+          .mockResolvedValueOnce(createMockQuerySnapshot([]));
+
+        mockOnSnapshot
+          .mockImplementationOnce(createMockOnSnapshot([]))
+          .mockImplementationOnce(createMockOnSnapshot([]));
+
+        const { result } = renderHook(() => useDashboard());
+        await waitFor(() => expect(result.current.loading).toBe(false));
+        expect(result.current.stats).toEqual({
+          patients: 0,
+          sessions: 0,
+          scheduled: 0,
+          growth: '0%',
+        });
+      });
+
+      it('handles growth calculation with zero previous month', async () => {
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        const mockSessionsSnap = createMockQuerySnapshot([
+          createMockDocSnapshot('1', { date: new Date(currentYear, currentMonth, 15), status: 'completed' }),
+          createMockDocSnapshot('2', { date: new Date(currentYear, currentMonth, 20), status: 'completed' }),
+        ]);
+
+        mockGetDocs
+          .mockResolvedValueOnce(createMockQuerySnapshot([createMockDocSnapshot('1', {})]))
+          .mockResolvedValueOnce(mockSessionsSnap)
+          .mockResolvedValueOnce(createMockQuerySnapshot([]));
+
+        mockOnSnapshot
+          .mockImplementationOnce(createMockOnSnapshot([]))
+          .mockImplementationOnce(createMockOnSnapshot([]));
+
+        const { result } = renderHook(() => useDashboard());
+        await waitFor(() => expect(result.current.loading).toBe(false));
+        expect(result.current.stats.growth).toBe('+100%');
+      });
+
+      it('handles negative growth percentage', async () => {
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+        const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+        const previousYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+        const mockSessionsSnap = createMockQuerySnapshot([
+          createMockDocSnapshot('1', { date: new Date(currentYear, currentMonth, 15), status: 'completed' }),
+          createMockDocSnapshot('2', { date: new Date(previousYear, previousMonth, 10), status: 'completed' }),
+          createMockDocSnapshot('3', { date: new Date(previousYear, previousMonth, 20), status: 'completed' }),
+        ]);
+
+        mockGetDocs
+          .mockResolvedValueOnce(createMockQuerySnapshot([createMockDocSnapshot('1', {})]))
+          .mockResolvedValueOnce(mockSessionsSnap)
+          .mockResolvedValueOnce(createMockQuerySnapshot([]));
+
+        mockOnSnapshot
+          .mockImplementationOnce(createMockOnSnapshot([]))
+          .mockImplementationOnce(createMockOnSnapshot([]));
+
+        const { result } = renderHook(() => useDashboard());
+        await waitFor(() => expect(result.current.loading).toBe(false));
+        expect(result.current.stats.growth).toBe('-50%');
+      });
+    });

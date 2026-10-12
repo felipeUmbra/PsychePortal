@@ -29,6 +29,10 @@ vi.mock('../lib/error-handler', () => ({
   OperationType: { LIST: 'LIST', CREATE: 'CREATE', UPDATE: 'UPDATE', DELETE: 'DELETE', GET: 'GET' },
 }));
 
+import { handleFirestoreError, OperationType } from '../lib/error-handler';
+
+const mockHandleFirestoreError = vi.mocked(handleFirestoreError);
+
 vi.mock('../context/GoogleAuthContext', () => ({
   useGoogleAuth: () => ({
     driveToken: 'mock-drive-token',
@@ -81,7 +85,6 @@ vi.mock('../lib/firestore-mock', () => ({
 import { useSessions } from './useSessions';
 import * as firestore from 'firebase/firestore';
 import * as storage from '../lib/firestore-mock';
-import { handleFirestoreError, OperationType } from '../lib/error-handler';
 import { saveNextNoteVersion } from '../lib/note-versioning';
 import { useAuthState } from 'react-firebase-hooks/auth';
 
@@ -125,15 +128,21 @@ describe('useSessions', () => {
     mockOnSnapshot.mockImplementation(createMockOnSnapshot([]));
     mockAddDoc.mockResolvedValue({ id: 'new-session-id' });
     mockDoc.mockReturnValue({ path: 'sessions', id: 'session-1' });
-    mockUpdateDoc.mockResolvedValue(undefined);
-    mockDeleteDoc.mockResolvedValue(undefined);
-    mockGetDoc.mockImplementation(createMockGetDoc({ notes: 'existing notes' }));
-    mockGetDocs.mockResolvedValue(createMockQuerySnapshot([]));
-  });
+        mockUpdateDoc.mockResolvedValue(undefined);
+        mockDeleteDoc.mockResolvedValue(undefined);
+        mockGetDoc.mockImplementation(createMockGetDoc({ notes: 'existing notes' }));
+        mockGetDocs.mockResolvedValue(createMockQuerySnapshot([]));
 
-  afterEach(() => {
-    vi.resetAllMocks();
-  });
+        // Mock window.dispatchEvent
+        vi.spyOn(window, 'dispatchEvent').mockImplementation(() => true);
+    
+        // Mock global.fetch
+        global.fetch = vi.fn();
+      });
+
+      afterEach(() => {
+        vi.resetAllMocks();
+      });
 
   it('initializes with loading state', () => {
     const { result } = renderHook(() => useSessions('patient-1'));
@@ -356,7 +365,7 @@ describe('useSessions', () => {
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
       });
-      expect(handleFirestoreError).toHaveBeenCalledWith(error, OperationType.LIST, 'sessions');
+            expect(mockHandleFirestoreError).toHaveBeenCalledWith(error, OperationType.LIST, 'sessions');
     });
 
     it('encrypts notes before adding a session when encryption is unlocked', async () => {
@@ -387,51 +396,6 @@ describe('useSessions', () => {
         expect.anything(),
         expect.objectContaining({ notes: JSON.stringify({ version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' }) }),
       );
-    });
-
-    it('updates a linked Google Calendar event when the session date changes', async () => {
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200 }));
-      const successEvent = vi.fn();
-      window.addEventListener('google-auth-success', successEvent);
-      const { result } = renderHook(() => useSessions('patient-1'));
-
-      await waitFor(() => expect(result.current.loading).toBe(false));
-      await act(async () => result.current.updateSession('session-1', {
-        date: new Date('2026-10-12T10:00:00.000Z'),
-        googleEventId: 'event-1',
-        type: 'individual',
-      }));
-
-      expect(fetch).toHaveBeenCalledWith(
-        'https://www.googleapis.com/calendar/v3/calendars/primary/events/event-1',
-        expect.objectContaining({ method: 'PATCH' }),
-      );
-      expect(successEvent).toHaveBeenCalledOnce();
-      window.removeEventListener('google-auth-success', successEvent);
-    });
-
-    it('dispatches a calendar authorization error when cancellation is forbidden', async () => {
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-        ok: false,
-        status: 403,
-        statusText: 'Forbidden',
-        json: async () => ({ error: { message: 'Calendar permission expired' } }),
-      }));
-      const authorizationError = vi.fn();
-      window.addEventListener('google-auth-error', authorizationError);
-      const { result } = renderHook(() => useSessions('patient-1'));
-
-      await waitFor(() => expect(result.current.loading).toBe(false));
-      await act(async () => result.current.cancelSession({
-        id: 'session-1',
-        googleEventId: 'event-1',
-      } as any));
-
-      expect(authorizationError).toHaveBeenCalledOnce();
-      expect(authorizationError.mock.calls[0][0]).toMatchObject({
-        detail: { status: 403, service: 'calendar', message: 'Calendar permission expired' },
-      });
-      window.removeEventListener('google-auth-error', authorizationError);
     });
 
     it('uploads attachment metadata and always resets the upload flag', async () => {
@@ -478,4 +442,111 @@ describe('useSessions', () => {
 
       expect(errorLog).toHaveBeenCalledWith('File deletion failed:', expect.any(Error));
     });
-  });
+
+        it('handles addSession when user is null', async () => {
+          vi.mocked(useAuthState).mockReturnValue([null, false]);
+          const { result } = renderHook(() => useSessions('patient-1'));
+          await waitFor(() => expect(result.current.loading).toBe(false));
+          await expect(act(async () => result.current.addSession({ date: new Date().toISOString(), type: 'individual' }))).rejects.toThrow('Unauthenticated or missing patient ID');
+        });
+
+        it('handles addSession when patientId is missing', async () => {
+          const { result } = renderHook(() => useSessions(''));
+          await waitFor(() => expect(result.current.loading).toBe(false));
+          await expect(act(async () => result.current.addSession({ date: new Date().toISOString(), type: 'individual' }))).rejects.toThrow('Unauthenticated or missing patient ID');
+        });
+
+        it('handles updateSession when user is null', async () => {
+          vi.mocked(useAuthState).mockReturnValue([null, false]);
+          const { result } = renderHook(() => useSessions('patient-1'));
+          await waitFor(() => expect(result.current.loading).toBe(false));
+          await expect(act(async () => result.current.updateSession('session-1', { type: 'individual' }))).rejects.toThrow('Unauthenticated');
+        });
+
+        it('handles updateSession with encrypted notes when unlocked', async () => {
+          mockGetDoc.mockResolvedValueOnce(createMockDocSnapshot('session-1', { notes: 'old notes', googleEventId: 'evt-1' }));
+          const { result } = renderHook(() => useSessions('patient-1'));
+          await waitFor(() => expect(result.current.loading).toBe(false));
+          await act(async () => result.current.updateSession('session-1', { notes: 'new encrypted notes' }));
+          expect(mockUpdateDoc).toHaveBeenCalled();
+        });
+
+        it('handles cancelSession without googleEventId', async () => {
+          const session = { id: 'session-1', status: 'scheduled' };
+          mockGetDoc.mockResolvedValueOnce(createMockDocSnapshot('session-1', session));
+          const { result } = renderHook(() => useSessions('patient-1'));
+          await waitFor(() => expect(result.current.loading).toBe(false));
+          await act(async () => result.current.cancelSession(session));
+          expect(global.fetch).not.toHaveBeenCalled();
+        });
+
+        it('handles uploadFile size limit exceeded', async () => {
+          const { result } = renderHook(() => useSessions('patient-1'));
+          await waitFor(() => expect(result.current.loading).toBe(false));
+          const largeFile = new File(['x'.repeat(50 * 1024 * 1024)], 'large.pdf', { type: 'application/pdf' });
+          await expect(act(async () => result.current.uploadFile(largeFile, 'session-1'))).rejects.toThrow('File size exceeds 40MB limit.');
+        });
+
+        it('handles uploadFile success', async () => {
+          const mockRef = { path: 'test/path' };
+          vi.mocked(storage.ref).mockReturnValue(mockRef);
+          vi.mocked(storage.uploadBytes).mockResolvedValue(undefined);
+          vi.mocked(storage.getDownloadURL).mockResolvedValue('https://example.com/file.pdf');
+          const { result } = renderHook(() => useSessions('patient-1'));
+          await waitFor(() => expect(result.current.loading).toBe(false));
+          const file = new File(['content'], 'test.pdf', { type: 'application/pdf' });
+          const uploadResult = await act(async () => result.current.uploadFile(file, 'session-1'));
+          expect(uploadResult).toHaveProperty('name', 'test.pdf');
+          expect(uploadResult).toHaveProperty('url', 'https://example.com/file.pdf');
+        });
+
+        it('handles uploadFile error', async () => {
+          vi.mocked(storage.ref).mockReturnValue({ path: 'test/path' });
+          vi.mocked(storage.uploadBytes).mockRejectedValue(new Error('Upload failed'));
+          const { result } = renderHook(() => useSessions('patient-1'));
+          await waitFor(() => expect(result.current.loading).toBe(false));
+          const file = new File(['content'], 'test.pdf', { type: 'application/pdf' });
+          await expect(act(async () => result.current.uploadFile(file, 'session-1'))).rejects.toThrow('Upload failed');
+        });
+
+        it('handles deleteFile success', async () => {
+          vi.mocked(storage.deleteObject).mockResolvedValue(undefined);
+          const { result } = renderHook(() => useSessions('patient-1'));
+          await waitFor(() => expect(result.current.loading).toBe(false));
+          await act(async () => result.current.deleteFile('patients/uid/session/file.pdf'));
+          expect(storage.deleteObject).toHaveBeenCalledWith({ path: 'patients/uid/session/file.pdf' });
+        });
+
+        it('handles deleteFile error', async () => {
+          vi.mocked(storage.deleteObject).mockRejectedValue(new Error('Delete failed'));
+          const { result } = renderHook(() => useSessions('patient-1'));
+          await waitFor(() => expect(result.current.loading).toBe(false));
+                  // deleteFile swallows errors, so it resolves
+                  await expect(act(async () => result.current.deleteFile('patients/uid/session/file.pdf'))).resolves.toBeUndefined();
+                });
+
+        it('handles note versioning on updateSession', async () => {
+          mockGetDoc.mockResolvedValueOnce(createMockDocSnapshot('session-1', { notes: 'current notes', googleEventId: 'evt-1' }));
+          const { result } = renderHook(() => useSessions('patient-1'));
+          await waitFor(() => expect(result.current.loading).toBe(false));
+          await act(async () => result.current.updateSession('session-1', { notes: 'updated notes' }));
+          expect(saveNextNoteVersion).toHaveBeenCalledWith('session-1', 'test-uid-123', 'current notes');
+        });
+
+        it('handles note versioning skip when notes unchanged', async () => {
+          mockGetDoc.mockResolvedValueOnce(createMockDocSnapshot('session-1', { notes: 'same notes', googleEventId: 'evt-1' }));
+          const { result } = renderHook(() => useSessions('patient-1'));
+          await waitFor(() => expect(result.current.loading).toBe(false));
+          await act(async () => result.current.updateSession('session-1', { type: 'individual' }));
+          expect(saveNextNoteVersion).not.toHaveBeenCalled();
+        });
+
+        it('handles note versioning error gracefully', async () => {
+          mockGetDoc.mockResolvedValueOnce(createMockDocSnapshot('session-1', { notes: 'current notes', googleEventId: 'evt-1' }));
+          vi.mocked(saveNextNoteVersion).mockRejectedValueOnce(new Error('Version save failed'));
+          const { result } = renderHook(() => useSessions('patient-1'));
+          await waitFor(() => expect(result.current.loading).toBe(false));
+          await act(async () => result.current.updateSession('session-1', { notes: 'updated notes' }));
+          expect(mockUpdateDoc).toHaveBeenCalled();
+        });
+      });

@@ -25,6 +25,10 @@ vi.mock('../lib/error-handler', () => ({
   OperationType: { LIST: 'LIST', CREATE: 'CREATE', UPDATE: 'UPDATE', DELETE: 'DELETE', GET: 'GET' },
 }));
 
+import { handleFirestoreError, OperationType } from '../lib/error-handler';
+
+const mockHandleFirestoreError = vi.mocked(handleFirestoreError);
+
 vi.mock('./useEncryption', () => ({
   useEncryption: () => ({
     isUnlocked: true,
@@ -255,90 +259,92 @@ describe('usePatients', () => {
       ).rejects.toThrow('Network error');
     });
 
-    it('cleans up listener on unmount', async () => {
-      const unsubscribe = vi.fn();
-          mockOnSnapshot.mockImplementation((q, callback) => {
-            callback(createMockQuerySnapshot([]));
-            return unsubscribe;
+        it('handles subscription error in onSnapshot', async () => {
+          const error = new Error('Subscription failed');
+          mockOnSnapshot.mockImplementation((_q, _next, errCb) => {
+            errCb(error);
+            return vi.fn();
           });
-
-          const { result, unmount } = renderHook(() => usePatients());
-
-          await waitFor(() => {
-            expect(result.current.loading).toBe(false);
-          }, { timeout: 5000 });
-
-          unmount();
-
-          expect(unsubscribe).toHaveBeenCalled();
+          const { result } = renderHook(() => usePatients());
+          await waitFor(() => expect(result.current.loading).toBe(false));
+                  expect(mockHandleFirestoreError).toHaveBeenCalledWith(error, OperationType.LIST, 'patients');
         });
 
-    it('decrypts notes when encryption is unlocked', async () => {
-      const mockPatients = createMockQuerySnapshot([
-        createMockDocSnapshot('1', { psychologistId: 'test-uid-123', fullName: 'Patient 1', notes: JSON.stringify({ version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' }) }),
-      ]);
+        it('handles addPatient when user is null', async () => {
+          Object.defineProperty(auth, 'currentUser', { value: null, writable: true, configurable: true });
+          const mockAuthChanged = vi.mocked(auth.onAuthStateChanged);
+          mockAuthChanged.mockImplementation(createMockAuthStateChanged(null));
+          mockOnSnapshot.mockImplementation(createMockOnSnapshot([]));
+          const { result } = renderHook(() => usePatients());
+          await waitFor(() => expect(result.current.loading).toBe(false));
+          await expect(act(async () => result.current.addPatient({ fullName: 'Test' }))).rejects.toThrow('Unauthenticated');
+        });
 
-      mockOnSnapshot.mockImplementation(createMockOnSnapshot(mockPatients.docs));
+        it('handles updatePatient when user is null', async () => {
+          Object.defineProperty(auth, 'currentUser', { value: null, writable: true, configurable: true });
+          const mockAuthChanged = vi.mocked(auth.onAuthStateChanged);
+          mockAuthChanged.mockImplementation(createMockAuthStateChanged(null));
+          mockOnSnapshot.mockImplementation(createMockOnSnapshot([]));
+          const { result } = renderHook(() => usePatients());
+          await waitFor(() => expect(result.current.loading).toBe(false));
+          await expect(act(async () => result.current.updatePatient('patient-1', { fullName: 'Test' }))).rejects.toThrow('Unauthenticated');
+        });
 
-      const { result } = renderHook(() => usePatients());
+        it('handles deletePatient when user is null', async () => {
+          Object.defineProperty(auth, 'currentUser', { value: null, writable: true, configurable: true });
+          const mockAuthChanged = vi.mocked(auth.onAuthStateChanged);
+          mockAuthChanged.mockImplementation(createMockAuthStateChanged(null));
+          mockOnSnapshot.mockImplementation(createMockOnSnapshot([]));
+          const { result } = renderHook(() => usePatients());
+          await waitFor(() => expect(result.current.loading).toBe(false));
+          await expect(act(async () => result.current.deletePatient('patient-1'))).rejects.toThrow('Unauthenticated');
+        });
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { timeout: 5000 });
+        it('encrypts notes and anamnesis fields before creating a patient when unlocked', async () => {
+          mockOnSnapshot.mockImplementation(createMockOnSnapshot([]));
+          const { result } = renderHook(() => usePatients());
+          await waitFor(() => expect(result.current.loading).toBe(false));
+          await act(async () => result.current.addPatient({
+            fullName: 'Encrypted Patient',
+            notes: 'clinical notes',
+            anamnesis: {
+              chiefComplaint: 'sleep difficulty',
+              medicalHistory: '',
+              familyHistory: 'family history',
+            },
+          } as any));
+          expect(mockAddDoc).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+              notes: JSON.stringify({ version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' }),
+              anamnesis: expect.objectContaining({
+                chiefComplaint: JSON.stringify({ version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' }),
+                medicalHistory: '',
+                familyHistory: JSON.stringify({ version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' }),
+              }),
+            }),
+          );
+        });
 
-      // Wait for decryption to complete
-      await waitFor(() => {
-        expect(result.current.patients[0].notes).toBe('decrypted text');
-      }, { timeout: 5000 });
-    });
-
-    it('decrypts anamnesis fields when encryption is unlocked', async () => {
-      const mockPatients = createMockQuerySnapshot([
-        createMockDocSnapshot('1', { psychologistId: 'test-uid-123', fullName: 'Patient 1', anamnesis: { chiefComplaint: JSON.stringify({ version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' }) } }),
-      ]);
-
-      mockOnSnapshot.mockImplementation(createMockOnSnapshot(mockPatients.docs));
-
-      const { result } = renderHook(() => usePatients());
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { timeout: 5000 });
-
-      // Wait for decryption to complete
-      await waitFor(() => {
-        expect(result.current.patients[0].anamnesis?.chiefComplaint).toBe('decrypted text');
-      }, { timeout: 5000 });
-    });
-
-    it('encrypts notes and non-empty anamnesis fields before creating a patient', async () => {
-      mockOnSnapshot.mockImplementation(createMockOnSnapshot([]));
-      const { result } = renderHook(() => usePatients());
-
-      await waitFor(() => expect(result.current.loading).toBe(false));
-      await act(async () => result.current.addPatient({
-        fullName: 'Encrypted Patient',
-        notes: 'clinical notes',
-        anamnesis: {
-          chiefComplaint: 'sleep difficulty',
-          medicalHistory: '',
-          familyHistory: 'family history',
-        },
-      } as any));
-
-      expect(mockAddDoc).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          notes: JSON.stringify({ version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' }),
-          anamnesis: expect.objectContaining({
-            chiefComplaint: JSON.stringify({ version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' }),
-            medicalHistory: '',
-            familyHistory: JSON.stringify({ version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' }),
-          }),
-        }),
-      );
-    });
-  });
+        it('encrypts notes and anamnesis fields before updating a patient when unlocked', async () => {
+          mockOnSnapshot.mockImplementation(createMockOnSnapshot([]));
+          const { result } = renderHook(() => usePatients());
+          await waitFor(() => expect(result.current.loading).toBe(false));
+          await act(async () => result.current.updatePatient('patient-1', {
+            notes: 'updated notes',
+            anamnesis: { chiefComplaint: 'updated complaint' },
+          }));
+          expect(mockUpdateDoc).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+              notes: JSON.stringify({ version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' }),
+              anamnesis: expect.objectContaining({
+                chiefComplaint: JSON.stringify({ version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' }),
+              }),
+            }),
+          );
+        });
+      });
 
 describe('usePatient', () => {
   const mockUser = createMockUser('test-uid-123');

@@ -297,6 +297,18 @@ describe('useEncryption', () => {
       .rejects.toThrow('Encryption key not unlocked');
   });
 
+  it('rejects encryptFields when locked', async () => {
+    const { result } = renderHook(() => useEncryption());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await expect(result.current.encryptFields({ field1: 'value1' })).rejects.toThrow('Encryption key not unlocked');
+  });
+
+  it('rejects decryptFields when locked', async () => {
+    const { result } = renderHook(() => useEncryption());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await expect(result.current.decryptFields({ field1: { version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' } })).rejects.toThrow('Encryption key not unlocked');
+  });
+
   it('encrypts fields when unlocked', async () => {
     vi.mocked(noteCrypto.getKeyRecord).mockResolvedValue({ salt: 'c2FsdA==', recoveryHash: 'hash', createdAt: new Date().toISOString() });
     vi.mocked(noteCrypto.base64Decode).mockReturnValue(new Uint8Array([1, 2, 3]));
