@@ -718,6 +718,31 @@ describe('useEncryption', () => {
     await expect(result.current.encryptFields({ field1: 'value1' })).rejects.toThrow('Encryption key not unlocked');
   });
 
+  it('handles session-timeout event listener (covers handleSessionTimeout callback)', async () => {
+    vi.mocked(noteCrypto.getKeyRecord).mockResolvedValue({ salt: 'c2FsdA==', recoveryHash: 'hash', createdAt: new Date().toISOString() });
+    vi.mocked(noteCrypto.base64Decode).mockReturnValue(new Uint8Array([1, 2, 3]));
+    vi.mocked(noteCrypto.deriveKeyFromPassphrase).mockResolvedValue({} as any);
+
+    const { result } = renderHook(() => useEncryption());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.unlock('valid-passphrase-123');
+    });
+
+    expect(result.current.isUnlocked).toBe(true);
+
+    // Dispatch session-timeout event
+    act(() => {
+      window.dispatchEvent(new Event('session-timeout'));
+    });
+
+    expect(result.current.isUnlocked).toBe(false);
+  });
+
   it('handles decryptFields when locked (covers !cachedMasterKey true branch)', async () => {
     const { result } = renderHook(() => useEncryption());
     await waitFor(() => expect(result.current.isLoading).toBe(false));
