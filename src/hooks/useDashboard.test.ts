@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { cleanup, renderHook, act, waitFor } from '@testing-library/react';
 import type { User } from 'firebase/auth';
 
 import {
@@ -81,6 +81,7 @@ describe('useDashboard', () => {
     });
 
     afterEach(() => {
+      cleanup();
       vi.resetAllMocks();
     });
 
@@ -158,6 +159,24 @@ describe('useDashboard', () => {
           expect(result.current.stats.sessions).toBe(10);
           expect(result.current.stats.scheduled).toBe(3);
         });
+
+  it('maps recent sessions from the subscription snapshot', async () => {
+    const recentSession = createMockDocSnapshot('recent-session', {
+      status: 'completed',
+      date: new Date(),
+    });
+    mockOnSnapshot
+      .mockImplementationOnce(createMockOnSnapshot([]))
+      .mockImplementationOnce(createMockOnSnapshot([recentSession]));
+
+    const { result } = renderHook(() => useDashboard());
+
+    await waitFor(() => {
+      expect(result.current.recentSessions).toMatchObject([
+        { id: 'recent-session', status: 'completed' },
+      ]);
+    });
+  });
 
   it('calculates growth percentage correctly', async () => {
     const now = new Date();
@@ -413,7 +432,6 @@ describe('useDashboard', () => {
               mockOnSnapshot
                 .mockImplementationOnce((q, callback) => {
                   todayCallback = callback;
-                  callback(createMockQuerySnapshot(mockTodaySessions.docs));
                   return vi.fn();
                 })
                 .mockImplementationOnce(createMockOnSnapshot([]));
@@ -446,10 +464,15 @@ describe('useDashboard', () => {
                 expect(result.current.loading).toBe(false);
               }, { timeout: 10000 });
 
-              // The callback should have been called and updated the scheduled count
-              // Verify the callback was invoked by checking the scheduled count
               await waitFor(() => {
-                expect(result.current.stats.scheduled).toBeGreaterThanOrEqual(0);
+                expect(result.current.stats.sessions).toBe(10);
+              }, { timeout: 10000 });
+
+              if (!todayCallback) throw new Error('Today sessions listener was not registered');
+              act(() => todayCallback!(mockTodaySessions));
+
+              await waitFor(() => {
+                expect(result.current.stats.scheduled).toBe(1);
               }, { timeout: 5000 });
             });
 

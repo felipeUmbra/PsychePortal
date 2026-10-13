@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { cleanup, renderHook, act, waitFor } from '@testing-library/react';
 import type { User } from 'firebase/auth';
 
 import {
@@ -56,6 +56,7 @@ describe('useEncryption', () => {
   });
 
   afterEach(() => {
+    cleanup();
     vi.resetAllMocks();
     resetCachedMasterKeyForTesting();
   });
@@ -741,6 +742,19 @@ describe('useEncryption', () => {
     });
 
     expect(result.current.isUnlocked).toBe(false);
+  });
+
+  it('removes the session-timeout listener when unmounted', async () => {
+    const removeEventListener = vi.spyOn(window, 'removeEventListener');
+    const { result, unmount } = renderHook(() => useEncryption());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    unmount();
+
+    expect(removeEventListener).toHaveBeenCalledWith('session-timeout', expect.any(Function));
   });
 
   it('handles decryptFields when locked (covers !cachedMasterKey true branch)', async () => {

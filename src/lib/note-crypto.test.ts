@@ -19,6 +19,25 @@ import {
 } from './note-crypto';
 import { WORD_LIST } from './word-list';
 
+function stubIndexedDb(database: unknown) {
+  const openRequest: {
+    result: unknown;
+    error: Error | null;
+    onsuccess?: (() => void) | null;
+    onerror?: (() => void) | null;
+  } = {
+    result: database,
+    error: null,
+  };
+
+  vi.stubGlobal('indexedDB', {
+    open: vi.fn(() => {
+      queueMicrotask(() => openRequest.onsuccess?.());
+      return openRequest;
+    }),
+  });
+}
+
 describe('base64 helpers', () => {
   it('round-trips binary data', () => {
     const bytes = new Uint8Array([0, 1, 2, 127, 128, 200, 255]);
@@ -233,6 +252,106 @@ describe('key record helpers (IndexedDB-backed)', () => {
     await storeKeyRecord('psych-3', generateSalt(), 'h3');
     await deleteKeyRecord('psych-3');
     expect(await getKeyRecord('psych-3')).toBeNull();
+  });
+
+  it('rejects when opening IndexedDB fails', async () => {
+    const originalIndexedDB = globalThis.indexedDB;
+    const error = new Error('IndexedDB open failed');
+    const openRequest: {
+      error: Error;
+      onerror?: (() => void) | null;
+    } = { error };
+
+    vi.stubGlobal('indexedDB', {
+      open: vi.fn(() => {
+        queueMicrotask(() => openRequest.onerror?.());
+        return openRequest;
+      }),
+    });
+
+    try {
+      await expect(getKeyRecord('open-error')).rejects.toBe(error);
+    } finally {
+      vi.stubGlobal('indexedDB', originalIndexedDB);
+    }
+  });
+
+  it('rejects a key write when its transaction errors', async () => {
+    const originalIndexedDB = globalThis.indexedDB;
+    const error = new Error('IndexedDB write failed');
+    const store = { put: vi.fn() };
+    const transaction = {
+      error,
+      objectStore: vi.fn(() => store),
+      onerror: undefined as (() => void) | undefined,
+    };
+    store.put.mockImplementation(() => {
+      queueMicrotask(() => transaction.onerror?.());
+    });
+    const database = {
+      objectStoreNames: { contains: vi.fn(() => true) },
+      transaction: vi.fn(() => transaction),
+    };
+    stubIndexedDb(database);
+
+    try {
+      await expect(storeKeyRecord('write-error', generateSalt(), 'hash')).rejects.toBe(error);
+    } finally {
+      vi.stubGlobal('indexedDB', originalIndexedDB);
+    }
+  });
+
+  it('rejects a key read when its request errors', async () => {
+    const originalIndexedDB = globalThis.indexedDB;
+    const error = new Error('IndexedDB read failed');
+    const request: {
+      error: Error;
+      result: undefined;
+      onsuccess?: (() => void) | null;
+      onerror?: (() => void) | null;
+    } = { error, result: undefined };
+    const store = {
+      get: vi.fn(() => {
+        queueMicrotask(() => request.onerror?.());
+        return request;
+      }),
+    };
+    const database = {
+      objectStoreNames: { contains: vi.fn(() => true) },
+      transaction: vi.fn(() => ({ objectStore: vi.fn(() => store) })),
+    };
+    stubIndexedDb(database);
+
+    try {
+      await expect(getKeyRecord('read-error')).rejects.toBe(error);
+    } finally {
+      vi.stubGlobal('indexedDB', originalIndexedDB);
+    }
+  });
+
+  it('rejects a key deletion when its transaction errors', async () => {
+    const originalIndexedDB = globalThis.indexedDB;
+    const error = new Error('IndexedDB delete failed');
+    const store = { delete: vi.fn() };
+    const transaction = {
+      error,
+      objectStore: vi.fn(() => store),
+      onerror: undefined as (() => void) | undefined,
+    };
+    store.delete.mockImplementation(() => {
+      queueMicrotask(() => transaction.onerror?.());
+    });
+    const database = {
+      objectStoreNames: { contains: vi.fn(() => true) },
+      transaction: vi.fn(() => transaction),
+    };
+    stubIndexedDb(database);
+
+    try {
+      await expect(deleteKeyRecord('delete-error')).rejects.toBe(error);
+    } finally {
+      vi.stubGlobal('indexedDB', originalIndexedDB);
+    }
   });
 });
 
