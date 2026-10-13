@@ -491,7 +491,37 @@ describe('usePatients', () => {
                     }),
                   );
                 });
-              });
+
+                                it('covers decrypt catch handler for notes (line 31)', async () => {
+                                  mockEncryptionState.decrypt.mockRejectedValueOnce(new Error('Decrypt failed'));
+                                  const encrypted = JSON.stringify({ version: 1, ciphertext: 'encrypted' });
+                                  const mockPatients = createMockQuerySnapshot([
+                                    createMockDocSnapshot('1', { psychologistId: 'test-uid-123', fullName: 'Patient 1', notes: encrypted }),
+                                  ]);
+                                  mockOnSnapshot.mockImplementation(createMockOnSnapshot(mockPatients.docs));
+
+                                  const { result } = renderHook(() => usePatients());
+                                  await waitFor(() => expect(result.current.loading).toBe(false));
+
+                                  // The catch handler should prevent the error from propagating
+                                  expect(result.current.patients[0].notes).toBe('');
+                                });
+
+                                it('covers decrypt catch handler for anamnesis (line 34)', async () => {
+                                  mockEncryptionState.decrypt.mockRejectedValueOnce(new Error('Decrypt failed'));
+                                  const encrypted = JSON.stringify({ version: 1, ciphertext: 'encrypted' });
+                                  const mockPatients = createMockQuerySnapshot([
+                                    createMockDocSnapshot('1', { psychologistId: 'test-uid-123', fullName: 'Patient 1', anamnesis: { chiefComplaint: encrypted } }),
+                                  ]);
+                                  mockOnSnapshot.mockImplementation(createMockOnSnapshot(mockPatients.docs));
+
+                                  const { result } = renderHook(() => usePatients());
+                                  await waitFor(() => expect(result.current.loading).toBe(false));
+
+                                  // The catch handler should prevent the error from propagating
+                                  expect(result.current.patients[0].anamnesis?.chiefComplaint).toBe('');
+                                });
+                              });
 
 describe('usePatient', () => {
   const mockUser = createMockUser('test-uid-123');

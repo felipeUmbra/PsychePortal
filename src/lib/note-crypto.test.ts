@@ -277,26 +277,58 @@ describe('key record helpers (IndexedDB-backed)', () => {
       });
 
       it('handles tampered auth tag', async () => {
-        const key = await deriveKeyFromPassphrase('test-passphrase', generateSalt());
-        const payload = await encryptNote('secret', key);
-        // The tag is embedded in the ciphertext for AES-GCM
-        const bytes = base64Decode(payload.ciphertext);
-        bytes[bytes.length - 1] ^= 0xff;
-        const tampered = { ...payload, ciphertext: base64Encode(bytes) };
+              const key = await deriveKeyFromPassphrase('test-passphrase', generateSalt());
+              const payload = await encryptNote('secret', key);
+              // The tag is embedded in the ciphertext for AES-GCM
+              const bytes = base64Decode(payload.ciphertext);
+              bytes[bytes.length - 1] ^= 0xff;
+              const tampered = { ...payload, ciphertext: base64Encode(bytes) };
 
-        await expect(decryptNote(tampered, key)).rejects.toThrow();
-      });
-    });
+              await expect(decryptNote(tampered, key)).rejects.toThrow();
+            });
+          });
 
-    describe('key derivation edge cases', () => {
-      it('derives different keys for different passphrases', async () => {
-        const salt = generateSalt();
-        const k1 = await deriveKeyFromPassphrase('passphrase1', salt);
-        const k2 = await deriveKeyFromPassphrase('passphrase2', salt);
-        const payload = await encryptNote('test', k1);
+          describe('key derivation edge cases', () => {
+            it('derives different keys for different passphrases', async () => {
+              const salt = generateSalt();
+              const k1 = await deriveKeyFromPassphrase('passphrase1', salt);
+              const k2 = await deriveKeyFromPassphrase('passphrase2', salt);
+              const payload = await encryptNote('test', k1);
 
-        await expect(decryptNote(payload, k2)).rejects.toThrow();
-      });
+              await expect(decryptNote(payload, k2)).rejects.toThrow();
+            });
+          });
+
+          describe('IndexedDB key storage functions', () => {
+            it('covers storeKeyRecord function', async () => {
+              const salt = generateSalt();
+              const recoveryHash = 'a'.repeat(64);
+              await storeKeyRecord('psych-store', salt, recoveryHash);
+              const fetched = await getKeyRecord('psych-store');
+              expect(fetched?.salt).toBe(base64Encode(salt));
+              expect(fetched?.recoveryHash).toBe(recoveryHash);
+              expect(fetched?.createdAt).toBeTruthy();
+            });
+
+            it('covers getKeyRecord function for missing key', async () => {
+              const result = await getKeyRecord('non-existent-key');
+              expect(result).toBeNull();
+            });
+
+            it('covers deleteKeyRecord function', async () => {
+              const salt = generateSalt();
+              await storeKeyRecord('psych-delete', salt, 'hash');
+              await deleteKeyRecord('psych-delete');
+              const result = await getKeyRecord('psych-delete');
+              expect(result).toBeNull();
+            });
+
+            it('covers openIDB function via store operations', async () => {
+              const salt = generateSalt();
+              await storeKeyRecord('psych-open', salt, 'hash');
+              const fetched = await getKeyRecord('psych-open');
+              expect(fetched).toBeTruthy();
+            });
 
       it('derives different keys for different salts', async () => {
         const k1 = await deriveKeyFromPassphrase('same-passphrase', generateSalt());
