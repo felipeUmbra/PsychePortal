@@ -42,8 +42,12 @@ const PATIENT_ID = 'patient-42';
 async function boot() {
   mockFstore.delegates = makeDelegates(firestoreMock);
   mockDb.value = firestoreMock.getFirestore();
-  firestoreMock.setDriveToken('test-token');
-  await new Promise((r) => setTimeout(r, 15));
+  for (let attempt = 0; attempt < 100 && !firestoreMock.isLoadedState(); attempt++) {
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+  if (!firestoreMock.isLoadedState()) {
+    throw new Error('Firestore mock failed to finish its initial load');
+  }
 }
 
 async function seedPatient() {
@@ -176,6 +180,23 @@ describe('deleteAllPatientData (LGPD erasure)', () => {
       sessionsDeleted: 0,
       attachmentsDeleted: 0,
     });
+  });
+
+  it('completes erasure without browser storage globals', async () => {
+    const originalWindow = globalThis.window;
+    vi.stubGlobal('window', undefined);
+
+    try {
+      const result = await deleteAllPatientData('browserless-patient', PSYCH);
+
+      expect(result).toMatchObject({
+        patientDeleted: false,
+        sessionsDeleted: 0,
+        attachmentsDeleted: 0,
+      });
+    } finally {
+      vi.stubGlobal('window', originalWindow);
+    }
   });
 
   it('handles audit log failure gracefully', async () => {

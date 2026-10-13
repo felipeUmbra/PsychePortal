@@ -170,6 +170,44 @@ describe('encrypt/decrypt notes', () => {
 });
 
 describe('key record helpers (IndexedDB-backed)', () => {
+  it('opens an upgraded database when the encryption store already exists', async () => {
+    const originalIndexedDB = globalThis.indexedDB;
+    const store = {
+      get: vi.fn(() => {
+        const request: { result: null; onsuccess?: () => void } = { result: null };
+        queueMicrotask(() => request.onsuccess?.());
+        return request;
+      }),
+    };
+    const database = {
+      objectStoreNames: { contains: vi.fn(() => true) },
+      transaction: vi.fn(() => ({ objectStore: vi.fn(() => store) })),
+    };
+    const openRequest: {
+      result: typeof database;
+      error: null;
+      onupgradeneeded?: () => void;
+      onsuccess?: () => void;
+    } = { result: database, error: null };
+    vi.stubGlobal('indexedDB', {
+      open: vi.fn(() => {
+        queueMicrotask(() => {
+          openRequest.onupgradeneeded?.();
+          openRequest.onsuccess?.();
+        });
+        return openRequest;
+      }),
+    });
+
+    try {
+      await expect(getKeyRecord('existing-store')).resolves.toBeNull();
+      expect(database.objectStoreNames.contains).toHaveBeenCalledWith('encryption_keys');
+      expect(database.transaction).toHaveBeenCalledWith('encryption_keys', 'readonly');
+    } finally {
+      vi.stubGlobal('indexedDB', originalIndexedDB);
+    }
+  });
+
   it('returns null for an unknown psychologist', async () => {
     expect(await getKeyRecord('missing-psych')).toBeNull();
   });

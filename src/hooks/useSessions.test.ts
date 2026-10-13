@@ -17,6 +17,11 @@ vi.mock('../firebase', () => ({
   db: {},
 }));
 
+const mockGoogleAuthState = vi.hoisted(() => ({
+  driveToken: 'mock-drive-token' as string | null,
+  calendarToken: 'mock-calendar-token' as string | null,
+}));
+
 // Create a stable user reference
 const mockUser = createMockUser('test-uid-123');
 
@@ -34,18 +39,17 @@ import { handleFirestoreError, OperationType } from '../lib/error-handler';
 const mockHandleFirestoreError = vi.mocked(handleFirestoreError);
 
 vi.mock('../context/GoogleAuthContext', () => ({
-  useGoogleAuth: () => ({
-    driveToken: 'mock-drive-token',
-    calendarToken: 'mock-calendar-token',
-  }),
+  useGoogleAuth: () => mockGoogleAuthState,
+}));
+
+const mockEncryptionState = vi.hoisted(() => ({
+  isUnlocked: true,
+  encrypt: vi.fn(async (_text: string) => ({ version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' })),
+  decrypt: vi.fn(async (_payload: any) => 'decrypted text'),
 }));
 
 vi.mock('./useEncryption', () => ({
-  useEncryption: () => ({
-    isUnlocked: true,
-    encrypt: vi.fn(async (text: string) => ({ version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' })),
-    decrypt: vi.fn(async (payload: any) => 'decrypted text'),
-  }),
+  useEncryption: () => mockEncryptionState,
 }));
 
 vi.mock('../lib/note-versioning', () => ({
@@ -104,6 +108,16 @@ describe('useSessions', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGoogleAuthState.driveToken = 'mock-drive-token';
+    mockGoogleAuthState.calendarToken = 'mock-calendar-token';
+    mockEncryptionState.isUnlocked = true;
+    mockEncryptionState.encrypt.mockImplementation(async () => ({
+      version: 1,
+      ciphertext: 'encrypted',
+      iv: 'iv',
+      salt: 'salt',
+    }));
+    mockEncryptionState.decrypt.mockImplementation(async () => 'decrypted text');
     vi.mocked(useAuthState).mockReturnValue([createMockUser('test-uid-123'), false]);
 
     vi.mocked(firestore.collection).mockImplementation(mockCollection);
@@ -169,6 +183,13 @@ describe('useSessions', () => {
       }, { timeout: 5000 });
 
       expect(result.current.sessions).toEqual([]);
+    });
+
+    it('does not sync an empty Drive token to the Firestore mock', () => {
+      mockGoogleAuthState.driveToken = null;
+      renderHook(() => useSessions('patient-1'));
+
+      expect(storage.setDriveToken).not.toHaveBeenCalled();
     });
 
     it('fetches sessions for patient', async () => {
@@ -353,6 +374,78 @@ describe('useSessions', () => {
       }, { timeout: 5000 });
     });
 
+    it('keeps plaintext and empty notes unchanged when encryption is locked', async () => {
+      mockEncryptionState.isUnlocked = false;
+      const docs = createMockQuerySnapshot([
+        createMockDocSnapshot('plain', { notes: 'legacy plaintext' }),
+        createMockDocSnapshot('empty', { notes: '' }),
+        createMockDocSnapshot('missing', {}),
+      ]);
+      mockOnSnapshot.mockImplementation(createMockOnSnapshot(docs.docs));
+
+      const { result } = renderHook(() => useSessions('patient-1'));
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      expect(result.current.sessions.map((session) => session.notes)).toEqual([
+        'legacy plaintext',
+        '',
+        undefined,
+      ]);
+      expect(mockEncryptionState.decrypt).not.toHaveBeenCalled();
+    });
+
+    it('keeps malformed and undecryptable notes safe during snapshot loading', async () => {
+      mockEncryptionState.decrypt.mockRejectedValueOnce(new Error('decrypt failed'));
+      const docs = createMockQuerySnapshot([
+        createMockDocSnapshot('malformed', { notes: '{not json' }),
+        createMockDocSnapshot('encrypted', {
+          notes: JSON.stringify({ version: 1, ciphertext: 'encrypted' }),
+        }),
+        createMockDocSnapshot('incomplete', {
+          notes: JSON.stringify({ version: 1, ciphertext: '' }),
+        }),
+      ]);
+      mockOnSnapshot.mockImplementation(createMockOnSnapshot(docs.docs));
+
+      const { result } = renderHook(() => useSessions('patient-1'));
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      expect(result.current.sessions.map((session) => session.notes)).toEqual([
+        '{not json',
+        '',
+        JSON.stringify({ version: 1, ciphertext: '' }),
+      ]);
+    });
+
+    it('does not apply a pending decryption to a session removed by a later snapshot', async () => {
+      let resolveDecryption!: (value: string) => void;
+      mockEncryptionState.decrypt.mockImplementationOnce(
+        () => new Promise((resolve) => { resolveDecryption = resolve; }),
+      );
+      let onSnapshot: ((snapshot: ReturnType<typeof createMockQuerySnapshot>) => void) | undefined;
+      mockOnSnapshot.mockImplementation((_query, callback) => {
+        onSnapshot = callback;
+        return vi.fn();
+      });
+      const { result } = renderHook(() => useSessions('patient-1'));
+      const encryptedSnapshot = createMockQuerySnapshot([
+        createMockDocSnapshot('removed-session', {
+          notes: JSON.stringify({ version: 1, ciphertext: 'encrypted' }),
+        }),
+      ]);
+      act(() => onSnapshot?.(encryptedSnapshot));
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      act(() => onSnapshot?.(createMockQuerySnapshot([
+        createMockDocSnapshot('other-session', { notes: 'unrelated note' }),
+      ])));
+      await act(async () => resolveDecryption('late decrypted note'));
+
+      expect(result.current.sessions).toEqual([
+        expect.objectContaining({ id: 'other-session', notes: 'unrelated note' }),
+      ]);
+    });
+
     it('reports subscription errors and clears the loading state', async () => {
       const error = new Error('subscription failed');
       mockOnSnapshot.mockImplementation((_query, _onNext, onError) => {
@@ -382,6 +475,37 @@ describe('useSessions', () => {
       expect(mockAddDoc).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({ notes: JSON.stringify({ version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' }) }),
+      );
+    });
+
+    it('writes plaintext notes when encryption is locked and skips empty notes', async () => {
+      mockEncryptionState.isUnlocked = false;
+      const { result } = renderHook(() => useSessions('patient-1'));
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      await act(async () => result.current.addSession({
+        date: new Date(),
+        status: 'scheduled',
+        type: 'individual',
+        notes: 'legacy plaintext',
+      }));
+      await act(async () => result.current.addSession({
+        date: new Date(),
+        status: 'scheduled',
+        type: 'individual',
+        notes: '',
+      }));
+
+      expect(mockEncryptionState.encrypt).not.toHaveBeenCalled();
+      expect(mockAddDoc).toHaveBeenNthCalledWith(
+        1,
+        expect.anything(),
+        expect.objectContaining({ notes: 'legacy plaintext' }),
+      );
+      expect(mockAddDoc).toHaveBeenNthCalledWith(
+        2,
+        expect.anything(),
+        expect.objectContaining({ notes: '' }),
       );
     });
 
@@ -463,6 +587,19 @@ describe('useSessions', () => {
           await expect(act(async () => result.current.updateSession('session-1', { type: 'individual' }))).rejects.toThrow('Unauthenticated');
         });
 
+        it('rejects attachment and session operations without a user', async () => {
+          vi.mocked(useAuthState).mockReturnValue([null, false]);
+          const { result } = renderHook(() => useSessions('patient-1'));
+          await waitFor(() => expect(result.current.loading).toBe(false));
+
+          await expect(result.current.uploadFile(new File(['x'], 'file.txt'), 'session-1'))
+            .rejects.toThrow('Unauthenticated');
+          await expect(result.current.deleteFile('attachment-path'))
+            .rejects.toThrow('Unauthenticated');
+          await expect(result.current.deleteSession('session-1'))
+            .rejects.toThrow('Unauthenticated');
+        });
+
         it('handles updateSession with encrypted notes when unlocked', async () => {
           mockGetDoc.mockResolvedValueOnce(createMockDocSnapshot('session-1', { notes: 'old notes', googleEventId: 'evt-1' }));
           const { result } = renderHook(() => useSessions('patient-1'));
@@ -471,12 +608,212 @@ describe('useSessions', () => {
           expect(mockUpdateDoc).toHaveBeenCalled();
         });
 
+        it('skips note versioning when the stored note is null or absent', async () => {
+          mockGetDoc.mockResolvedValueOnce(createMockDocSnapshot('session-1', { notes: null }));
+          const { result } = renderHook(() => useSessions('patient-1'));
+          await waitFor(() => expect(result.current.loading).toBe(false));
+
+          await act(async () => result.current.updateSession('session-1', { notes: 'new note' }));
+
+          expect(saveNextNoteVersion).not.toHaveBeenCalled();
+          expect(mockUpdateDoc).toHaveBeenCalled();
+        });
+
+        it('continues updating if fetching the current note for versioning fails', async () => {
+          mockGetDoc.mockRejectedValueOnce(new Error('read failed'));
+          vi.spyOn(console, 'error').mockImplementation(() => {});
+          const { result } = renderHook(() => useSessions('patient-1'));
+          await waitFor(() => expect(result.current.loading).toBe(false));
+
+          await act(async () => result.current.updateSession('session-1', { notes: 'new note' }));
+
+          expect(saveNextNoteVersion).not.toHaveBeenCalled();
+          expect(mockUpdateDoc).toHaveBeenCalled();
+        });
+
+        it('writes plaintext updates when encryption is locked and notes are empty', async () => {
+          mockEncryptionState.isUnlocked = false;
+          const { result } = renderHook(() => useSessions('patient-1'));
+          await waitFor(() => expect(result.current.loading).toBe(false));
+
+          await act(async () => result.current.updateSession('session-1', { notes: '' }));
+
+          expect(mockEncryptionState.encrypt).not.toHaveBeenCalled();
+          expect(mockUpdateDoc).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({ notes: '' }),
+          );
+        });
+
         it('handles cancelSession without googleEventId', async () => {
           const session = { id: 'session-1', status: 'scheduled' };
           mockGetDoc.mockResolvedValueOnce(createMockDocSnapshot('session-1', session));
           const { result } = renderHook(() => useSessions('patient-1'));
           await waitFor(() => expect(result.current.loading).toBe(false));
           await act(async () => result.current.cancelSession(session));
+          expect(global.fetch).not.toHaveBeenCalled();
+        });
+
+        it('handles calendar deletion authorization failures with server messages', async () => {
+          const session = { id: 'session-1', status: 'scheduled', googleEventId: 'event-1' };
+          global.fetch = vi.fn().mockResolvedValue({
+            ok: false,
+            status: 401,
+            statusText: 'Unauthorized',
+            json: async () => ({ error: { message: 'Token expired' } }),
+          }) as unknown as typeof fetch;
+          const { result } = renderHook(() => useSessions('patient-1'));
+          await waitFor(() => expect(result.current.loading).toBe(false));
+
+          await act(async () => result.current.cancelSession(session as any));
+
+          expect(window.dispatchEvent).toHaveBeenCalledWith(
+            expect.objectContaining({
+              type: 'google-auth-error',
+              detail: expect.objectContaining({ status: 401, message: 'Token expired' }),
+            }),
+          );
+        });
+
+        it('updates linked calendar events using the session type fallback', async () => {
+          const snapshot = createMockQuerySnapshot([
+            createMockDocSnapshot('session-1', {
+              googleEventId: 'event-update',
+              type: 'group',
+            }),
+          ]);
+          mockOnSnapshot.mockImplementation(createMockOnSnapshot(snapshot.docs));
+          global.fetch = vi.fn().mockResolvedValue({ ok: true }) as unknown as typeof fetch;
+          const { result } = renderHook(() => useSessions('patient-1'));
+          await waitFor(() => expect(result.current.loading).toBe(false));
+
+          await act(async () => result.current.updateSession('session-1', {
+            date: new Date('2024-01-02T10:00:00.000Z'),
+            type: '',
+          }));
+
+          expect(global.fetch).toHaveBeenCalledWith(
+            'https://www.googleapis.com/calendar/v3/calendars/primary/events/event-update',
+            expect.objectContaining({
+              method: 'PATCH',
+              body: expect.stringContaining('"summary":"layout.workspace: group"'),
+            }),
+          );
+          expect(window.dispatchEvent).toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'google-auth-success' }),
+          );
+
+          await act(async () => result.current.updateSession('session-1', {
+            googleEventId: 'event-explicit-type',
+            date: new Date('2024-01-02T10:00:00.000Z'),
+            type: 'individual',
+          }));
+          await act(async () => result.current.updateSession('other-session', {
+            googleEventId: 'event-no-type',
+            date: new Date('2024-01-02T10:00:00.000Z'),
+          }));
+          expect(global.fetch).toHaveBeenNthCalledWith(
+            2,
+            expect.any(String),
+            expect.objectContaining({ body: expect.stringContaining('"summary":"layout.workspace: individual"') }),
+          );
+          expect(global.fetch).toHaveBeenNthCalledWith(
+            3,
+            expect.any(String),
+            expect.objectContaining({ body: expect.stringContaining('"summary":"layout.workspace: "') }),
+          );
+        });
+
+        it('skips calendar event updates when the calendar token is absent', async () => {
+          mockGoogleAuthState.calendarToken = null;
+          const { result } = renderHook(() => useSessions('patient-1'));
+          await waitFor(() => expect(result.current.loading).toBe(false));
+
+          await act(async () => result.current.updateSession('session-1', {
+            googleEventId: 'event-without-token',
+            date: new Date(),
+          }));
+
+          expect(global.fetch).not.toHaveBeenCalled();
+        });
+
+        it('uses the calendar status text when the error response has no message', async () => {
+          const session = { id: 'session-1', status: 'scheduled', googleEventId: 'event-2' };
+          global.fetch = vi.fn().mockResolvedValue({
+            ok: false,
+            status: 403,
+            statusText: 'Forbidden',
+            json: async () => ({}),
+          }) as unknown as typeof fetch;
+          const { result } = renderHook(() => useSessions('patient-1'));
+          await waitFor(() => expect(result.current.loading).toBe(false));
+
+          await act(async () => result.current.cancelSession(session as any));
+
+          expect(window.dispatchEvent).toHaveBeenCalledWith(
+            expect.objectContaining({
+              type: 'google-auth-error',
+              detail: expect.objectContaining({ status: 403, message: 'Forbidden' }),
+            }),
+          );
+        });
+
+        it('ignores calendar deletion responses without an authorization error', async () => {
+          const session = { id: 'session-1', status: 'scheduled', googleEventId: 'event-3' };
+          global.fetch = vi.fn().mockResolvedValue({
+            ok: false,
+            status: 500,
+            statusText: 'Server Error',
+          }) as unknown as typeof fetch;
+          const { result } = renderHook(() => useSessions('patient-1'));
+          await waitFor(() => expect(result.current.loading).toBe(false));
+
+          await act(async () => result.current.cancelSession(session as any));
+
+          expect(window.dispatchEvent).not.toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'google-auth-success' }),
+          );
+          expect(window.dispatchEvent).not.toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'google-auth-error' }),
+          );
+        });
+
+        it('dispatches calendar success after deleting an event and falls back when error JSON fails', async () => {
+          const session = { id: 'session-1', status: 'scheduled', googleEventId: 'event-5' };
+          const fetchMock = vi.fn()
+            .mockResolvedValueOnce({ ok: true, status: 204 })
+            .mockResolvedValueOnce({
+              ok: false,
+              status: 401,
+              statusText: 'Unauthorized',
+              json: async () => { throw new Error('bad response body'); },
+            });
+          global.fetch = fetchMock as unknown as typeof fetch;
+          const { result } = renderHook(() => useSessions('patient-1'));
+          await waitFor(() => expect(result.current.loading).toBe(false));
+
+          await act(async () => result.current.cancelSession(session as any));
+          expect(window.dispatchEvent).toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'google-auth-success' }),
+          );
+
+          await act(async () => result.current.cancelSession(session as any));
+          expect(window.dispatchEvent).toHaveBeenCalledWith(
+            expect.objectContaining({
+              type: 'google-auth-error',
+              detail: expect.objectContaining({ status: 401, message: 'Unauthorized' }),
+            }),
+          );
+        });
+
+        it('does not request calendar deletion when the calendar token is missing', async () => {
+          mockGoogleAuthState.calendarToken = null;
+          const session = { id: 'session-1', status: 'scheduled', googleEventId: 'event-4' };
+          const { result } = renderHook(() => useSessions('patient-1'));
+          await waitFor(() => expect(result.current.loading).toBe(false));
+
+          await act(async () => result.current.cancelSession(session as any));
+
           expect(global.fetch).not.toHaveBeenCalled();
         });
 

@@ -29,12 +29,14 @@ import { handleFirestoreError, OperationType } from '../lib/error-handler';
 
 const mockHandleFirestoreError = vi.mocked(handleFirestoreError);
 
+const mockEncryptionState = vi.hoisted(() => ({
+  isUnlocked: true,
+  encrypt: vi.fn(async (_text: string) => ({ version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' })),
+  decrypt: vi.fn(async (_payload: any) => 'decrypted text'),
+}));
+
 vi.mock('./useEncryption', () => ({
-  useEncryption: () => ({
-    isUnlocked: true,
-    encrypt: vi.fn(async (text: string) => ({ version: 1, ciphertext: 'encrypted', iv: 'iv', salt: 'salt' })),
-    decrypt: vi.fn(async (payload: any) => 'decrypted text'),
-  }),
+  useEncryption: () => mockEncryptionState,
 }));
 
 vi.mock('react-i18next', () => ({
@@ -74,6 +76,14 @@ describe('usePatients', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockEncryptionState.isUnlocked = true;
+    mockEncryptionState.encrypt.mockImplementation(async () => ({
+      version: 1,
+      ciphertext: 'encrypted',
+      iv: 'iv',
+      salt: 'salt',
+    }));
+    mockEncryptionState.decrypt.mockImplementation(async () => 'decrypted text');
     Object.defineProperty(auth, 'currentUser', {
       value: mockUser,
       writable: true,
@@ -151,6 +161,33 @@ describe('usePatients', () => {
     expect(result.current.patients).toHaveLength(2);
     expect(result.current.patients[0].id).toBe('1');
     expect(result.current.patients[1].id).toBe('2');
+  });
+
+  it('decrypts patient fields while preserving other patients in the list', async () => {
+    const encrypted = JSON.stringify({ version: 1, ciphertext: 'encrypted' });
+    const snapshot = createMockQuerySnapshot([
+      createMockDocSnapshot('encrypted-patient', {
+        notes: encrypted,
+        anamnesis: { chiefComplaint: encrypted },
+      }),
+      createMockDocSnapshot('plain-patient', {
+        notes: 'plain note',
+        anamnesis: { chiefComplaint: 'plain complaint' },
+      }),
+    ]);
+    mockOnSnapshot.mockImplementation(createMockOnSnapshot(snapshot.docs));
+
+    const { result } = renderHook(() => usePatients());
+    await waitFor(() => {
+      expect(result.current.patients[0]?.notes).toBe('decrypted text');
+      expect(result.current.patients[0]?.anamnesis?.chiefComplaint).toBe('decrypted text');
+    });
+
+    expect(result.current.patients[1]).toMatchObject({
+      id: 'plain-patient',
+      notes: 'plain note',
+      anamnesis: { chiefComplaint: 'plain complaint' },
+    });
   });
 
   it('adds a new patient', async () => {
@@ -327,6 +364,40 @@ describe('usePatients', () => {
           );
         });
 
+        it('writes patient notes and anamnesis as plaintext when encryption is locked', async () => {
+          mockEncryptionState.isUnlocked = false;
+          mockOnSnapshot.mockImplementation(createMockOnSnapshot([]));
+          const { result } = renderHook(() => usePatients());
+          await waitFor(() => expect(result.current.loading).toBe(false));
+
+          await act(async () => result.current.addPatient({
+            fullName: 'Locked Patient',
+            notes: 'plain notes',
+            anamnesis: { chiefComplaint: 'plain complaint' },
+          } as any));
+
+          expect(mockAddDoc).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+              notes: 'plain notes',
+              anamnesis: { chiefComplaint: 'plain complaint' },
+            }),
+          );
+          expect(mockEncryptionState.encrypt).not.toHaveBeenCalled();
+
+          await act(async () => result.current.updatePatient('patient-1', {
+            notes: 'updated plain notes',
+            anamnesis: { chiefComplaint: 'updated plain complaint' },
+          } as any));
+          expect(mockUpdateDoc).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+              notes: 'updated plain notes',
+              anamnesis: { chiefComplaint: 'updated plain complaint' },
+            }),
+          );
+        });
+
         it('encrypts notes and anamnesis fields before updating a patient when unlocked', async () => {
           mockOnSnapshot.mockImplementation(createMockOnSnapshot([]));
           const { result } = renderHook(() => usePatients());
@@ -378,6 +449,25 @@ describe('usePatients', () => {
 
                   // Plain text anamnesis should remain as-is
                   expect(result.current.patients[0].anamnesis?.chiefComplaint).toBe('plain text complaint');
+                });
+
+                it('skips empty note and anamnesis fields while decrypting patients', async () => {
+                  const mockPatients = createMockQuerySnapshot([
+                    createMockDocSnapshot('1', {
+                      psychologistId: 'test-uid-123',
+                      fullName: 'Patient 1',
+                      notes: '',
+                      anamnesis: { chiefComplaint: '' },
+                    }),
+                  ]);
+                  mockOnSnapshot.mockImplementation(createMockOnSnapshot(mockPatients.docs));
+
+                  const { result } = renderHook(() => usePatients());
+                  await waitFor(() => expect(result.current.loading).toBe(false));
+
+                  expect(result.current.patients[0].notes).toBe('');
+                  expect(result.current.patients[0].anamnesis?.chiefComplaint).toBe('');
+                  expect(mockEncryptionState.decrypt).not.toHaveBeenCalled();
                 });
 
                 it('handles anamnesis field empty string (covers dataToWrite.anamnesis[f] false branch)', async () => {
@@ -464,6 +554,8 @@ describe('usePatient', () => {
     }, { timeout: 5000 });
 
     expect(result.current.patient).toBeNull();
+    await act(async () => result.current.updatePatient({ fullName: 'Ignored' }));
+    expect(firestore.updateDoc).not.toHaveBeenCalled();
   });
 
   it('fetches patient by id', async () => {
@@ -507,8 +599,18 @@ describe('usePatient', () => {
     expect(mockGetDoc).toHaveBeenCalledTimes(5);
   });
 
+  it('keeps a missing patient null when updatePatient is called', async () => {
+    mockGetDoc.mockImplementation(createMockGetDoc(null, false));
+    const { result } = renderHook(() => usePatient('missing-patient'));
+
+    await waitFor(() => expect(result.current.loading).toBe(false), { timeout: 5000 });
+    await act(async () => result.current.updatePatient({ fullName: 'Updated Name' }));
+
+    expect(result.current.patient).toBeNull();
+  });
+
   it('updates patient', async () => {
-    mockGetDoc.mockImplementation(createMockGetDoc({ fullName: 'Test Patient' }));
+    mockGetDoc.mockImplementation(createMockGetDoc({ fullName: 'Test Patient' }, true, 'patient-1'));
 
     const { result } = renderHook(() => usePatient('patient-1'));
 

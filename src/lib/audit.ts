@@ -262,13 +262,13 @@ export async function verifyAuditChain(actorId: string): Promise<{ valid: boolea
         prevHash: log.prevHash
       };
       const payload = JSON.stringify(payloadData);
-      const recomputedHash = await computeRecordHash(payload, log.prevHash || '');
+      const recomputedHash = await computeRecordHash(payload, log.prevHash);
 
       if (recomputedHash !== log.hash) {
         return { valid: false, firstInvalidId: log.id, totalRecords: i + 1 };
       }
 
-      expectedPrevHash = log.hash || '';
+      expectedPrevHash = log.hash;
     }
 
     return { valid: true, totalRecords: logs.length };

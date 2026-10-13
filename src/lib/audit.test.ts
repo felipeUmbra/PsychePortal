@@ -337,6 +337,41 @@ describe('audit error handling and edge cases', () => {
       expect(views[0].sessionId).toBe('session-123');
     });
 
+  it('supports logging without navigator and without an edit justification', async () => {
+    const originalNavigator = globalThis.navigator;
+    vi.stubGlobal('navigator', undefined);
+
+    try {
+      await logView('no-navigator', 'patient', 'p1');
+      await logCreate('no-navigator', 'patient', 'p2', { name: 'Ana' });
+      await logUpdate('no-navigator', 'patient', 'p2', { name: 'Ana' }, { name: 'Bia' });
+      await logDelete('no-navigator', 'patient', 'p3', { name: 'Bia' });
+      await logEditCompleted('no-navigator', 's1');
+      await logExport('no-navigator', 'patient', ['p1'], 'csv');
+      await logAuth('no-navigator', 'login');
+
+      const docs = (await firestoreMock.getDocs(
+        firestoreMock.query(firestoreMock.collection({}, 'audit_logs'), firestoreMock.where('actorId', '==', 'no-navigator'))
+      )).docs.map((d) => d.data());
+
+      expect(docs).toHaveLength(7);
+      expect(docs.every((doc) => doc.userAgent === undefined)).toBe(true);
+      expect(docs[4].afterHash).toBeTruthy();
+    } finally {
+      vi.stubGlobal('navigator', originalNavigator);
+    }
+  });
+
+  it('returns an empty cached hash when the newest audit record has no hash', async () => {
+    await firestoreMock.addDoc(firestoreMock.collection({}, 'audit_logs'), {
+      actorId: 'missing-record-hash',
+      timestamp: new Date().toISOString(),
+      hash: undefined,
+    });
+
+    expect(await getLastAuditHash('missing-record-hash')).toBe('');
+  });
+
   it('handles logDelete with complex beforeData', async () => {
     const complexData = { 
       nested: { array: [1, 2, 3], obj: { key: 'value' } },

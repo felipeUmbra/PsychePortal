@@ -5,6 +5,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { webcrypto } from 'node:crypto';
+import { openDB } from 'idb';
 import {
   IDBCursor,
   IDBDatabase as FakeIDBDatabase,
@@ -16,6 +17,12 @@ import {
   IDBTransaction,
   indexedDB as fakeIndexedDB,
 } from 'fake-indexeddb';
+
+vi.mock('idb', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('idb')>();
+  return { ...actual, openDB: vi.fn(actual.openDB) };
+});
+
 import { 
   base64Encode, 
   base64Decode, 
@@ -713,6 +720,28 @@ describe('offlineStorage additional crypto utilities', () => {
         expect(await offlineStorage.get('audit_logs', 'index-test-4')).toBeDefined();
         expect(await offlineStorage.get('patient_consents', 'index-test-5')).toBeDefined();
         expect(await offlineStorage.get('note_versions', 'index-test-6')).toBeDefined();
+      });
+
+      it('skips stores and metadata that already exist during upgrade', async () => {
+        const actualOpenDB = vi.mocked(openDB).getMockImplementation();
+        if (!actualOpenDB) throw new Error('Expected idb openDB implementation to be available');
+
+        localStorageMock.clear();
+        await init();
+        await __resetForTesting();
+
+        const existingStoresDatabase = {
+          objectStoreNames: { contains: vi.fn(() => true) },
+        };
+        vi.mocked(openDB).mockImplementationOnce((name, version, options) => {
+          options?.upgrade(existingStoresDatabase as any, 0, {} as any, {} as any);
+          return actualOpenDB(name, version);
+        });
+
+        await init();
+
+        expect(existingStoresDatabase.objectStoreNames.contains).toHaveBeenCalledWith('patients');
+        expect(existingStoresDatabase.objectStoreNames.contains).toHaveBeenCalledWith('metadata');
       });
 
       it('should handle IndexedDB metadata store creation', async () => {
