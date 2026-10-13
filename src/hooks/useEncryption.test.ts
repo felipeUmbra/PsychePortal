@@ -654,6 +654,12 @@ describe('useEncryption', () => {
     });
 
     await expect(act(async () => {
+      await result.current.setup('valid-passphrase-123');
+    })).rejects.toThrow('No authenticated user');
+    await expect(act(async () => {
+      await result.current.unlock('valid-passphrase-123');
+    })).rejects.toThrow('No authenticated user');
+    await expect(act(async () => {
       await result.current.disable();
     })).rejects.toThrow('No authenticated user');
   });
