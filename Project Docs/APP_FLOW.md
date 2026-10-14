@@ -16,6 +16,7 @@ flowchart TD
     B -->|/privacy| F[Privacy]
     B -->|/app or /app/*| G{Firebase auth loading?}
     B -->|Unknown route| C
+    D --> G
     G -->|Yes| H[Workspace loading state]
     H --> G
     G -->|No user| D

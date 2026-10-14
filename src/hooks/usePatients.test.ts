@@ -629,7 +629,55 @@ describe('usePatient', () => {
     expect(mockGetDoc).toHaveBeenCalledTimes(5);
   });
 
-  it('keeps a missing patient null when updatePatient is called', async () => {
+    it('covers the retry delay between fetch attempts', async () => {
+      mockGetDoc
+        .mockImplementationOnce(createMockGetDoc(null, false))
+        .mockImplementationOnce(createMockGetDoc({ fullName: 'Test Patient' }, true, 'patient-1'));
+
+      const { result } = renderHook(() => usePatient('patient-1'));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      }, { timeout: 5000 });
+
+      expect(mockGetDoc).toHaveBeenCalledTimes(2);
+      expect(result.current.patient).toEqual({ id: 'patient-1', fullName: 'Test Patient' });
+    });
+
+    it('covers the retry delay when patient is found on third attempt', async () => {
+      mockGetDoc
+        .mockImplementationOnce(createMockGetDoc(null, false))
+        .mockImplementationOnce(createMockGetDoc(null, false))
+        .mockImplementationOnce(createMockGetDoc({ fullName: 'Test Patient' }, true, 'patient-1'));
+
+      const { result } = renderHook(() => usePatient('patient-1'));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      }, { timeout: 5000 });
+
+      expect(mockGetDoc).toHaveBeenCalledTimes(3);
+      expect(result.current.patient).toEqual({ id: 'patient-1', fullName: 'Test Patient' });
+    });
+
+    it('covers error handling in fetchPatient (sets loading false on error)', async () => {
+      mockGetDoc.mockRejectedValueOnce(new Error('Network error'));
+
+      const { result } = renderHook(() => usePatient('patient-1'));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      }, { timeout: 5000 });
+
+      expect(result.current.patient).toBeNull();
+      expect(mockHandleFirestoreError).toHaveBeenCalledWith(
+        expect.any(Error),
+        OperationType.GET,
+        'patients/patient-1'
+      );
+    });
+
+    it('keeps a missing patient null when updatePatient is called', async () => {
     mockGetDoc.mockImplementation(createMockGetDoc(null, false));
     const { result } = renderHook(() => usePatient('missing-patient'));
 
