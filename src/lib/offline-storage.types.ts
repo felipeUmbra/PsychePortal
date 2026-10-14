@@ -13,7 +13,7 @@ export type CollectionName =
 export interface OfflineStoreConfig {
   name: CollectionName;
   keyPath: string;
-  indexes?: { name: string; keyPath: string; unique?: boolean }[];
+  indexes: { name: string; keyPath: string; unique?: boolean }[];
 }
 
 export interface EncryptedPayload {

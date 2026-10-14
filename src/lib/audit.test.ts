@@ -337,6 +337,41 @@ describe('audit error handling and edge cases', () => {
       expect(views[0].sessionId).toBe('session-123');
     });
 
+  it('supports logging without navigator and without an edit justification', async () => {
+    const originalNavigator = globalThis.navigator;
+    vi.stubGlobal('navigator', undefined);
+
+    try {
+      await logView('no-navigator', 'patient', 'p1');
+      await logCreate('no-navigator', 'patient', 'p2', { name: 'Ana' });
+      await logUpdate('no-navigator', 'patient', 'p2', { name: 'Ana' }, { name: 'Bia' });
+      await logDelete('no-navigator', 'patient', 'p3', { name: 'Bia' });
+      await logEditCompleted('no-navigator', 's1');
+      await logExport('no-navigator', 'patient', ['p1'], 'csv');
+      await logAuth('no-navigator', 'login');
+
+      const docs = (await firestoreMock.getDocs(
+        firestoreMock.query(firestoreMock.collection({}, 'audit_logs'), firestoreMock.where('actorId', '==', 'no-navigator'))
+      )).docs.map((d) => d.data());
+
+      expect(docs).toHaveLength(7);
+      expect(docs.every((doc) => doc.userAgent === undefined)).toBe(true);
+      expect(docs[4].afterHash).toBeTruthy();
+    } finally {
+      vi.stubGlobal('navigator', originalNavigator);
+    }
+  });
+
+  it('returns an empty cached hash when the newest audit record has no hash', async () => {
+    await firestoreMock.addDoc(firestoreMock.collection({}, 'audit_logs'), {
+      actorId: 'missing-record-hash',
+      timestamp: new Date().toISOString(),
+      hash: undefined,
+    });
+
+    expect(await getLastAuditHash('missing-record-hash')).toBe('');
+  });
+
   it('handles logDelete with complex beforeData', async () => {
     const complexData = { 
       nested: { array: [1, 2, 3], obj: { key: 'value' } },
@@ -389,4 +424,142 @@ describe('audit error handling and edge cases', () => {
     const res = await verifyAuditChain('mismatch-hash');
     expect(res.valid).toBe(false);
   });
-});
+
+    it('handles getLastAuditHash cache hit', async () => {
+      await logEvent({ actorId: 'cache-test', action: 'create', entity: 'patient', entityId: 'p1' });
+      await new Promise((r) => setTimeout(r, 5));
+      await logEvent({ actorId: 'cache-test', action: 'update', entity: 'patient', entityId: 'p1' });
+
+      // First call populates cache
+      const hash1 = await getLastAuditHash('cache-test');
+      // Second call should use cache
+      const hash2 = await getLastAuditHash('cache-test');
+      expect(hash1).toBe(hash2);
+    });
+
+    it('handles getLastAuditHash concurrent calls', async () => {
+      await logEvent({ actorId: 'concurrent-test', action: 'create', entity: 'patient', entityId: 'p1' });
+      await new Promise((r) => setTimeout(r, 5));
+
+      // Multiple concurrent calls should return the same promise
+      const [hash1, hash2, hash3] = await Promise.all([
+        getLastAuditHash('concurrent-test'),
+        getLastAuditHash('concurrent-test'),
+        getLastAuditHash('concurrent-test'),
+      ]);
+      expect(hash1).toBe(hash2);
+      expect(hash2).toBe(hash3);
+    });
+
+    it('handles clearLastHashCache for specific actor', async () => {
+      await logEvent({ actorId: 'clear-cache', action: 'create', entity: 'patient', entityId: 'p1' });
+      await new Promise((r) => setTimeout(r, 5));
+
+      const hash1 = await getLastAuditHash('clear-cache');
+      expect(hash1).not.toBe('0'.repeat(64));
+
+      // Clear cache for this actor
+      const { clearLastHashCache } = await import('./audit');
+      clearLastHashCache('clear-cache');
+
+      // Next call should re-fetch
+      const hash2 = await getLastAuditHash('clear-cache');
+      expect(hash2).toBe(hash1); // Same data, but re-fetched
+    });
+
+    it('handles clearLastHashCache for all actors', async () => {
+      await logEvent({ actorId: 'clear-all-1', action: 'create', entity: 'patient', entityId: 'p1' });
+      await logEvent({ actorId: 'clear-all-2', action: 'create', entity: 'patient', entityId: 'p2' });
+      await new Promise((r) => setTimeout(r, 5));
+
+      const hash1 = await getLastAuditHash('clear-all-1');
+      const hash2 = await getLastAuditHash('clear-all-2');
+      expect(hash1).not.toBe('0'.repeat(64));
+      expect(hash2).not.toBe('0'.repeat(64));
+
+      const { clearLastHashCache } = await import('./audit');
+      clearLastHashCache(); // Clear all
+
+      const hash3 = await getLastAuditHash('clear-all-1');
+      const hash4 = await getLastAuditHash('clear-all-2');
+      expect(hash3).toBe(hash1);
+      expect(hash4).toBe(hash2);
+    });
+
+    it('handles logEvent with ipHint and userAgent', async () => {
+      await logEvent({
+        actorId: 'ip-test',
+        action: 'create',
+        entity: 'patient',
+        entityId: 'p1',
+        ipHint: '192.168.1.xxx',
+        userAgent: 'test-agent'
+      });
+
+      const docs = (await firestoreMock.getDocs(
+        firestoreMock.query(firestoreMock.collection({}, 'audit_logs'), firestoreMock.where('actorId', '==', 'ip-test'))
+      )).docs.map((d) => d.data());
+
+      expect(docs).toHaveLength(1);
+      expect(docs[0].ipHint).toBe('192.168.1.xxx');
+      expect(docs[0].userAgent).toBe('test-agent');
+    });
+
+    it('handles logEvent with beforeData and afterData', async () => {
+      await logEvent({
+        actorId: 'data-test',
+        action: 'update',
+        entity: 'patient',
+        entityId: 'p1',
+        beforeData: { name: 'Old' },
+        afterData: { name: 'New' }
+      });
+
+      const docs = (await firestoreMock.getDocs(
+        firestoreMock.query(firestoreMock.collection({}, 'audit_logs'), firestoreMock.where('actorId', '==', 'data-test'))
+      )).docs.map((d) => d.data());
+
+      expect(docs).toHaveLength(1);
+      expect(docs[0].beforeHash).toBeTruthy();
+      expect(docs[0].afterHash).toBeTruthy();
+    });
+
+    it('handles logEvent with sessionId', async () => {
+      await logEvent({
+        actorId: 'session-test',
+        action: 'update',
+        entity: 'session',
+        entityId: 's1',
+        sessionId: 'session-123'
+      });
+
+      const docs = (await firestoreMock.getDocs(
+        firestoreMock.query(firestoreMock.collection({}, 'audit_logs'), firestoreMock.where('actorId', '==', 'session-test'))
+      )).docs.map((d) => d.data());
+
+      expect(docs).toHaveLength(1);
+      expect(docs[0].sessionId).toBe('session-123');
+    });
+
+    it('handles logExport with sessionId', async () => {
+      await logExport('export-test', 'patient', ['p1', 'p2'], 'csv', 'session-456');
+
+      const exports = (await firestoreMock.getDocs(
+        firestoreMock.query(firestoreMock.collection({}, 'audit_logs'), firestoreMock.where('actorId', '==', 'export-test'))
+      )).docs.map((d) => d.data());
+
+      expect(exports).toHaveLength(1);
+      expect(exports[0].sessionId).toBe('session-456');
+    });
+
+    it('handles logAuth with userAgent', async () => {
+      await logAuth('auth-test', 'login');
+
+      const auths = (await firestoreMock.getDocs(
+        firestoreMock.query(firestoreMock.collection({}, 'audit_logs'), firestoreMock.where('actorId', '==', 'auth-test'))
+      )).docs.map((d) => d.data());
+
+      expect(auths).toHaveLength(1);
+      expect(auths[0].userAgent).toBeDefined();
+    });
+  });

@@ -223,17 +223,14 @@ async function getDB(): Promise<IDBPDatabase<OfflineDBSchema>> {
     upgrade(db) {
       // Create collection stores
       for (const config of STORE_CONFIGS) {
-              const storeName = config.name;
+        const storeName = config.name;
         if (!db.objectStoreNames.contains(storeName)) {
           const store = db.createObjectStore(storeName, { keyPath: config.keyPath });
-          if (config.indexes) {
-            for (const index of config.indexes) {
-                    // Type assertion needed because index names are dynamic
-                    (store as any).createIndex(index.name, index.keyPath, { unique: index.unique });
-                  }
-                }
-              }
-            }
+          for (const index of config.indexes) {
+            (store as any).createIndex(index.name, index.keyPath, { unique: index.unique });
+          }
+        }
+      }
 
       // Metadata store
       if (!db.objectStoreNames.contains(METADATA_STORE)) {

@@ -31,8 +31,13 @@ import { logDataExport } from './export-log';
 async function boot() {
   mockFstore.delegates = makeDelegates(firestoreMock);
   mockDb.value = firestoreMock.getFirestore();
-  firestoreMock.setDriveToken('test-token');
-  await new Promise((r) => setTimeout(r, 15));
+  firestoreMock.setDriveToken(null);
+  for (let attempt = 0; attempt < 100 && !firestoreMock.isLoadedState(); attempt++) {
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+  if (!firestoreMock.isLoadedState()) {
+    throw new Error('Firestore mock failed to finish its initial load');
+  }
 }
 
 beforeEach(async () => {

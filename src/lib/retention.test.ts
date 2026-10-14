@@ -53,6 +53,11 @@ async function seedConsent(data: Record<string, unknown>) {
 
 async function seedPsychologist(psychId: string) {
   await firestoreMock.setDoc(firestoreMock.doc({}, 'psychologists', psychId), { id: psychId, lastRetentionRun: '' });
+  // Ensure the document is properly created
+  const doc = await firestoreMock.getDoc(firestoreMock.doc({}, 'psychologists', psychId));
+  if (!doc.exists()) {
+    throw new Error('Failed to seed psychologist');
+  }
 }
 
 beforeEach(async () => {
