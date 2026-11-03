@@ -11,8 +11,8 @@ on:
         description: "Hunt the diff since this ref"
         required: false
         type: string
-  schedule:
-    - cron: "17 3 * * *"   # off the hour: :00 is contended
+  # schedule:
+  #   - cron: "17 3 * * *"   # off the hour: :00 is contended
   workflow_run:
     workflows: ["Quality gates (PR)"]
     types: [completed]
